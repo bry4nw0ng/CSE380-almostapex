@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Almost Apex - Game Design Document</title>
+</head>
+<body>
+
+<h1>Almost Apex</h1>
+<h2>Game Design Document</h2>
+<p>by Bryan Wong and Braden Switzer</p>
+
+<h2>Introduction</h2>
+<p>This document describes a game called "Almost Apex", which is designed to be a 2.5D side-scrolling roguelike where you play as a hapless blob who refused to evolve properly. The game features randomized accessory drops, four unique biome levels, and boss fights against terrifying animals that make the blob's fake adaptations look even more absurd. The game will employ sprite-based animation, tiled backgrounds, collision detection, physics, AI, side scrolling &amp; gravity, efficient memory management, render threading, and more basic 2D game techniques.</p>
+
+<h2>Technology</h2>
+<p>Almost Apex will be developed for the Windows Platform using the McKilla's Gorilla Wolfie2D game engine, which is a bare-bones engine developed by Richard McKenna for rapid prototyping 2D games. DirectX will be used as the underlying rendering technology. XACT will be used for all music and sound effects management. Artwork will be made through Aseprite.</p>
+
+<h2>Back Story</h2>
+<p>Millions of years ago, when life on Earth began to branch and specialize, organisms evolved with their surroundings. They grew claws, fangs, wings, or whatever they needed to survive. However, one little cell didn't get the memo. While every other creature climbed the evolutionary ladder, this cell just grew bigger into the blob we have today, squishy and completely unevolved.</p>
+<p>Now the world is ruled by apex predators. Ferocious sharks roam the ocean waters, cunning tigers rule the jungle, armored crocodiles lurk in swamps and fearsome eagles dominate the skies. Alone but ambitious, the blob has a brilliant plan. Scavenging accessories, fallen lesser creatures and salvaging random items, the blob sets off to prove you don't need millions of years of evolution… especially when you have string, tape, and a big dream!</p>
+
+<h2>Objective</h2>
+<p>The player's goal is to reach the top of ALL food chains by taking on the apex predators of each of the four biome levels. Between the Ocean, Swamp, Jungle, and Mountain, the blob will defeat enemies and collect randomized accessories along the way. Each level ends with a boss fight against the respective apex predator. The blob must use its scavenged accessories to overcome enemies that should be superior to it. Survive all four biomes and become the apex of apex predators to prove that evolution is overrated.</p>
+
+<h2>Gameplay</h2>
+<p>The game will work/look similar to that of the original Teenage Mutant Ninja Turtles game and/or Don't Starve Together.</p>
+<p>Blob will have to be careful as there are a bunch of different animals all trying to prey on him. However, Blob begins each run with a single weak ability: Slime Spit, a short-range projectile that does minimal damage. The blob is slow, fragile, and in all honesty, pathetic which is the point.</p>
+<p>As the player progresses through each level, they acquire accessories to the game's core power-up system. Accessories are obtained in three ways:</p>
+<ul>
+<li>Enemy drops - defeated enemies may drop an accessory, which act as a common-esque loot drop which minimally impacts the gameplay.</li>
+<li>Environmental finds - hidden chests and discoverable nooks in each level contain accessories, which act as a rare-esque loot drop which can provide different movement and attack options.</li>
+<li>Boss drops - after clearing a boss level, the player is presented with a set selection of accessories from each boss. This drop is a legendary-esque loot drop that should drastically improve Blob's combat performance.</li>
+</ul>
+<p>Each accessory visually attaches to the blob's sprite (strapped on with visible string, tape, or rubber bands) and grants a gameplay-altering ability. Accessories are randomized each run, meaning the blob ends up looking and playing differently every time. By the final boss, the blob is a walking collage of mismatched animal parts.</p>
+<p>Almost Apex follows a roguelike structure, so when Blob dies, the run is over and the player starts fresh. However, not everything is lost. Accessories discovered in previous runs are added to a permanent collection, unlocking them as potential starting abilities for future runs. On the first ever run, Blob begins with only Slime Spit. But after a few runs, the player may choose to start with a different base ability drawn from accessories they've previously found, adding variety and strategy to each new attempt.</p>
+<p>The player must tackle the levels in order: the Mountain, the Swamp, the Ocean, and the Jungle. The game, after each level, will scale enemies for each following level, and once each level is completed, the player may select those levels at any time from Blob's in house map. Since Blob keeps all accessories picked up between levels, each subsequent level compensates by increasing the difficulty. More enemies spawn, enemies become more aggressive, environmental hazards are more frequent, and boss attack patterns become faster and more complex.</p>
+<p>Upon death or completing all four levels, the player is shown a run summary screen displaying accessories collected, enemies defeated, levels cleared, and which boss took them down (if they died). This encourages the player to jump back in and try a different path or a different starting ability.</p>
+
+<h2>Main Menu</h2>
+<p>The main menu will be a small sample of the more open maps contained inside blob's home. Inside of this space holds every function that the regular menu system should hold. There are five of these such functions. If the player interacts with blob's wall map ("2" in the wireframe), blob can access the aforementioned level selection. If the player interacts with the bed (denoted by "3" on the wireframe), the player may exit the game. If the player interacts with the book table ("5" on the wireframe), they may access a book interface that holds the help page, the control page and the about page. Locations "1" and "4" simply represent the type of y-"squish" that blob will receive as he moves further up in the y-direction (towards the door).</p>
+
+<h3>Sample Accessories</h3>
+<table>
+<tr><th>Accessory</th><th>Look</th><th>Ability</th></tr>
+<tr><td>Shark Fin</td><td>Cardboard fin taped to the top of Blob</td><td>Acceleration based speed</td></tr>
+<tr><td>Piranha Jaws</td><td>Denture-like jaws attached to the front of Blob</td><td>New jaw attack</td></tr>
+<tr><td>Rabbit Shoes</td><td>Oversized shoes on the bottom of Blob</td><td>Increased jump height</td></tr>
+</table>
+
+<h2>Controls</h2>
+<p>This game will be played using just a keyboard. Once started, use the following:</p>
+<ul>
+<li>A - Move Left</li>
+<li>D - Move Right</li>
+<li>W - Move Up</li>
+<li>S - Move Down</li>
+<li>I - Primary Attack</li>
+<li>O - Secondary Attack</li>
+<li>P - Tertiary Attack</li>
+<li>SPACE - Jump</li>
+<li>E - Interact</li>
+<li>ESC - This pauses the game and presents a pop-up window to the player asking them to continue when they are ready. If a game is not in progress, ESC does nothing.</li>
+</ul>
+
+<h2>Graphical User Interface</h2>
+
+<h3>Splash Screen</h3>
+<p>The splash screen GUI presents the Almost Apex logo. Upon clicking anywhere, pressing any key, or the intended play button, the player is brought directly into Blob's House.</p>
+
+<h3>Blob's House (Main Menu / Hub)</h3>
+<p>Instead of a traditional menu with buttons, the main menu is Blob's House, a small room viewed from the same 2.5D perspective as the rest of the game. The player controls Blob and walks around interacting with objects by pressing E. Blob returns to this house between every level during a run, with all collected accessories still visible on the sprite. The house contains the following interactable objects:</p>
+<ul>
+<li>Wall Map - Blob's map of the four biomes pinned to the wall. Interacting with it opens the Level Selection screen where the player can choose which biome to tackle next. Completed levels are shown in full color, the next available level is highlighted, and locked levels are grayed out with a lock icon. Selecting a level transitions Blob out the door and into the chosen biome.</li>
+<li>Bed - Interacting with the bed exits the game. Blob tucks in and the screen fades to black.</li>
+<li>Book Table - A table with a large book on it. Interacting with it opens a book-style interface with three tabbed pages: the Help Page (backstory and character descriptions), the Controls Page (full keyboard layout), and the About Page.</li>
+</ul>
+
+<h3>In-Game HUD</h3>
+<p>While gameplay is in progress, the following will be displayed at all times:</p>
+<ul>
+<li>Health bar (top left)</li>
+<li>Currently equipped accessories shown as small icons (below the health bar)</li>
+<li>Pause indicator showing ESC to pause (top right)</li>
+</ul>
+<p>In addition, pressing ESC during gameplay pauses the game and presents a pause overlay with the following options:</p>
+<ul>
+<li>Resume - Unpauses and returns to gameplay.</li>
+<li>Main Menu - Returns the player to Blob's House, ending the current run.</li>
+<li>Help - Brings up the Controls Page (full keyboard layout)</li>
+<li>Exit - Screen fades to black</li>
+</ul>
+
+<h3>Run Summary Screen</h3>
+<p>Upon death or completing all four levels, a run summary screen is displayed showing: accessories collected, enemies defeated, levels cleared, and which boss took Blob down (if the player died). A button returns the player to Blob's House to start a new run.</p>
+
+<h2>Artwork</h2>
+<p>All artwork in the game will be original, created using Aseprite. The following needs to be created:</p>
+
+<h3>Blob (Player Character)</h3>
+<p>A round, blue, gelatinous blob. The base sprite is intentionally simple so that accessories can be visually layered on top. Blob will require animations for:</p>
+<ul>
+<li>Idle (subtle jiggle/bounce)</li>
+<li>Moving right</li>
+<li>Moving left</li>
+<li>Moving up</li>
+<li>Moving down</li>
+<li>Jumping</li>
+<li>Falling</li>
+<li>Slime Spit attack</li>
+<li>Taking damage (flash and recoil)</li>
+<li>Dying (splat and dissolve)</li>
+<li>Celebrating (wiggle/bounce after clearing a level)</li>
+</ul>
+
+<h3>Accessories</h3>
+<p>Each accessory needs a sprite that visually attaches to Blob. All accessories should look hand-made and poorly attached with visible string, tape, or rubber bands. Accessories must layer correctly when multiple are equipped simultaneously. Each accessory with an active ability (such as Piranha Jaws or Rabbit Shoes) will need its own use/activation animation. At minimum, sprites are needed for:</p>
+<ul>
+<li>Shark Fin</li>
+<li>Piranha Jaws</li>
+<li>Rabbit Shoes</li>
+<li>Additional accessories to be determined during development</li>
+</ul>
+
+<h3>Enemies</h3>
+<p>Each biome has its own set of unique enemy types. Each enemy requires animations for:</p>
+<ul>
+<li>Idle</li>
+<li>Moving/patrolling</li>
+<li>Attacking</li>
+<li>Taking damage</li>
+<li>Dying</li>
+</ul>
+
+<h3>Bosses</h3>
+<p>Four boss sprites, one per biome: Shark (Ocean), Crocodile (Swamp), Tiger (Jungle), and Eagle (Mountain). Each boss should be large and intimidating in contrast to Blob. Each boss requires animations for:</p>
+<ul>
+<li>Idle</li>
+<li>Each unique attack pattern (varies per boss)</li>
+<li>Taking damage</li>
+<li>Dying</li>
+</ul>
+
+<h3>Blob's House</h3>
+<p>The interactive main menu room. Art is needed for the room background.</p>
+
+<h3>Biome Tilesets</h3>
+<p>Four complete tilesets, one per biome (Mountain, Swamp, Ocean, Jungle).</p>
+
+<h3>Biome Backgrounds</h3>
+<p>Four parallax scrolling background sets, one per biome, to establish atmosphere and depth. These are non-collidable and sit behind the gameplay layer.</p>
+
+<h3>UI Elements</h3>
+<p>Art is needed for the health bar, accessory icons for the HUD, the run summary screen, and the book interface pages.</p>
+
+<h2>Sound Effects</h2>
+<p>All sound effects will be original. Sounds must be made to coincide with each of the following events:</p>
+<ul>
+<li>Blob jumping and landing</li>
+<li>Slime Spit firing</li>
+<li>Blob taking damage (squelchy, pained sound)</li>
+<li>Blob dying (sad, deflating splat)</li>
+<li>Enemy dying</li>
+<li>Boss entrance (dramatic roar or screech, unique per boss)</li>
+<li>Boss taking damage</li>
+<li>Boss dying</li>
+<li>Chest opening</li>
+<li>Level completion</li>
+<li>Interacting with objects in Blob's House</li>
+</ul>
+
+<h2>Music</h2>
+<p>Each area of the game will have its own background music track to establish atmosphere:</p>
+<ul>
+<li>Blob's House</li>
+<li>Mountain</li>
+<li>Swamp</li>
+<li>Ocean</li>
+<li>Jungle</li>
+<li>Boss Fights</li>
+<li>Run Summary (death)</li>
+<li>Run Summary (victory)</li>
+</ul>
+
+
+<h2>Wireframes</h2>
+<p>Logo</p>
+<img width="50%" src="images/LOGO.png" alt="Logo">
+<p>Splash Screen</p>
+<img width="50%" src="images/Splash Screen.png" alt="Splash Screen">
+<p>Main Menu</p>
+<img width="50%" src="images/Main Menu.png" alt="Main Menu">
+<p>Levels Selection Screen</p>
+<img width="50%" src="images/Levels Selection Screen.png" alt="Levels Selection Screen">
+<p>Controls Screen</p>
+<img width="50%" src="images/Controls Screen.png" alt="Controls Screen">
+<p>Help Screen</p>
+<img width="50%" src="images/Help Screen.png" alt="Help Screen">
+<p>In-Game Screen</p>
+<img width="50%" src="images/In-Game Screen.png" alt="In-Game Screen">
+
+</body>
+</html>
