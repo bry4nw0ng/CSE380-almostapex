@@ -1,0 +1,23 @@
+{
+  "name": "cse380-almostapex",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/bry4nw0ng/CSE380-almostapex#readme",
+  "bugs": {
+    "url": "https://github.com/bry4nw0ng/CSE380-almostapex/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bry4nw0ng/CSE380-almostapex.git"
+  },
+  "license": "ISC",
+  "author": "Braden Switzer, Bryan Wong",
+  "type": "commonjs",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "firebase": "^12.11.0"
+  }
+}
