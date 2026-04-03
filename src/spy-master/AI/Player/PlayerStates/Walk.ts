@@ -1,7 +1,7 @@
-import { PlayerStates, PlayerAnimations } from "../PlayerController";
+import { PlayerAnimations } from "../PlayerAnimations";
+import PlayerState, { PlayerStates } from "./PlayerState";
 import Input from "../../../../Wolfie2D/Input/Input";
 import { AAControls } from "../../../AAControls";//IMPORTANT PLAYERSTATE
-import PlayerState from "./PlayerState";
 
 export default class Walk extends PlayerState {
 

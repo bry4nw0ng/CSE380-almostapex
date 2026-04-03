@@ -8,22 +8,23 @@ import Hurt from "./PlayerStates/Hurt";
 import Dying from "./PlayerStates/Dying";
 import Dead from "./PlayerStates/Dead";
 
-import PlayerState from "./PlayerStates/PlayerState";
 import PlayerWeapon from "./PlayerWeapon";
 import Input from "../../../Wolfie2D/Input/Input";
 
-import { AAControls } from "../../AAControls";//IMPORTANT PLAYERSTATE
+import { AAControls } from "../../AAControls";
 import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
 import { AAEvents } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
+import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
 
-
+import { PlayerAnimations } from "./PlayerAnimations";
+import PlayerState, { PlayerStates } from "./PlayerStates/PlayerState";
 /**
  * Animation keys for the player spritesheet
- */
-export const PlayerAnimations = {
+ *
+export const PlayerAnimations = {//IMPORTANT FIX ANIMATION DIRECTION SITUATION
     IDLE: "IDLE",
     WALK_LEFT: "WALKING_LEFT",
     WALK_RIGHT: "WALKING_RIGHT",
@@ -34,7 +35,7 @@ export const PlayerAnimations = {
     DYING: "DYING",
     DEAD: "DEAD"
 } as const
-
+*/
 /**
  * Tween animations the player can player.
 
@@ -45,7 +46,7 @@ export const PlayerTweens = {
 */
 /**
  * Keys for the states the PlayerController can be in.
- */
+
 export const PlayerStates = {
     IDLE: "IDLE",
     WALK: "WALK",
@@ -53,11 +54,11 @@ export const PlayerStates = {
     DYING: "DYING",
     DEAD: "DEAD",
 } as const
-
+*/
 /**
  * The controller that controls the player.
  */
-export default class PlayerController extends StateMachineAI {
+export default class PlayerController extends StateMachineAI implements AI{
     public readonly MAX_SPEED: number = 200;
     public readonly MIN_SPEED: number = 100;
 
@@ -77,13 +78,14 @@ export default class PlayerController extends StateMachineAI {
 
     protected iTimer: Timer;
 
+
     public initializeAI(owner: AAAnimatedSprite, options: Record<string, any>){
         this.owner = owner;
 
-        this.weapon = options.weaponSystem;
+        //this.weapon = options.weaponSystem;
         this.iTimer = new Timer(1000, () => this.changeState(PlayerStates.IDLE));
 
-        this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
+        //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         this.speed = 400;
         this.velocity = Vec2.ZERO;
 
@@ -95,7 +97,6 @@ export default class PlayerController extends StateMachineAI {
 		this.addState(PlayerStates.IDLE, new Idle(this, this.owner));
 		this.addState(PlayerStates.WALK, new Walk(this, this.owner));
         this.addState(PlayerStates.DEAD, new Dead(this, this.owner));
-        /*My states*/
         this.addState(PlayerStates.DYING, new Dying(this, this.owner));
         this.addState(PlayerStates.HURT, new Hurt(this, this.owner));
         
@@ -111,7 +112,7 @@ export default class PlayerController extends StateMachineAI {
 		direction.x = (Input.isPressed(AAControls.MOVE_LEFT) ? -1 : 0) + (Input.isPressed(AAControls.MOVE_RIGHT) ? 1 : 0);
 		direction.y = (Input.isPressed(AAControls.MOVE_UP) ? -1 : 0) + (Input.isPressed(AAControls.MOVE_DOWN) ? 1 : 0);
 
-		return direction;
+		return direction.normalize();
     }
     /** 
      * Gets the direction of the mouse from the player's position as a Vec2

@@ -20,7 +20,7 @@ import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
-import PlayerAI from "../AI/Player/PlayerController";
+import { AAControls } from "../AAControls";
 import { ItemEvent, PlayerEvent, BattlerEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
@@ -35,6 +35,7 @@ import BasicTargetable from "../GameSystems/Targeting/BasicTargetable";
 import Position from "../GameSystems/Targeting/Position";
 import AstarStrategy from "../Pathfinding/AstarStrategy";
 import SMScene from "./SMScene";
+import PlayerController from "../AI/Player/PlayerController";
 
 const BattlerGroups = {
     RED: 1,
@@ -256,7 +257,7 @@ export default class MainSMScene extends SMScene {
         this.healthbars.set(player.id, healthbar);
 
         // Give the player PlayerAI
-        player.addAI(PlayerAI);
+        player.addAI(PlayerController);
 
         // Start the player in the "IDLE" animation
         player.animation.play("IDLE");

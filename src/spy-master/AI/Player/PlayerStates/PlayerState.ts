@@ -7,6 +7,14 @@ import PlayerController from "../PlayerController";
 /**
  * An abstract state for the PlayerController 
  */
+export enum PlayerStates {
+    IDLE = "IDLE",
+    WALK = "WALK",
+    HURT = "HURT",
+    DYING = "DYING",
+    DEAD = "DEAD",
+};
+
 export default abstract class PlayerState extends State {
 
     protected parent: PlayerController;
