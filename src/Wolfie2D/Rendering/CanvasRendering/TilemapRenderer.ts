@@ -34,7 +34,6 @@ export default class TilemapRenderer {
      * @param tilemap The tilemap to render
      */
     renderTilemap(tilemap: Tilemap): void {
-        console.log("Rendering tilemap:", tilemap);
         let previousAlpha = this.ctx.globalAlpha;
         this.ctx.globalAlpha = tilemap.getLayer().getAlpha();
         

@@ -1,6 +1,6 @@
 import Game from "./Wolfie2D/Loop/Game";
 import MainMenu from "./spy-master/Scenes/MainMenu";
-import { PlayerInput } from "./spy-master/AI/Player/PlayerController";
+import { AAControls } from "./spy-master/AAControls";
 
 // The main function is your entrypoint into Wolfie2D. Specify your first scene and any options here.
 (function main(){
@@ -12,12 +12,12 @@ import { PlayerInput } from "./spy-master/AI/Player/PlayerController";
         canvasSize: {x: 1024, y: 1024},          // The size of the game
         clearColor: {r: 0.1, g: 0.1, b: 0.1},   // The color the game clears to
         inputs: [
-            {name: PlayerInput.MOVE_UP, keys: ["w"]},
-            {name: PlayerInput.MOVE_DOWN, keys: ["s"]},
-            {name: PlayerInput.MOVE_LEFT, keys: ["a"]},
-            {name: PlayerInput.MOVE_RIGHT, keys: ["d"]},
-            {name: PlayerInput.PICKUP_ITEM, keys: ["e"]},
-            {name: PlayerInput.DROP_ITEM, keys: ["q"]},
+            {name: AAControls.MOVE_UP, keys: ["w"]},
+            {name: AAControls.MOVE_DOWN, keys: ["s"]},
+            {name: AAControls.MOVE_LEFT, keys: ["a"]},
+            {name: AAControls.MOVE_RIGHT, keys: ["d"]},
+            //{name: AAControls.PICKUP_ITEM, keys: ["e"]},
+           // {name: AAControls.DROP_ITEM, keys: ["q"]},
             {name: "slot1", keys: ["1"]},
             {name: "slot2", keys: ["2"]},
         ],

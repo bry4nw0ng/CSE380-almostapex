@@ -1,32 +1,41 @@
-import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
-import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
-import { PlayerAnimationType, PlayerStateType } from "./PlayerState";
+import { PlayerStates, PlayerAnimations } from "../PlayerController";
 import PlayerState from "./PlayerState";
+import Input from "../../../../Wolfie2D/Input/Input";
+import { AAControls } from "../../../AAControls";
 
 export default class Idle extends PlayerState {
 
-    public override onEnter(options: Record<string, any>): void {
-        this.parent.owner.animation.playIfNotAlready(PlayerAnimationType.IDLE, true);
-    }
+	public onEnter(options: Record<string, any>): void {
+        this.owner.animation.play(PlayerAnimations.IDLE);
+		this.parent.speed = this.parent.MIN_SPEED;
+        this.parent.velocity.x = 0;
+        this.parent.velocity.y = 0;
+	}
 
-    public override handleInput(event: GameEvent): void {
-        switch(event.type) {
-            default: {
-                super.handleInput(event);
-                break;
-            }
+	public update(deltaT: number): void {
+        // Adjust the direction the player is facing
+		super.update(deltaT);
+
+        // Get the direction of the player's movement
+		let dir = this.parent.inputDir;
+
+        if (this.parent.health <= 0) {
+            this.finished(PlayerStates.DYING);
         }
-    }
-
-    public override update(deltaT: number): void {
-        super.update(deltaT);
-        if (!this.parent.controller.moveDir.equals(Vec2.ZERO)) {
-            this.finished(PlayerStateType.MOVING);
+        // If the player is moving along the x-axis, transition to the walking state
+		else if (!dir.isZero() && dir.y === 0){
+			this.finished(PlayerStates.WALK);
+		} 
+        // Otherwise, do nothing (keep idling)
+        else {
+            // Move the player
+            this.owner.move(this.parent.velocity.scaled(deltaT));
         }
-    }
+		
+	}
 
-    public override onExit(): Record<string, any> { 
-        return {}; 
-    }
-    
+	public onExit(): Record<string, any> {
+		this.owner.animation.stop();
+		return {};
+	}
 }

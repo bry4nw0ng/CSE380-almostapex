@@ -20,7 +20,7 @@ import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
-import PlayerAI from "../AI/Player/PlayerAI";
+import PlayerAI from "../AI/Player/PlayerController";
 import { ItemEvent, PlayerEvent, BattlerEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
@@ -78,7 +78,7 @@ export default class MainSMScene extends SMScene {
      */
     public override loadScene() {
         // Load the player and enemy spritesheets
-        this.load.spritesheet("player1", "game_assets/spritesheets/player1.json");
+        this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
 
         // Load in the enemy sprites
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
@@ -112,11 +112,22 @@ export default class MainSMScene extends SMScene {
 
         // Get the wall layer LOOKAT: Changed to [0] from [1]
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
-
+        let midCol = Math.floor(this.walls.getDimensions().x / 2);
+        let midRow = Math.floor(this.walls.getDimensions().y / 2);
+        let midMap = new Vec2(midCol, midRow);
+        let centerMap = this.walls.getWorldPosition(midCol, midRow);
+        this.viewport.setCenter(centerMap!.x, centerMap!.y);
         // Set the viewport bounds to the tilemap
-        let tilemapSize: Vec2 = this.walls.size;
+        //let tilemapSize: Vec2 = this.walls.size;
 
-        this.viewport.setBounds(0, 0, tilemapSize.x, tilemapSize.y);
+        this.viewport.setBounds(
+            -this.walls.size.x,
+            -this.walls.size.y,
+            this.walls.size.x * 2,
+            this.walls.size.y * 2
+        );
+
+        //this.viewport.setBounds(0, 0, tilemapSize.x, tilemapSize.y);
         this.viewport.setZoomLevel(2);
 
         this.initLayers();
@@ -125,10 +136,11 @@ export default class MainSMScene extends SMScene {
         this.initializePlayer();
         this.initializeItems();
 
-        this.initializeNavmesh();
+        
+        this.initializeNavmesh(new PositionGraph(), this.walls);
 
         // Create the NPCS
-        this.initializeNPCs();
+        //this.initializeNPCs();
 
         // Subscribe to relevant events
         this.receiver.subscribe("healthpack");
@@ -219,7 +231,10 @@ export default class MainSMScene extends SMScene {
      */
     protected initializePlayer(): void {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
-        player.position.set(27, 26);
+        let centerCol = Math.floor(this.walls.getDimensions().x / 2);
+        let centerRow = Math.floor(this.walls.getDimensions().y / 2);
+        let centerPos = new Vec2(centerCol, centerRow);
+        player.position.copy(this.walls.getWorldPosition(centerPos.x, centerPos.y)!);
         player.battleGroup = 2;
 
         player.health = 10;
@@ -381,15 +396,15 @@ export default class MainSMScene extends SMScene {
      * go for it.
      * 
      */
-    protected initializeNavmesh(): void {
+    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
         // Create the graph
         this.graph = new PositionGraph();
 
         let dim: Vec2 = this.walls.getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
-                let tile: AABB = this.walls.getTileCollider(j, i);
-                this.graph.addPositionedNode(tile.center);
+                let pos: Vec2 = walls.getWorldPosition(j, i);
+                graph.addPositionedNode(pos);
             }
         }
 

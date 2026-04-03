@@ -4,12 +4,13 @@
         /* Visit https://aka.ms/tsconfig to read more about this file */
         "target": "es2016",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
         "module": "commonjs",                                /* Specify what module code is generated. */
-        "resolveJsonModule": true,                        /* Enable importing .json files. */
+        "resolveJsonModule": true,    /* Enable importing .json files. */
+        "rootDir": "./src",                    
         "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
         "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
         "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
-        "skipLibCheck": true,                               /* Skip type checking all .d.ts files. */
-        //"strict": false
+        "skipLibCheck": true,                              /* Skip type checking all .d.ts files. */
+        "strict": false
         /* Projects */
         // "incremental": true,                              /* Save .tsbuildinfo files to allow for incremental compilation of projects. */
         // "composite": true,                                /* Enable constraints that allow a TypeScript project to be used with project references. */

@@ -1,15 +1,21 @@
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
+import { PlayerAnimations, PlayerStates } from "../PlayerController";
 import PlayerState from "./PlayerState";
-import { AAEvents } from "../../../Events";
+
+import Timer from "../../../../Wolfie2D/Timing/Timer";
 /**
  * The Dead state for the player's FSM AI. 
  */
-export default class Dead extends PlayerState {
-
+export default class Hurt extends PlayerState {
+    protected hTimer: Timer;
+    
     // Trigger the player's death animation when we enter the dead state
     public onEnter(options: Record<string, any>): void {
-        this.emitter.fireEvent(AAEvents.PLAYER_DEAD);
-    }
+        this.owner.animation.play("DAMAGE_RIGHT", false);
+        this.hTimer = new Timer(1000, () => this.finished(PlayerStates.IDLE));
+
+        this.hTimer.start();
+    }  
 
     // Ignore all events from the rest of the game
     public handleInput(event: GameEvent): void {}
