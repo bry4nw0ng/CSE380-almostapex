@@ -88,7 +88,8 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
-        this.speed = 400;
+        //this.speed = 400;
+        this.speed = 800;
         this.velocity = Vec2.ZERO;
 
         this.health = 5

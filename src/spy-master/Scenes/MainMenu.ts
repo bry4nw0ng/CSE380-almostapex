@@ -48,8 +48,9 @@ export default class MainMenu extends Scene {
             this.handleEvent(this.receiver.getNextEvent());
         }
     }
-
     public handleEvent(event: GameEvent): void {
+        console.log("MainSMScene:", MainSMScene);
+        console.log("AstarDemoScene:", AstarDemoScene);
         switch(event.type) {
             case "play": {
                 this.sceneManager.changeToScene(MainSMScene);

@@ -111,15 +111,12 @@ export default class MainSMScene extends SMScene {
         // Add in the tilemap
         let tilemapLayers = this.add.tilemap("level");
 
-        // Get the wall layer LOOKAT: Changed to [0] from [1]
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
         let midRow = Math.floor(this.walls.getDimensions().y / 2);
         let midMap = new Vec2(midCol, midRow);
         let centerMap = this.walls.getWorldPosition(midCol, midRow);
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
-        // Set the viewport bounds to the tilemap
-        //let tilemapSize: Vec2 = this.walls.size;
 
         this.viewport.setBounds(
             -this.walls.size.x,
@@ -128,8 +125,7 @@ export default class MainSMScene extends SMScene {
             this.walls.size.y * 2
         );
 
-        //this.viewport.setBounds(0, 0, tilemapSize.x, tilemapSize.y);
-        this.viewport.setZoomLevel(2);
+        this.viewport.setZoomLevel(3);
 
         this.initLayers();
         
@@ -250,7 +246,7 @@ export default class MainSMScene extends SMScene {
         });
 
         // Give the player physics
-        player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)));
+        player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         player.scale.set(0.25, 0.25); //IMPORTANT Only do this for 32x32
 
         // Give the player a healthbar
