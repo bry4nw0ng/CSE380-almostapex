@@ -1,7 +1,9 @@
 import { PlayerAnimations } from "../PlayerAnimations";
-import PlayerState, { PlayerStates } from "./PlayerState";
+import PlayerState from "./PlayerState";
 import Input from "../../../../Wolfie2D/Input/Input";
 import { AAControls } from "../../../AAControls";//IMPORTANT PLAYERSTATE
+
+import { AAPlayerStates } from "./AAPlayerStates";
 
 export default class Walk extends PlayerState {
 
@@ -32,7 +34,7 @@ export default class Walk extends PlayerState {
 
         // If the player is not moving - transition to the Idle state
 		if(dir.isZero()){
-			this.finished(PlayerStates.IDLE);
+			this.finished(AAPlayerStates.IDLE);
 		} 
         // Otherwise, move the player
         else {

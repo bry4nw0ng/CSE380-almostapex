@@ -8,19 +8,21 @@ import Hurt from "./PlayerStates/Hurt";
 import Dying from "./PlayerStates/Dying";
 import Dead from "./PlayerStates/Dead";
 
-import PlayerWeapon from "./PlayerWeapon";
+//import PlayerWeapon from "./PlayerWeapon";
 import Input from "../../../Wolfie2D/Input/Input";
 
 import { AAControls } from "../../AAControls";
-import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
+//import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
 import { AAEvents } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
 
+import PlayerState from "./PlayerStates/PlayerState";
 import { PlayerAnimations } from "./PlayerAnimations";
-import PlayerState, { PlayerStates } from "./PlayerStates/PlayerState";
+import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
+import PlayerActor from "../../Actors/PlayerActor";
 /**
  * Animation keys for the player spritesheet
  *
@@ -67,23 +69,23 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected _maxHealth: number;
 
     /** The players game node */
-    protected owner: AAAnimatedSprite;
+    protected owner: PlayerActor;
 
     protected _velocity: Vec2;
 	protected _speed: number;
 
-    protected tilemap: OrthogonalTilemap;
+    //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
-    protected weapon: PlayerWeapon;
+    //protected weapon: PlayerWeapon;
 
     protected iTimer: Timer;
 
 
-    public initializeAI(owner: AAAnimatedSprite, options: Record<string, any>){
+    public initializeAI(owner: PlayerActor, options: Record<string, any>){
         this.owner = owner;
 
         //this.weapon = options.weaponSystem;
-        this.iTimer = new Timer(1000, () => this.changeState(PlayerStates.IDLE));
+        this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         this.speed = 400;
@@ -94,14 +96,14 @@ export default class PlayerController extends StateMachineAI implements AI{
 
         
         // Add the different states the player can be in to the PlayerController 
-		this.addState(PlayerStates.IDLE, new Idle(this, this.owner));
-		this.addState(PlayerStates.WALK, new Walk(this, this.owner));
-        this.addState(PlayerStates.DEAD, new Dead(this, this.owner));
-        this.addState(PlayerStates.DYING, new Dying(this, this.owner));
-        this.addState(PlayerStates.HURT, new Hurt(this, this.owner));
+		this.addState(AAPlayerStates.IDLE, new Idle(this, this.owner));
+		this.addState(AAPlayerStates.WALK, new Walk(this, this.owner));
+        this.addState(AAPlayerStates.DEAD, new Dead(this, this.owner));
+        this.addState(AAPlayerStates.DYING, new Dying(this, this.owner));
+        this.addState(AAPlayerStates.HURT, new Hurt(this, this.owner));
         
         // Start the player in the Idle state
-        this.initialize(PlayerStates.IDLE);
+        this.initialize(AAPlayerStates.IDLE);
     }
 
     /** 
@@ -123,7 +125,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 		super.update(deltaT);
 
         // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
-        if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
+        /*if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
             // Start the particle system at the player's current position
             this.weapon.startSystem(500, 0, this.owner.position);
 
@@ -143,7 +145,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                 this.iTimer.start();
             }
             }
-            
+            */
             
     }
 
@@ -170,7 +172,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.emitter.fireEvent(AAEvents.HEALTH_CHANGE, {curhp: this.health, maxhp: this.maxHealth});
         // If the health hit 0, change the state of the player
         if (this.health === 0) { 
-            this.changeState(PlayerStates.DYING);
+            this.changeState(AAPlayerStates.DYING);
         }
 
 }

@@ -1,27 +1,24 @@
 import State from "../../../../Wolfie2D/DataTypes/State/State";
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
-import MathUtils from "../../../../Wolfie2D/Utils/MathUtils";
-import AAAnimatedSprite from "../../../Node/AAAnimatedSprite"; //IMPORTANT PLAYERSTATE
+//import MathUtils from "../../../../Wolfie2D/Utils/MathUtils";
+//import AAAnimatedSprite from "../../../Node/AAAnimatedSprite"; //IMPORTANT PLAYERSTATE
 import PlayerController from "../PlayerController";
+import PlayerActor from "../../../Actors/PlayerActor";
 
 /**
  * An abstract state for the PlayerController 
  */
-export enum PlayerStates {
-    IDLE = "IDLE",
-    WALK = "WALK",
-    HURT = "HURT",
-    DYING = "DYING",
-    DEAD = "DEAD",
-};
+
 
 export default abstract class PlayerState extends State {
 
     protected parent: PlayerController;
-	protected owner: AAAnimatedSprite;
+	//protected owner: AAAnimatedSprite;
+    protected owner: PlayerActor;
 	protected gravity: number;
 
-	public constructor(parent: PlayerController, owner: AAAnimatedSprite){
+	//public constructor(parent: PlayerController, owner: AAAnimatedSprite){
+    public constructor(parent: PlayerController, owner: PlayerActor) {
 		super(parent);
 		this.owner = owner;
 	}

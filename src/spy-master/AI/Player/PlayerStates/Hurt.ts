@@ -1,6 +1,7 @@
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
 import { PlayerAnimations } from "../PlayerAnimations";
-import PlayerState, { PlayerStates } from "./PlayerState";
+import PlayerState from "./PlayerState";
+import { AAPlayerStates } from "./AAPlayerStates";
 
 
 import Timer from "../../../../Wolfie2D/Timing/Timer";
@@ -13,7 +14,7 @@ export default class Hurt extends PlayerState {
     // Trigger the player's death animation when we enter the dead state
     public onEnter(options: Record<string, any>): void {
         this.owner.animation.play("DAMAGE_RIGHT", false);
-        this.hTimer = new Timer(1000, () => this.finished(PlayerStates.IDLE));
+        this.hTimer = new Timer(1000, () => this.finished(AAPlayerStates.IDLE));
 
         this.hTimer.start();
     }  

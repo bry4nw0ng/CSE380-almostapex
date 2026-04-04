@@ -3,7 +3,7 @@ import ParticleSystem from "../../../Wolfie2D/Rendering/Animations/ParticleSyste
 import Color from "../../../Wolfie2D/Utils/Color";
 import { EaseFunctionType } from "../../../Wolfie2D/Utils/EaseFunctions";
 import RandUtils from "../../../Wolfie2D/Utils/RandUtils";
-import { AAPhysicsGroups } from "../../../spy-master/AAPhysicsGroups";//IMPORTANT PLAYERSTATE
+//import { AAPhysicsGroups } from "../../../spy-master/AAPhysicsGroups";//IMPORTANT PLAYERSTATE
 import { AAEvents } from "../../Events";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
@@ -66,7 +66,7 @@ export default class PlayerWeapon extends ParticleSystem {
         super.initializePool(scene, layer);
         for (let i = 0; i < this.particlePool.length; i++) {
             // Set particle physics group to the player's weapon
-            this.particlePool[i].setGroup(AAPhysicsGroups.PLAYER_WEAPON);
+            //this.particlePool[i].setGroup(AAPhysicsGroups.PLAYER_WEAPON);
         }
     }
 

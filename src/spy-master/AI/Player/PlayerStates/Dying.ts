@@ -1,8 +1,9 @@
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
 import { PlayerAnimations } from "../PlayerAnimations";
-import PlayerState, { PlayerStates } from "./PlayerState";
+import PlayerState from "./PlayerState";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
 import { GameEventType } from "../../../../Wolfie2D/Events/GameEventType";
+import { AAPlayerStates } from "./AAPlayerStates";
 /**
  * The Dead state for the player's FSM AI. 
  */

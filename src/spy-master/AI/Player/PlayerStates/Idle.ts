@@ -1,7 +1,8 @@
 import { PlayerAnimations } from "../PlayerAnimations";
-import PlayerState, { PlayerStates } from "./PlayerState";
+import PlayerState from "./PlayerState";
 import Input from "../../../../Wolfie2D/Input/Input";
 import { AAControls } from "../../../AAControls";
+import { AAPlayerStates } from "./AAPlayerStates";
 
 export default class Idle extends PlayerState {
 
@@ -20,11 +21,11 @@ export default class Idle extends PlayerState {
 		let dir = this.parent.inputDir;
 
         if (this.parent.health <= 0) {
-            this.finished(PlayerStates.DYING);
+            this.finished(AAPlayerStates.DYING);
         }
         // If the player is moving along the x-axis, transition to the walking state
-		else if (!dir.isZero() && dir.y === 0){
-			this.finished(PlayerStates.WALK);
+		else if (!dir.isZero()){
+			this.finished(AAPlayerStates.WALK);
 		} 
         // Otherwise, do nothing (keep idling)
         else {
