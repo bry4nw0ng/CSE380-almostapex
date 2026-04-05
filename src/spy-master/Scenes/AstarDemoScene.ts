@@ -26,7 +26,7 @@ export default class AStarDemoScene extends Scene {
     protected walls: IsometricTilemap;
 
     public loadScene(): void {
-        this.load.tilemap("level", "game_assets/tilemaps/practice-two-iso.json");
+        this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
     }
 
@@ -46,7 +46,7 @@ export default class AStarDemoScene extends Scene {
             this.walls.size.x * 2,
             this.walls.size.y * 2
         );
-        this.viewport.setZoomLevel(3);
+        this.viewport.setZoomLevel(0.5);
         this.addLayer("primary", 10);
 
         // Initialize a navmesh covering the tilemap

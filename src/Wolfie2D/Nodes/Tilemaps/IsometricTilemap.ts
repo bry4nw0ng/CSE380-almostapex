@@ -72,7 +72,6 @@ export default class IsometricTilemap extends Tilemap {
     }
 
     public override getTileCollider(col: number, row: number): Shape {
-        console.log("getTileCollider called", col, row);
         let tileSize = this.getScaledTileSize();
         let hWidth = tileSize.x / 2;
         let hHeight = tileSize.y / 2;

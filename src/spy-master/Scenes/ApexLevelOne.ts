@@ -19,7 +19,7 @@ export default class ApexLevelOne extends Scene {
     protected walls: IsometricTilemap;
 
         public loadScene(): void {
-            this.load.tilemap("level", "game_assets/tilemaps/practice-two-iso.json");
+            this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
             this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
 
             this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");

@@ -50,7 +50,8 @@ export default class TilemapRenderer {
                     // Get the tile at this position
                     let tile = tilemap.getTile(col, row);
 
-                    // Extract the rot/flip parameters if there are any
+                    if(tile === 0) continue;  // 0 = empty, real tiles start at 1
+
                     const mask = (0xE << 28);
                     const rotFlip = ((mask & tile) >> 28) & 0xF;
                     tile = tile & ~mask;
@@ -100,7 +101,6 @@ export default class TilemapRenderer {
 
         // Calculate the position in the world to render the tile
         let worldPosition = tilemap.getWorldPosition(tilemapCol, tilemapRow);
-        console.log("tile:", tilemapCol, tilemapRow, "worldPosition:", worldPosition);
 
         let worldX = Math.floor((worldPosition.x - origin.x)*zoom);
         let worldY = Math.floor((worldPosition.y - origin.y)*zoom);

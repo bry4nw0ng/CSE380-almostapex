@@ -88,7 +88,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
 
         // Load the tilemap
-        this.load.tilemap("level", "game_assets/tilemaps/practice-two-iso.json");
+        this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
         this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
 
         // Load the enemy locations
