@@ -88,7 +88,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
 
         // Load the tilemap
-        this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
+        this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
         this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
 
         // Load the enemy locations
@@ -111,12 +111,17 @@ export default class MainSMScene extends SMScene {
         // Add in the tilemap
         let tilemapLayers = this.add.tilemap("level");
 
+        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[0].setDepth(0); // Floor  
+        tilemapLayers[1].setDepth(1); // Wall
+        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
+
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
         let midRow = Math.floor(this.walls.getDimensions().y / 2);
         let midMap = new Vec2(midCol, midRow);
         let centerMap = this.walls.getWorldPosition(midCol, midRow);
-        this.viewport.setCenter(centerMap!.x, centerMap!.y);
+        //this.viewport.setCenter(centerMap!.x, centerMap!.y);
 
         this.viewport.setBounds(
             -this.walls.size.x,
@@ -125,7 +130,7 @@ export default class MainSMScene extends SMScene {
             this.walls.size.y * 2
         );
 
-        this.viewport.setZoomLevel(3);
+        this.viewport.setZoomLevel(2);
 
         this.initLayers();
         
@@ -151,6 +156,11 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(PlayerEvent.PLAYER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
+        this.viewport.setCenter(centerMap!.x, centerMap!.y);
+        this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
+        for(let i = 0; i < 50; i++){
+            this.viewport.update(0.016);
+        }
     }
     /**
      * @see Scene.updateScene
@@ -213,7 +223,7 @@ export default class MainSMScene extends SMScene {
 
     /** Initializes the layers in the scene */
     protected initLayers(): void {
-        this.addLayer("primary", 10);
+        this.addLayer("primary", 3); //Trying to make player render behind overlayed walls
         this.addUILayer("slots");
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);

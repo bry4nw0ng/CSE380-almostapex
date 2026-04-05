@@ -4,7 +4,7 @@
      "export":
         {
          "format":"json",
-         "target":"city-map-final.json"
+         "target":"city-map-revised.tmj"
         }
     },
  "height":64,

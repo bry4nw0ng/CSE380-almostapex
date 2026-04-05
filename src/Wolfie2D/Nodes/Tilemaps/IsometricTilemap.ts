@@ -11,7 +11,7 @@ export default class IsometricTilemap extends Tilemap {
     //public getMinColRow(region: AABB): Vec2 {
       //  return new Vec2(0, 0);
     //}
-    
+    /*
     public override getMinColRow(region: AABB): Vec2 {
         let left = region.left;
         let top = region.top;
@@ -29,11 +29,11 @@ export default class IsometricTilemap extends Tilemap {
         row = MathUtils.clamp(row, 0, this.numRows - 1);
         
         return new Vec2(col, row);
-    }
+    }*/
     //public getMaxColRow(region: AABB): Vec2 {
       //  return new Vec2(this.numCols, this.numRows);
     //}
-    
+    /*
     public override getMaxColRow(region: AABB): Vec2 {
         let right = region.right;
         let bottom = region.bottom;
@@ -50,14 +50,21 @@ export default class IsometricTilemap extends Tilemap {
         row = MathUtils.clamp(row, 0, this.numRows - 1);
         
         return new Vec2(col, row);
+    }*/
+    public override getMinColRow(region: AABB): Vec2 {
+        return new Vec2(0, 0);
+    }
+
+    public override getMaxColRow(region: AABB): Vec2 {
+        return new Vec2(this.numCols - 1, this.numRows - 1);
     }
     public override getWorldPosition(col: number, row: number): Vec2 {
         if (col < 0 || col > this.numCols || row < 0 || row > this.numRows) {
             return Vec2.ZERO;
         }
-        let x = Math.floor(this.scale.x * this.tileSize.x / 2 * (col - row));
-        let y = Math.floor(this.scale.y * this.tileSize.y / 2 * (col + row));
-        
+        let x = (this.scale.x * this.tileSize.x / 2 * (col - row));
+        let y = (this.scale.y * this.tileSize.y / 2 * (col + row));
+
         return new Vec2(x, y);
     }
  
@@ -90,11 +97,18 @@ export default class IsometricTilemap extends Tilemap {
  
         this.tileSize.set(tilemapData.tilewidth, tilemapData.tileheight);
  
-        this.size.set(this.numCols * this.tileSize.x, this.numRows * this.tileSize.y);
-        this.position.copy(this.size.scaled(0.5));
+        //this.size.set(this.numCols * this.tileSize.x, this.numRows * this.tileSize.y);
+        //this.position.copy(this.size.scaled(0.5));
+        this.size.set((this.numCols + this.numRows) * this.tileSize.x / 2, 
+        (this.numCols + this.numRows) * this.tileSize.y / 2);
+        this.position.set(0, 0);
         this.data = layer.data;
         this.visible = layer.visible;
- 
+        
+        if(layer.opacity !== undefined){
+            this.alpha = layer.opacity;
+        }
+
         this.isCollidable = false;
         if(layer.properties){
             for(let item of layer.properties){

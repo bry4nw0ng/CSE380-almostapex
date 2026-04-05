@@ -37,7 +37,7 @@ export default class Tileset {
         this.numCols = tiledData.columns;
         this.startIndex = tiledData.firstgid;
         this.endIndex = this.startIndex + tiledData.tilecount - 1;
-        this.tileSize = new Vec2(tiledData.tilewidth, tiledData.tilewidth);
+        this.tileSize = new Vec2(tiledData.tilewidth, tiledData.tileheight);
         this.imageKey = tiledData.image;
         this.imageSize = new Vec2(tiledData.imagewidth, tiledData.imageheight);
     }

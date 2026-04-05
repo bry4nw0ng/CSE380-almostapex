@@ -24,7 +24,6 @@ export enum TilemapOrientation {
  * A factory that abstracts adding @reference[Tilemap]s to the @reference[Scene].
  * Access methods in this factory through Scene.add.[methodName]().
  */
-console.log("IsometricTilemap:", IsometricTilemap);
 export default class TilemapFactory {
     private scene: Scene;
     private tilemaps: Array<Tilemap>;

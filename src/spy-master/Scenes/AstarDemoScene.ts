@@ -26,27 +26,41 @@ export default class AStarDemoScene extends Scene {
     protected walls: IsometricTilemap;
 
     public loadScene(): void {
-        this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
+        this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
     }
 
     public startScene(): void {
         let tilemapLayers = this.add.tilemap("level");
 
+        //(tilemapLayers[0].getItems()[0] as IsometricTilemap).visible = false;
+        //(tilemapLayers[1].getItems()[0] as IsometricTilemap).visible = false;
+        //(tilemapLayers[2].getItems()[0] as IsometricTilemap).visible = false;
+        //(tilemapLayers[3].getItems()[0] as IsometricTilemap).visible = false;
+
+        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[0].setDepth(0); // Floor  
+        tilemapLayers[1].setDepth(1); // Wall
+        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
+        tilemapLayers.forEach((layer, i) => {
+        let tilemap = layer.getItems()[0] as IsometricTilemap;//DEBUGIMPORTANT
+           
+        });
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
+
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
         let midRow = Math.floor(this.walls.getDimensions().y / 2);
         let midMap = new Vec2(midCol, midRow);
         let centerMap = this.walls.getWorldPosition(midCol, midRow);
-        this.viewport.setCenter(centerMap!.x, centerMap!.y);
 
+        this.viewport.setZoomLevel(0.5);
         this.viewport.setBounds(
             -this.walls.size.x,
             -this.walls.size.y,
             this.walls.size.x * 2,
             this.walls.size.y * 2
         );
-        this.viewport.setZoomLevel(0.5);
+
         this.addLayer("primary", 10);
 
         // Initialize a navmesh covering the tilemap
@@ -76,12 +90,18 @@ export default class AStarDemoScene extends Scene {
         destination.color.a = .50;
         // Construct a path using the navmesh from the npc's position to the target destination
         this.path = navmesh.getNavigationPath(this.npc.position, this.destination);
+        //this.viewport.setCenter(centerMap!.x, centerMap!.y);
+        this.viewport.setCenter(0, 1024);
+        this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
+        for(let i = 0; i < 50; i++){
+            this.viewport.update(0.016);
+        }
     }
 
     public updateScene(deltaT: number): void {
         // Move the npc along the path
         this.npc.moveOnPath(1, this.path);
-        this.walls.debugRender();
+        //this.walls.debugRender();
     }
     
     /**

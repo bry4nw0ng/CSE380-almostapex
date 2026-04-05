@@ -10,7 +10,7 @@ import { AAControls } from "./spy-master/AAControls";
     // Set up options for our game
     let options = {
         canvasSize: {x: 1024, y: 1024},          // The size of the game
-        clearColor: {r: 0.1, g: 0.1, b: 0.1},   // The color the game clears to
+        clearColor: {r: 1, g: 1, b: 1},   // The color the game clears to
         inputs: [
             {name: AAControls.MOVE_UP, keys: ["w"]},
             {name: AAControls.MOVE_DOWN, keys: ["s"]},

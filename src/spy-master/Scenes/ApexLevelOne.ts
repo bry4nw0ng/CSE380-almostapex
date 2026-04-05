@@ -19,7 +19,7 @@ export default class ApexLevelOne extends Scene {
     protected walls: IsometricTilemap;
 
         public loadScene(): void {
-            this.load.tilemap("level", "game_assets/tilemaps/city-map-final.json");
+            this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
             this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
 
             this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
@@ -28,6 +28,11 @@ export default class ApexLevelOne extends Scene {
 
         public startScene(): void {
         let tilemapLayers = this.add.tilemap("level");
+        
+        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[0].setDepth(0); // Floor  
+        tilemapLayers[1].setDepth(1); // Wall
+        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
 
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
