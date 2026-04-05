@@ -200,6 +200,10 @@ export default class BasicPhysicsManager extends PhysicsManager {
 				if(tilemap instanceof OrthogonalTilemap){
 					this.collideWithOrthogonalTilemap(node, tilemap, overlaps);
 				}
+				//Was no support for isometric here
+				else if (tilemap instanceof IsometricTilemap) {
+					this.collideWithIsometricTilemap(node, tilemap, overlaps);
+				}
 			}
 
 			// Sort the overlaps by area
@@ -331,6 +335,31 @@ export default class BasicPhysicsManager extends PhysicsManager {
 				if(tilemap.isTileCollidable(col, row)){
 					// Create a new collider for this tile
 					let collider = tilemap.getTileCollider(col, row);
+					// Calculate collision area between the node and the tile
+					let area = node.sweptRect.overlapArea(collider);
+					if(area > 0){
+						// We had a collision
+						overlaps.push(new AreaCollision(area, collider, tilemap, "Tilemap", new Vec2(col, row)));
+					}
+				}
+			}
+		}
+	}
+		protected collideWithIsometricTilemap(node: Physical, tilemap: IsometricTilemap, overlaps: Array<AreaCollision>): void {
+		// Get the min and max x and y coordinates of the moving node
+		//let min = new Vec2(node.sweptRect.left, node.sweptRect.top);
+		//let max = new Vec2(node.sweptRect.right, node.sweptRect.bottom);
+
+		// Convert the min/max x/y to the min and max row/col in the tilemap array
+		let minIndex = tilemap.getMinColRow(node.sweptRect);
+		let maxIndex = tilemap.getMaxColRow(node.sweptRect);
+
+		// Loop over all possible tiles (which isn't many in the scope of the velocity per frame)
+		for(let col = minIndex.x; col <= maxIndex.x; col++){
+			for(let row = minIndex.y; row <= maxIndex.y; row++){
+				if(tilemap.isTileCollidable(col, row)){
+					// Create a new collider for this tile
+					let collider = tilemap.getTileCollider(col, row) as AABB;
 					// Calculate collision area between the node and the tile
 					let area = node.sweptRect.overlapArea(collider);
 					if(area > 0){

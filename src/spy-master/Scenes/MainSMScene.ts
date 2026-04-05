@@ -20,7 +20,7 @@ import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
-import PlayerAI from "../AI/Player/PlayerAI";
+import { AAControls } from "../AAControls";
 import { ItemEvent, PlayerEvent, BattlerEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
@@ -35,6 +35,7 @@ import BasicTargetable from "../GameSystems/Targeting/BasicTargetable";
 import Position from "../GameSystems/Targeting/Position";
 import AstarStrategy from "../Pathfinding/AstarStrategy";
 import SMScene from "./SMScene";
+import PlayerController from "../AI/Player/PlayerController";
 
 const BattlerGroups = {
     RED: 1,
@@ -78,7 +79,7 @@ export default class MainSMScene extends SMScene {
      */
     public override loadScene() {
         // Load the player and enemy spritesheets
-        this.load.spritesheet("player1", "game_assets/spritesheets/player1.json");
+        this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
 
         // Load in the enemy sprites
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
@@ -87,7 +88,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
 
         // Load the tilemap
-        this.load.tilemap("level", "game_assets/tilemaps/practice-two-iso.json");
+        this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
         this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
 
         // Load the enemy locations
@@ -110,13 +111,25 @@ export default class MainSMScene extends SMScene {
         // Add in the tilemap
         let tilemapLayers = this.add.tilemap("level");
 
-        // Get the wall layer LOOKAT: Changed to [0] from [1]
+        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[0].setDepth(0); // Floor  
+        tilemapLayers[1].setDepth(1); // Wall
+        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
+
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
+        let midCol = Math.floor(this.walls.getDimensions().x / 2);
+        let midRow = Math.floor(this.walls.getDimensions().y / 2);
+        let midMap = new Vec2(midCol, midRow);
+        let centerMap = this.walls.getWorldPosition(midCol, midRow);
+        //this.viewport.setCenter(centerMap!.x, centerMap!.y);
 
-        // Set the viewport bounds to the tilemap
-        let tilemapSize: Vec2 = this.walls.size;
+        this.viewport.setBounds(
+            -this.walls.size.x,
+            -this.walls.size.y,
+            this.walls.size.x * 2,
+            this.walls.size.y * 2
+        );
 
-        this.viewport.setBounds(0, 0, tilemapSize.x, tilemapSize.y);
         this.viewport.setZoomLevel(2);
 
         this.initLayers();
@@ -125,10 +138,11 @@ export default class MainSMScene extends SMScene {
         this.initializePlayer();
         this.initializeItems();
 
-        this.initializeNavmesh();
+        
+        this.initializeNavmesh(new PositionGraph(), this.walls);
 
         // Create the NPCS
-        this.initializeNPCs();
+        //this.initializeNPCs();
 
         // Subscribe to relevant events
         this.receiver.subscribe("healthpack");
@@ -142,6 +156,11 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(PlayerEvent.PLAYER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
+        this.viewport.setCenter(centerMap!.x, centerMap!.y);
+        this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
+        for(let i = 0; i < 50; i++){
+            this.viewport.update(0.016);
+        }
     }
     /**
      * @see Scene.updateScene
@@ -204,7 +223,7 @@ export default class MainSMScene extends SMScene {
 
     /** Initializes the layers in the scene */
     protected initLayers(): void {
-        this.addLayer("primary", 10);
+        this.addLayer("primary", 3); //Trying to make player render behind overlayed walls
         this.addUILayer("slots");
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);
@@ -219,7 +238,10 @@ export default class MainSMScene extends SMScene {
      */
     protected initializePlayer(): void {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
-        player.position.set(27, 26);
+        let centerCol = Math.floor(this.walls.getDimensions().x / 2);
+        let centerRow = Math.floor(this.walls.getDimensions().y / 2);
+        let centerPos = new Vec2(centerCol, centerRow);
+        player.position.copy(this.walls.getWorldPosition(centerPos.x, centerPos.y)!);
         player.battleGroup = 2;
 
         player.health = 10;
@@ -234,14 +256,15 @@ export default class MainSMScene extends SMScene {
         });
 
         // Give the player physics
-        player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)));
+        player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
+        player.scale.set(0.25, 0.25); //IMPORTANT Only do this for 32x32
 
         // Give the player a healthbar
         let healthbar = new HealthbarHUD(this, player, "primary", {size: player.size.clone().scaled(2, 1/2), offset: player.size.clone().scaled(0, -1/2)});
         this.healthbars.set(player.id, healthbar);
 
         // Give the player PlayerAI
-        player.addAI(PlayerAI);
+        player.addAI(PlayerController);
 
         // Start the player in the "IDLE" animation
         player.animation.play("IDLE");
@@ -381,15 +404,15 @@ export default class MainSMScene extends SMScene {
      * go for it.
      * 
      */
-    protected initializeNavmesh(): void {
+    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
         // Create the graph
         this.graph = new PositionGraph();
 
         let dim: Vec2 = this.walls.getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
-                let tile: AABB = this.walls.getTileCollider(j, i);
-                this.graph.addPositionedNode(tile.center);
+                let pos: Vec2 = walls.getWorldPosition(j, i);
+                graph.addPositionedNode(pos);
             }
         }
 

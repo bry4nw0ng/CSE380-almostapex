@@ -1,71 +1,50 @@
 import State from "../../../../Wolfie2D/DataTypes/State/State";
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
-import { BattlerEvent, HudEvent, ItemEvent } from "../../../Events"
-import Item from "../../../GameSystems/ItemSystem/Item";
-import PlayerAI from "../PlayerAI";
+//import MathUtils from "../../../../Wolfie2D/Utils/MathUtils";
+//import AAAnimatedSprite from "../../../Node/AAAnimatedSprite"; //IMPORTANT PLAYERSTATE
+import PlayerController from "../PlayerController";
+import PlayerActor from "../../../Actors/PlayerActor";
 
+/**
+ * An abstract state for the PlayerController 
+ */
 
-export enum PlayerAnimationType {
-    IDLE = "IDLE"
-}
-
-
-export enum PlayerStateType {
-    IDLE = "IDLE",
-    INVINCIBLE = "INVINCIBLE",
-    ATTACKING = "ATTACKING",
-    MOVING = "MOVING",
-    DEAD = "DEAD"
-}
 
 export default abstract class PlayerState extends State {
 
-    protected parent: PlayerAI;
+    protected parent: PlayerController;
+	//protected owner: AAAnimatedSprite;
     protected owner: PlayerActor;
+	protected gravity: number;
 
-    public constructor(parent: PlayerAI, owner: PlayerActor) {
-        super(parent);
-        this.owner = owner;
-    }
+	//public constructor(parent: PlayerController, owner: AAAnimatedSprite){
+    public constructor(parent: PlayerController, owner: PlayerActor) {
+		super(parent);
+		this.owner = owner;
+	}
 
-    public override onEnter(options: Record<string, any>): void {}
-    public override onExit(): Record<string, any> { return {}; }
-    public override update(deltaT: number): void {
+    public abstract onEnter(options: Record<string, any>): void;
 
-        // Adjust the angle the player is facing 
-        this.parent.owner.rotation = this.parent.controller.rotation;
-        // Move the player
-        this.parent.owner.move(this.parent.controller.moveDir);
-
-        // Handle the player trying to pick up an item
-        if (this.parent.controller.pickingUp) {
-            // Request an item from the scene
-            this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {node: this.owner, inventory: this.owner.inventory});
-        }
-
-        // Handle the player trying to drop an item
-        if (this.parent.controller.dropping) {
-            
-        }
-
-        if (this.parent.controller.useItem) {
-
-        }
-    }
-
-    public override handleInput(event: GameEvent): void {
+    /**
+     * Handle game events from the parent.
+     * @param event the game event
+     */
+	public handleInput(event: GameEvent): void {
         switch(event.type) {
+            // Default - throw an error
             default: {
-                throw new Error(`Unhandled event of type ${event.type} caught in PlayerState!`);
+                throw new Error(`Unhandled event in PlayerState of type ${event.type}`);
             }
         }
+	}
+
+	public update(deltaT: number): void {
+        // This updates the direction the player sprite is facing (left or right)
+        /* REMOVED: messing with my stuff let direction = this.parent.inputDir;
+		if(direction.x !== 0){
+			this.owner.invertX = MathUtils.sign(direction.x) < 0;
+		}*/
     }
 
+    public abstract onExit(): Record<string, any>;
 }
-
-import Idle from "./Idle";
-import Invincible from "./Invincible";
-import Moving from "./Moving";
-import Dead from "./Dead";
-import PlayerActor from "../../../Actors/PlayerActor";
-export { Idle, Invincible, Moving, Dead} 

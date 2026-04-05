@@ -15,6 +15,7 @@ export default class TilemapRenderer {
     protected resourceManager: ResourceManager;
     protected scene: Scene;
     protected ctx: CanvasRenderingContext2D;
+    protected debugLogged: boolean = false;//DEBUGIMPORTANT
 
     constructor(ctx: CanvasRenderingContext2D){
         this.resourceManager = ResourceManager.getInstance();
@@ -34,10 +35,11 @@ export default class TilemapRenderer {
      * @param tilemap The tilemap to render
      */
     renderTilemap(tilemap: Tilemap): void {
-        console.log("Rendering tilemap:", tilemap);
+
         let previousAlpha = this.ctx.globalAlpha;
-        this.ctx.globalAlpha = tilemap.getLayer().getAlpha();
         
+        this.ctx.globalAlpha = tilemap.alpha !== undefined ? tilemap.alpha : tilemap.getLayer().getAlpha();
+
         let origin = this.scene.getViewTranslation(tilemap);
         let size = this.scene.getViewport().getHalfSize();
         let zoom = this.scene.getViewScale();
@@ -46,14 +48,22 @@ export default class TilemapRenderer {
         if(tilemap.visible) {
             let minColRow = tilemap.getMinColRow(this.scene.getViewport().getView());
             let maxColRow = tilemap.getMaxColRow(this.scene.getViewport().getView());
-            for(let row = minColRow.y; row <= maxColRow.y; row++){
+
+            let minSum = minColRow.x + minColRow.y;
+            let maxSum = maxColRow.x + maxColRow.y;
+
+            for(let sum = minSum; sum <= maxSum; sum++){
                 for(let col = minColRow.x; col <= maxColRow.x; col++){
+                    let row = sum - col;
+                    if(row < minColRow.y || row > maxColRow.y) continue;
+                    
                     // Get the tile at this position
                     let tile = tilemap.getTile(col, row);
 
-                    // Extract the rot/flip parameters if there are any
-                    const mask = (0xE << 28);
-                    const rotFlip = ((mask & tile) >> 28) & 0xF;
+                    if(tile === 0) continue; //Making sure the loop skips for empty values
+
+                    const mask = 0xF0000000;
+                    const rotFlip = ((tile & mask) >>> 28) & 0xF;
                     tile = tile & ~mask;
 
                     // Find the tileset that owns this tile index and render
@@ -101,7 +111,6 @@ export default class TilemapRenderer {
 
         // Calculate the position in the world to render the tile
         let worldPosition = tilemap.getWorldPosition(tilemapCol, tilemapRow);
-        console.log("tile:", tilemapCol, tilemapRow, "worldPosition:", worldPosition);
 
         let worldX = Math.floor((worldPosition.x - origin.x)*zoom);
         let worldY = Math.floor((worldPosition.y - origin.y)*zoom);
@@ -175,7 +184,22 @@ protected renderIsometricTile(tilemap: Tilemap, tileset: Tileset, tileIndex: num
     let worldWidth = Math.ceil(width * scale.x * zoom);
     let worldHeight = Math.ceil(height * scale.y * zoom);
 
-    this.ctx.drawImage(image, left, top, width, height, worldX, worldY, worldWidth, worldHeight);
+    // Add this - offset upward by half tile height to align isometric tiles correctly
+    let yOffset = (worldHeight - Math.ceil(tileset.getTileSize().y / 2 * scale.y * zoom));
+
+    if(rotFlip !== 0) {
+        this.ctx.save();
+        this.ctx.translate(worldX + worldWidth/2, worldY + worldHeight/2 - yOffset);
+        let scaleX = (rotFlip & 8) ? -1 : 1;
+        let scaleY = (rotFlip & 4) ? -1 : 1;
+        this.ctx.scale(scaleX, scaleY);
+        this.ctx.drawImage(image, left, top, width, height, 
+            -worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
+        this.ctx.restore();
+    } else {
+        this.ctx.drawImage(image, left, top, width, height, 
+            worldX, worldY - yOffset, worldWidth, worldHeight);
+    }
 }
 
     protected getOrthogonalTileDrawPos(map: OrthogonalTilemap, set: Tileset, col: number, row: number): Vec2 {

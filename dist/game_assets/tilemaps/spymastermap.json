@@ -4,7 +4,7 @@
      "export":
         {
          "format":"json",
-         "target":"practice-two-iso.json"
+         "target":"city-map-revised.tmj"
         }
     },
  "height":64,

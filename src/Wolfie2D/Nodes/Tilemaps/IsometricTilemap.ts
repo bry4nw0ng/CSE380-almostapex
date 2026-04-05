@@ -5,23 +5,66 @@ import Vec2 from "../../DataTypes/Vec2";
 import Debug from "../../Debug/Debug";
 import Color from "../../Utils/Color";
 import Tilemap from "../Tilemap";
- 
+import MathUtils from "../../Utils/MathUtils";
  
 export default class IsometricTilemap extends Tilemap {
-    public getMinColRow(region: AABB): Vec2 {
+    //public getMinColRow(region: AABB): Vec2 {
+      //  return new Vec2(0, 0);
+    //}
+    /*
+    public override getMinColRow(region: AABB): Vec2 {
+        let left = region.left;
+        let top = region.top;
+        
+        // Inverse of getWorldPosition to get tile coords from world coords
+        let tileW = this.scale.x * this.tileSize.x / 2;
+        let tileH = this.scale.y * this.tileSize.y / 2;
+        
+        // Convert world coords to isometric tile coords
+        let col = Math.floor((left / tileW + top / tileH) / 2) - 4;
+        let row = Math.floor((top / tileH - left / tileW) / 2) - 5;
+        
+        // So follows the bounds
+        col = MathUtils.clamp(col, 0, this.numCols - 1);
+        row = MathUtils.clamp(row, 0, this.numRows - 1);
+        
+        return new Vec2(col, row);
+    }*/
+    //public getMaxColRow(region: AABB): Vec2 {
+      //  return new Vec2(this.numCols, this.numRows);
+    //}
+    /*
+    public override getMaxColRow(region: AABB): Vec2 {
+        let right = region.right;
+        let bottom = region.bottom;
+        
+
+        let tileW = this.scale.x * this.tileSize.x / 2;
+        let tileH = this.scale.y * this.tileSize.y / 2;
+        
+        let col = Math.ceil((right / tileW + bottom / tileH) / 2) + 4;
+        let row = Math.ceil((bottom / tileH - right / tileW) / 2) + 5;
+        
+        //So that doesnt go beyond bounds
+        col = MathUtils.clamp(col, 0, this.numCols - 1);
+        row = MathUtils.clamp(row, 0, this.numRows - 1);
+        
+        return new Vec2(col, row);
+    }*/
+    public override getMinColRow(region: AABB): Vec2 {
         return new Vec2(0, 0);
     }
-    public getMaxColRow(region: AABB): Vec2 {
-        return new Vec2(this.numCols, this.numRows);
+
+    public override getMaxColRow(region: AABB): Vec2 {
+        return new Vec2(this.numCols - 1, this.numRows - 1);
     }
- 
     public override getWorldPosition(col: number, row: number): Vec2 {
         if (col < 0 || col > this.numCols || row < 0 || row > this.numRows) {
             return Vec2.ZERO;
         }
-        let x = Math.floor(this.scale.x * this.tileSize.x / 2 * (col - row));
-        let y = Math.floor(this.scale.y * this.tileSize.y / 2 * (col + row));
-        
+        let x = (this.scale.x * this.tileSize.x / 2 * (col - row));
+        let y = (this.scale.y * this.tileSize.y / 2 * (col + row));
+
         return new Vec2(x, y);
     }
  
@@ -40,8 +83,10 @@ export default class IsometricTilemap extends Tilemap {
         let hWidth = tileSize.x / 2;
         let hHeight = tileSize.y / 2;
 
-        let centerX = (col - row) * hWidth;
-        let centerY = (col + row) * hHeight;
+        let centerX = Math.floor(this.scale.x * tileSize.x / 2 * (col - row));
+        let centerY = Math.floor(this.scale.y * tileSize.y / 2 * (col + row));
+        //let centerX = (col - row) * hWidth;
+        //let centerY = (col + row) * hHeight;
 
         return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight));
 }
@@ -52,11 +97,18 @@ export default class IsometricTilemap extends Tilemap {
  
         this.tileSize.set(tilemapData.tilewidth, tilemapData.tileheight);
  
-        this.size.set(this.numCols * this.tileSize.x, this.numRows * this.tileSize.y);
-        this.position.copy(this.size.scaled(0.5));
+        //this.size.set(this.numCols * this.tileSize.x, this.numRows * this.tileSize.y);
+        //this.position.copy(this.size.scaled(0.5));
+        this.size.set((this.numCols + this.numRows) * this.tileSize.x / 2, 
+        (this.numCols + this.numRows) * this.tileSize.y / 2);
+        this.position.set(0, 0);
         this.data = layer.data;
         this.visible = layer.visible;
- 
+        
+        if(layer.opacity !== undefined){
+            this.alpha = layer.opacity;
+        }
+
         this.isCollidable = false;
         if(layer.properties){
             for(let item of layer.properties){

@@ -3,7 +3,7 @@ import AABB from "../../../../Wolfie2D/DataTypes/Shapes/AABB";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
 import OrthogonalTilemap from "../../../../Wolfie2D/Nodes/Tilemaps/OrthogonalTilemap";
-import IsometricTilemap from "../../Wolfie2D/Nodes/Tilemaps/IsometricTilemap";
+import IsometricTilemap from "../../../../Wolfie2D/Nodes/Tilemaps/IsometricTilemap";
 import LaserGun from "../../../GameSystems/ItemSystem/Items/LaserGun";
 import { TargetableEntity } from "../../../GameSystems/Targeting/TargetableEntity";
 import NPCActor from "../../../Actors/NPCActor";
