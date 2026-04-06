@@ -87,15 +87,7 @@ export default class IsometricTilemap extends Tilemap {
 
         return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth / 2, hHeight / 2));
     }
-/*     public override getTileCollider(col: number, row: number): Shape {
-        let hWidth = this.scale.x * this.tileSize.x / 2;
-        let hHeight = this.scale.y * this.tileSize.y / 2;
 
-        let centerX = hWidth * (col - row);
-        let centerY = hHeight * (col + row);
-
-        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight));
-    } */
  
     protected parseTilemapData(tilemapData: TiledTilemapData, layer: TiledLayerData): void {
         this.numCols = tilemapData.width;

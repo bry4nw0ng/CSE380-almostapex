@@ -12,43 +12,40 @@ import SMScene from "../../../Scenes/SMScene";
 import Item from "../Item";
 
 //Change to reflect goo shot, etc can reuse if lack of time
-export default class LaserGun extends Item {
+export default class DaNeedle extends Item {
 
     public damage: number;
 
-    protected _laser: Line
+    protected _needle: Sprite
     protected _direction: Vec2;
 
-    public constructor(sprite: Sprite, laser: Line) {
+    public constructor(sprite: Sprite, needle: Sprite) {
         super(sprite);
-        this._laser = laser;
-        this._laser.start.copy(Vec2.ZERO_STATIC);
-        this._laser.end.copy(Vec2.ZERO_STATIC);
-        this._laser.color = Color.BLUE;
-        this._laser.tweens.add("fade", {
+        this._needle = needle;
+        this._needle.tweens.add("spin", {
             startDelay: 0,
             duration: 300,
             effects: [
                 {
                     property: TweenableProperties.alpha,
-                    start: 1,
-                    end: 0,
+                    start: 0,
+                    end: Math.PI,
                     ease: EaseFunctionType.OUT_SINE
                 }
             ],
-            onEnd: "Laser faded"
+            onEnd: "Needle spun"
         });
         this._direction = Vec2.ZERO;
     }
 
-    public static create(sprite: Sprite, laser: Line): LaserGun {
-        return new LaserGun(sprite, laser);
-    }
+    //public static create(sprite: Sprite, needle: Item): DaNeedle {
+    //    return new DaNeedle(sprite, needle);
+    //}
 
     public get direction(): Vec2 { return this._direction; }
-    public get laserStart(): Vec2 { return this._laser.start; }
-    public get laserEnd(): Vec2 { return this._laser.end; }
+    //public get laserStart(): Vec2 { return this._laser.start; }
+    //public get laserEnd(): Vec2 { return this._laser.end; }
 
-    public playShootAnimation(): void { this._laser.tweens.play("fade"); }
+    //public playShootAnimation(): void { this._laser.tweens.play("fade"); }
     
 }
