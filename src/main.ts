@@ -1,5 +1,5 @@
 import Game from "./Wolfie2D/Loop/Game";
-import MainMenu from "./spy-master/Scenes/MainMenu";
+import SplashScreen from "./spy-master/Scenes/SplashScreen";
 import { AAControls } from "./spy-master/AAControls";
 
 // The main function is your entrypoint into Wolfie2D. Specify your first scene and any options here.
@@ -32,7 +32,7 @@ import { AAControls } from "./spy-master/AAControls";
     const game = new Game(options);
 
     // Start our game
-    game.start(MainMenu, {});
+    game.start(SplashScreen, {});
 
 })();
 
