@@ -158,9 +158,6 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
-        for(let i = 0; i < 50; i++){
-            this.viewport.update(0.016);
-        }
     }
     /**
      * @see Scene.updateScene

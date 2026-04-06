@@ -93,9 +93,9 @@ export default class AStarDemoScene extends Scene {
         //this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setCenter(0, 1024);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
-        for(let i = 0; i < 50; i++){
-            this.viewport.update(0.016);
-        }
+        //for(let i = 0; i < 50; i++){
+        //    this.viewport.update(0.016);
+        //}
     }
 
     public updateScene(deltaT: number): void {
