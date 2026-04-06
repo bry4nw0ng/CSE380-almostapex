@@ -7,15 +7,19 @@ import Scene from "../../Wolfie2D/Scene/Scene";
 import Color from "../../Wolfie2D/Utils/Color";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
+import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Label from "../../Wolfie2D/Nodes/UIElements/Label";
+import Input from "../../Wolfie2D/Input/Input";
 import MainMenu from "./MainMenu";
 
 export default class SplashScreen extends Scene {
 
     private fadeOverlay: Rect;
+    private fading: boolean = false;
 
     public loadScene(): void {
         this.load.image("logo", "game_assets/ui/splash/logo.png");
+        this.load.spritesheet("demo_slime", "game_assets/spritesheets/demo_slime2.json");
     }
 
     public startScene(): void {
@@ -37,8 +41,14 @@ export default class SplashScreen extends Scene {
 
         // scale down logo to fit canvas
         const logo = this.add.sprite("logo", "logo");
-        logo.position.set(center.x, center.y - 100);
+        logo.position.set(center.x, center.y - 150);
         logo.scale.set(0.35, 0.35);
+
+        // slime dance
+        const slime = this.add.animatedSprite(AnimatedSprite, "demo_slime", "logo");
+        slime.position.set(center.x, center.y + 25);
+        slime.scale.set(0.75, 0.75);
+        slime.animation.play("Dancing", true);
 
         // "Click to start" below the logo
         const prompt = <Label>this.add.uiElement(UIElementType.LABEL, "ui", {
@@ -84,15 +94,23 @@ export default class SplashScreen extends Scene {
     }
 
     public updateScene(): void {
+        if (!this.fading && Input.isMouseJustPressed()) {
+            this.startFade();
+        }
         while (this.receiver.hasNextEvent()) {
             this.handleEvent(this.receiver.getNextEvent());
         }
     }
 
+    private startFade(): void {
+        this.fading = true;
+        this.fadeOverlay.tweens.play("fadeOut");
+    }
+
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
             case "startgame":
-                this.fadeOverlay.tweens.play("fadeOut");
+                if (!this.fading) this.startFade();
                 break;
             case "fade-done":
                 this.sceneManager.changeToScene(MainMenu);
