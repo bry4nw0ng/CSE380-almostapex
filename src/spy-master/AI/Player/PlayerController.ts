@@ -23,40 +23,7 @@ import PlayerState from "./PlayerStates/PlayerState";
 import { PlayerAnimations } from "./PlayerAnimations";
 import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
 import PlayerActor from "../../Actors/PlayerActor";
-/**
- * Animation keys for the player spritesheet
- *
-export const PlayerAnimations = {//IMPORTANT FIX ANIMATION DIRECTION SITUATION
-    IDLE: "IDLE",
-    WALK_LEFT: "WALKING_LEFT",
-    WALK_RIGHT: "WALKING_RIGHT",
-    SHOOT_LEFT: "WATERGUN_LEFT",
-    SHOOT_RIGHT: "WATERGUN_RIGHT",
-    DAMAGE_LEFT: "DAMAGE_LEFT",
-    DAMAGE_RIGHT: "DAMAGE_RIGHT",
-    DYING: "DYING",
-    DEAD: "DEAD"
-} as const
-*/
-/**
- * Tween animations the player can player.
-
-export const PlayerTweens = {
-    FLIP: "FLIP",
-    DEATH: "DEATH"
-} as const
-*/
-/**
- * Keys for the states the PlayerController can be in.
-
-export const PlayerStates = {
-    IDLE: "IDLE",
-    WALK: "WALK",
-    HURT: "HURT",
-    DYING: "DYING",
-    DEAD: "DEAD",
-} as const
-*/
+import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
 /**
  * The controller that controls the player.
  */
@@ -77,6 +44,10 @@ export default class PlayerController extends StateMachineAI implements AI{
     //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
     //protected weapon: PlayerWeapon;
+
+    //Need to make item file
+    protected equippables: Array<{name: string, equippable: Sprite}>;
+
 
     protected iTimer: Timer;
 
@@ -147,6 +118,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
             }
             */
+           //forEach => 
             
     }
 
@@ -177,4 +149,15 @@ export default class PlayerController extends StateMachineAI implements AI{
         }
 
 }
+
+    public equip(name: string, equippable: Sprite): void{
+        if (!(name in this.equippables)) {
+            this.equippables.push({name, equippable});
+        }
+
+    }
+
+    public unEquip(_name: string): void {
+        this.equippables.filter(equippable => equippable.name !== _name);
+    }
 }
