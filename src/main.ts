@@ -20,8 +20,8 @@ import { AbilityEvent } from "./spy-master/Events";
             {name: AAControls.ATTACK, keys: ["mouse"]},
             {name: AAControls.ABILITY1, keys: ["1"]},
             {name: AAControls.ABILITY2, keys: ["2"]},
-            {name: AAControls.ABILITY3, keys: ["3"]}
-            //{name: AAControls.PICKUP_ITEM, keys: ["e"]},
+            {name: AAControls.ABILITY3, keys: ["3"]},
+            {name: AAControls.PICKUP_ITEM, keys: ["q"]}
            // {name: AAControls.DROP_ITEM, keys: ["q"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl

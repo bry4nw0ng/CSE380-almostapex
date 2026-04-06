@@ -6,5 +6,7 @@ export enum AAControls {
     ATTACK = "ATTACK",
     ABILITY1 = "ABILITY1",
     ABILITY2 = "ABILITY2",
-    ABILITY3 = "ABILITY3"
+    ABILITY3 = "ABILITY3",
+    PICKUP_ITEM = "PICKUP_ITEM"
+
 };

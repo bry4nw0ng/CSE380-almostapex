@@ -21,7 +21,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected sprite: Sprite;
     protected emitter: Emitter;
 
-    protected _name: string;
+    //protected _name: string;
     protected _inventory: Inventory | null;
     protected _targetable: TargetableEntity;
     protected _equippableOffset: Vec2;
@@ -61,8 +61,8 @@ export default abstract class Item implements Unique, TargetableEntity {
     public get inventory(): Inventory | null { return this._inventory; }
     public set inventory(value: Inventory | null) { this._inventory = value; }
 
-    public get name(): string { return this._name; }
-    public set name(newName: string) {this._name = newName; }
+    //public get name(): string { return this._name; }
+    //public set name(newName: string) {this._name = newName; }
 
     public get equippableOffset(): Vec2 { return this._equippableOffset; }
     public set equippableOffset(position: Vec2) { this._equippableOffset = position; }

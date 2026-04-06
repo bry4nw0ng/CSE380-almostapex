@@ -14,7 +14,7 @@ import Input from "../../../Wolfie2D/Input/Input";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
-import { AAEvents, AbilityEvent } from "../../Events";
+import { AAEvents, AbilityEvent, ItemEvent } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
@@ -97,21 +97,38 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     public update(deltaT: number): void {
 		super.update(deltaT);
+
+        if (Input.isPressed(AAControls.PICKUP_ITEM)) {
+            this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
+        }
         if (!this.owner.isCoolingDown) {
-            if(Input.isPressed(AAControls.ABILITY1)) {
-                this.owner.abilities.get(0).useAbility(this.owner);
-                this.owner.isCoolingDown = true;
-                this.cooldownTimer.start();
+            if (Input.isPressed(AAControls.ABILITY1)) { 
+                console.log(this.owner.abilities);         
+                let ab = this.owner.abilities.get(0);
+                console.log(ab);
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
             }
-            if(Input.isPressed(AAControls.ABILITY2)) {
-                this.owner.abilities.get(1).useAbility(this.owner);
-                this.owner.isCoolingDown = true;
-                this.cooldownTimer.start();
+            if (Input.isPressed(AAControls.ABILITY2)) {
+                let ab = this.owner.abilities.get(1);
+                console.log(ab);
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
             }
             if (Input.isPressed(AAControls.ABILITY3)) {
-                this.owner.abilities.get(2).useAbility(this.owner);
-                this.owner.isCoolingDown = true;
-                this.cooldownTimer.start();
+                let ab = this.owner.abilities.get(2);
+                console.log(ab);
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
             }
         }
         // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
@@ -137,13 +154,15 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
             */
            //Reset position of items each update
-           for (let equippable of this.owner.equippables.items()) {
+            for (let equippable of this.owner.equippables.items()) {
                 equippable.position.set(
                     this.owner.position.x + equippable.equippableOffset.x,
                     this.owner.position.y + equippable.equippableOffset.y
                 );
                 
-           };
+            };
+
+
             
     }
 
@@ -174,20 +193,5 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 }
 
-    public equip(equippable: Item): void{
-        this.owner.equippables.add(equippable);
-        if (equippable.isAbility) {
-            this.owner.abilities.add(equippable);
-        }
-        equippable.applyBuff(this.owner);
-    }
-
-    public unEquip(equippable: Item): void {
-        this.owner.equippables.remove(equippable.id);
-        if (equippable.isAbility) {
-            this.owner.abilities.add(equippable);
-        }
-        equippable.removeBuff(this.owner);
-    }
 
 }

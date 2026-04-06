@@ -65,7 +65,7 @@ export default class MainSMScene extends SMScene {
 
     private healthpacks: Array<Healthpack>;
     private laserguns: Array<LaserGun>;
-    private equippables: Array<Item>;
+    private sceneEquippables: Array<Item>;
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
@@ -80,7 +80,7 @@ export default class MainSMScene extends SMScene {
         this.healthbars = new Map<number, HealthbarHUD>();
 
         this.laserguns = new Array<LaserGun>;
-        this.equippables = new Array<Item>();
+        this.sceneEquippables = new Array<Item>();
     }
 
     /**
@@ -202,7 +202,8 @@ export default class MainSMScene extends SMScene {
                 break;
             }
             case ItemEvent.ITEM_REQUEST: {
-                //this.handleItemRequest(event.data.get("node"), event.data.get("inventory"));
+                console.log("Request recieved");
+                this.handleItemRequest(event.data.get("player"), event.data.get("inventory"));
                 break;
             }
             default: {
@@ -211,15 +212,18 @@ export default class MainSMScene extends SMScene {
         }
     }
 
-/*     protected handleItemRequest(node: GameNode, inventory: Inventory): void {
-        let items: Item[] = new Array<Item>(...this.healthpacks, ...this.laserguns).filter((item: Item) => {
-            return item.inventory === null && item.position.distanceTo(node.position) <= 100;
+    protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
+        console.log("handling request");
+        console.log("Total equippables:", this.sceneEquippables.length);
+        let items: Item[] = this.sceneEquippables.filter((item: Item) => {
+            console.log(item, "distance:", item.position.distanceTo(player.position), "inventory:", item.inventory);
+            return item.inventory === null && item.position.distanceTo(player.position) <= 100;
         });
-
+        console.log("Items in range:", items.length);
         if (items.length > 0) {
-            inventory.add(items.reduce(ClosestPositioned(node)));
+            player.equip(items.reduce(ClosestPositioned(player)));
         }
-    } */
+    } 
 
     /**
      * Handles an NPC being killed by unregistering the NPC from the scenes subsystems
@@ -411,34 +415,42 @@ export default class MainSMScene extends SMScene {
         let shieldSprite = this.add.sprite("Shield", "primary");
         let shield = new Shield(shieldSprite);
         shield.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 10));
+        this.sceneEquippables.push(shield);
 
         let redHatSprite = this.add.sprite("RedHat", "primary");
         let redHat = new RedHat(redHatSprite);
         redHat.position.copy(new Vec2(playerAt.x - 10, playerAt.y + 10));
+        this.sceneEquippables.push(redHat);
 
         let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
         let raccoonTail = new RaccoonTail(raccoonTailSprite);
         raccoonTail.position.copy(new Vec2(playerAt.x + 10, playerAt.y - 10));
+        this.sceneEquippables.push(raccoonTail);
 
         let jetPackSprite = this.add.sprite("JetPack", "primary");
         let jetPack = new JetPack(jetPackSprite);
         jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 10));
+        this.sceneEquippables.push(jetPack);
 
         let healthPackSprite = this.add.sprite("healthpack", "primary");
         let healthPack = new Healthpack(healthPackSprite);
         healthPack.position.copy(new Vec2(playerAt.x + 10, playerAt.y));
+        this.sceneEquippables.push(healthPack);
 
         let gumSprite = this.add.sprite("Gum", "primary");
         let gum = new Gum(gumSprite);
         gum.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 20));
+        this.sceneEquippables.push(gum);
 
         let daNeedleSprite = this.add.sprite("DaNeedle", "primary");
         let daNeedle = new DaNeedle(daNeedleSprite);
         daNeedle.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 10));
+        this.sceneEquippables.push(daNeedle);
 
         let antennaSprite = this.add.sprite("Antennas", "primary");
         let antennas = new Antennas(antennaSprite);
         antennas.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 20));
+        this.sceneEquippables.push(antennas);
     }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and

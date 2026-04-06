@@ -9,7 +9,7 @@ import BasicTargetable from "../GameSystems/Targeting/BasicTargetable";
 import { TargetableEntity } from "../GameSystems/Targeting/TargetableEntity";
 import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import SMScene from "../Scenes/SMScene";
-
+import Item from "../GameSystems/ItemSystem/Item";
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -29,7 +29,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isCoolingDown: boolean;
     protected jPMultiplier: number;
 
-    public equippables: Inventory = new Inventory(6);
+    public equippables: Inventory = new Inventory(10);
     public abilities: Inventory = new Inventory(3);
 
 
@@ -129,5 +129,22 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         return this._isCoolingDown;
     }
 
+    public equip(equippable: Item): void{
+        console.log("Equipped:", equippable);
+        this.equippables.add(equippable);
+        if (equippable.isAbility) {
+            console.log("Added ability");
+            this.abilities.add(equippable);
+        }
+        equippable.applyBuff(this);
+    }
+
+    public unEquip(equippable: Item): void {
+        this.equippables.remove(equippable.id);
+        if (equippable.isAbility) {
+            this.abilities.add(equippable);
+        }
+        equippable.removeBuff(this);
+    }
     
 }
