@@ -1,5 +1,5 @@
 import Game from "./Wolfie2D/Loop/Game";
-import MainMenu from "./spy-master/Scenes/MainMenu";
+import SplashScreen from "./spy-master/Scenes/SplashScreen";
 import { AAControls } from "./spy-master/AAControls";
 import { AbilityEvent } from "./spy-master/Events";
 
@@ -34,7 +34,7 @@ import { AbilityEvent } from "./spy-master/Events";
     const game = new Game(options);
 
     // Start our game
-    game.start(MainMenu, {});
+    game.start(SplashScreen, {});
 
 })();
 
