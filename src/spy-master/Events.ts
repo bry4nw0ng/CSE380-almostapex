@@ -48,3 +48,9 @@ export enum AAEvents {
     PLAYER_DEAD = "PLAYER_DEAD"
     
 }
+
+export enum AbilityEvent {
+    OPEN_TREASURE = "OPEN_TREASURE",
+    USED_GUM = "USED_GUM",
+    USED_JETPACK = "USED_JETPACK"
+}

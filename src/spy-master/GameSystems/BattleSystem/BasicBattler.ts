@@ -19,6 +19,7 @@ export default class BasicBattler implements Battler {
     protected _speed: number;
     protected _active: boolean;
 
+
     public constructor(owner: Unique & Positioned) {
         this._owner = owner;
         this._targetable = new BasicTargetable(owner);
@@ -29,6 +30,8 @@ export default class BasicBattler implements Battler {
         this.battleGroup = 0;
         this.speed = 0;
         this.battlerActive = true;
+
+        
     }
     
     public get id(): number { return this._owner.id; }

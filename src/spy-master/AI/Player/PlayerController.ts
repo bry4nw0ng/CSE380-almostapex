@@ -14,7 +14,7 @@ import Input from "../../../Wolfie2D/Input/Input";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
-import { AAEvents } from "../../Events";
+import { AAEvents, AbilityEvent } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
@@ -24,6 +24,8 @@ import { PlayerAnimations } from "./PlayerAnimations";
 import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
 import PlayerActor from "../../Actors/PlayerActor";
 import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
+import Item from "../../GameSystems/ItemSystem/Item";
+import Inventory from "../../GameSystems/ItemSystem/Inventory";
 /**
  * The controller that controls the player.
  */
@@ -45,11 +47,8 @@ export default class PlayerController extends StateMachineAI implements AI{
     // protected cannon: Sprite;
     //protected weapon: PlayerWeapon;
 
-    //Need to make item file
-    protected equippables: Array<{name: string, equippable: Sprite}>;
-
-
     protected iTimer: Timer;
+    protected cooldownTimer: Timer;
 
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
@@ -57,6 +56,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
         //this.weapon = options.weaponSystem;
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
+        this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
@@ -70,6 +70,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         // Add the different states the player can be in to the PlayerController 
 		this.addState(AAPlayerStates.IDLE, new Idle(this, this.owner));
 		this.addState(AAPlayerStates.WALK, new Walk(this, this.owner));
+
         this.addState(AAPlayerStates.DEAD, new Dead(this, this.owner));
         this.addState(AAPlayerStates.DYING, new Dying(this, this.owner));
         this.addState(AAPlayerStates.HURT, new Hurt(this, this.owner));
@@ -88,6 +89,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 		return direction.normalize();
     }
+
     /** 
      * Gets the direction of the mouse from the player's position as a Vec2
      */
@@ -95,7 +97,23 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     public update(deltaT: number): void {
 		super.update(deltaT);
-
+        if (!this.owner.isCoolingDown) {
+            if(Input.isPressed(AAControls.ABILITY1)) {
+                this.owner.abilities.get(0).useAbility(this.owner);
+                this.owner.isCoolingDown = true;
+                this.cooldownTimer.start();
+            }
+            if(Input.isPressed(AAControls.ABILITY2)) {
+                this.owner.abilities.get(1).useAbility(this.owner);
+                this.owner.isCoolingDown = true;
+                this.cooldownTimer.start();
+            }
+            if (Input.isPressed(AAControls.ABILITY3)) {
+                this.owner.abilities.get(2).useAbility(this.owner);
+                this.owner.isCoolingDown = true;
+                this.cooldownTimer.start();
+            }
+        }
         // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
         /*if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
             // Start the particle system at the player's current position
@@ -118,10 +136,16 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
             }
             */
-           //forEach => 
+           //Reset position of items each update
+           for (let equippable of this.owner.equippables.items()) {
+                equippable.position.set(
+                    this.owner.position.x + equippable.equippableOffset.x,
+                    this.owner.position.y + equippable.equippableOffset.y
+                );
+                
+           };
             
     }
-
 
 
     public get velocity(): Vec2 { return this._velocity; }
@@ -150,14 +174,20 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 }
 
-    public equip(name: string, equippable: Sprite): void{
-        if (!(name in this.equippables)) {
-            this.equippables.push({name, equippable});
+    public equip(equippable: Item): void{
+        this.owner.equippables.add(equippable);
+        if (equippable.isAbility) {
+            this.owner.abilities.add(equippable);
         }
-
+        equippable.applyBuff(this.owner);
     }
 
-    public unEquip(_name: string): void {
-        this.equippables.filter(equippable => equippable.name !== _name);
+    public unEquip(equippable: Item): void {
+        this.owner.equippables.remove(equippable.id);
+        if (equippable.isAbility) {
+            this.owner.abilities.add(equippable);
+        }
+        equippable.removeBuff(this.owner);
     }
+
 }

@@ -15,14 +15,12 @@ import Item from "../Item";
 export default class DaNeedle extends Item {
 
     public damage: number;
-
-    protected _needle: Sprite
+    //protected _needle: Sprite
     protected _direction: Vec2;
 
-    public constructor(sprite: Sprite, needle: Sprite) {
+    public constructor(sprite: Sprite) {
         super(sprite);
-        this._needle = needle;
-        this._needle.tweens.add("spin", {
+/*         this._needle.tweens.add("spin", {
             startDelay: 0,
             duration: 300,
             effects: [
@@ -35,7 +33,7 @@ export default class DaNeedle extends Item {
             ],
             onEnd: "Needle spun"
         });
-        this._direction = Vec2.ZERO;
+        this._direction = Vec2.ZERO; */
     }
 
     //public static create(sprite: Sprite, needle: Item): DaNeedle {

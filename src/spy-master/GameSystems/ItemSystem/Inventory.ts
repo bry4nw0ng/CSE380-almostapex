@@ -93,7 +93,7 @@ export default class Inventory implements Unique {
         this.dirty = true;
 
         item.inventory = this;
-        item.visible = false;
+        item.visible = true;
 
         return item;
     }

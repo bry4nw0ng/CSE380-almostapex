@@ -21,6 +21,17 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected targetable: TargetableEntity;
 
     protected heldItem: SMItem;
+    //Buffs
+    protected _damageReduction: number;
+    protected _luck: number;
+    protected _invincible: boolean;
+    protected _canSearch: boolean;
+    protected _isCoolingDown: boolean;
+    protected jPMultiplier: number;
+
+    public equippables: Inventory = new Inventory(6);
+    public abilities: Inventory = new Inventory(3);
+
 
     constructor(sheet: Spritesheet) {
         super(sheet);
@@ -28,6 +39,14 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.targetable = new BasicTargetable(this);
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
+
+        this.jPMultiplier
+        this._damageReduction = 1;
+        this._luck = 1;
+        this._invincible = false;
+        this._canSearch = false;
+        this._isCoolingDown = false;
+
     }
 
     get battlerActive(): boolean {
@@ -75,4 +94,40 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     get inventory(): Inventory {
         return this.battler.inventory;
     }
+
+    get damageReduction(): number {
+        return this._damageReduction;
+    }
+    set damageReduction(newDR: number) {
+        this._damageReduction = newDR;
+    }
+
+    get luck(): number {
+        return this._luck;
+    }
+    set luck(newLuck: number) {
+        this._luck = newLuck;
+    }
+
+    toggleInvincible(): void {
+        this._invincible = !(this._invincible);
+    }
+
+    setJPOn(isOn: boolean) {
+        if (isOn) {
+            this.speed = this.speed * 2;
+        }
+        else {
+            this.speed = this.speed / 2;
+        }
+    }
+
+    set isCoolingDown(isOn: boolean) {
+        this._isCoolingDown = isOn;
+    }
+    get isCoolingDown() {
+        return this._isCoolingDown;
+    }
+
+    
 }

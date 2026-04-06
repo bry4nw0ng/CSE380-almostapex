@@ -1,6 +1,7 @@
 import Game from "./Wolfie2D/Loop/Game";
 import MainMenu from "./spy-master/Scenes/MainMenu";
 import { AAControls } from "./spy-master/AAControls";
+import { AbilityEvent } from "./spy-master/Events";
 
 // The main function is your entrypoint into Wolfie2D. Specify your first scene and any options here.
 (function main(){
@@ -17,10 +18,11 @@ import { AAControls } from "./spy-master/AAControls";
             {name: AAControls.MOVE_LEFT, keys: ["a"]},
             {name: AAControls.MOVE_RIGHT, keys: ["d"]},
             {name: AAControls.ATTACK, keys: ["mouse"]},
+            {name: AAControls.ABILITY1, keys: ["1"]},
+            {name: AAControls.ABILITY2, keys: ["2"]},
+            {name: AAControls.ABILITY3, keys: ["3"]}
             //{name: AAControls.PICKUP_ITEM, keys: ["e"]},
            // {name: AAControls.DROP_ITEM, keys: ["q"]},
-            {name: "slot1", keys: ["1"]},
-            {name: "slot2", keys: ["2"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want

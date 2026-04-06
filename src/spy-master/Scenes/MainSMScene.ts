@@ -36,6 +36,14 @@ import Position from "../GameSystems/Targeting/Position";
 import AstarStrategy from "../Pathfinding/AstarStrategy";
 import SMScene from "./SMScene";
 import PlayerController from "../AI/Player/PlayerController";
+import Shield from "../GameSystems/ItemSystem/Items/Shield";
+import RedHat from "../GameSystems/ItemSystem/Items/RedHat";
+import RaccoonTail from "../GameSystems/ItemSystem/Items/RaccoonTail";
+import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
+import Gum from "../GameSystems/ItemSystem/Items/Gum";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
+import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
+
 
 const BattlerGroups = {
     RED: 1,
@@ -57,6 +65,7 @@ export default class MainSMScene extends SMScene {
 
     private healthpacks: Array<Healthpack>;
     private laserguns: Array<LaserGun>;
+    private equippables: Array<Item>;
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
@@ -70,8 +79,8 @@ export default class MainSMScene extends SMScene {
         this.battlers = new Array<Battler & Actor>();
         this.healthbars = new Map<number, HealthbarHUD>();
 
-        this.laserguns = new Array<LaserGun>();
-        this.healthpacks = new Array<Healthpack>();
+        this.laserguns = new Array<LaserGun>;
+        this.equippables = new Array<Item>();
     }
 
     /**
@@ -89,20 +98,28 @@ export default class MainSMScene extends SMScene {
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
-        this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
+        this.load.image("tiles", "game_assets/tilemaps/city-tileset-completed.png");
 
         // Load the enemy locations
         this.load.object("red", "game_assets/data/enemies/red.json");
         this.load.object("blue", "game_assets/data/enemies/blue.json");
 
         // Load the healthpack and lasergun loactions
-        this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
-        this.load.object("laserguns", "game_assets/data/items/laserguns.json");
+        //this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
+        //this.load.object("laserguns", "game_assets/data/items/laserguns.json");
+        //this.load.object("equippables", "game_assets/data/items/equippables.json");
 
         // Load the healthpack, inventory slot, and laser gun sprites
         this.load.image("healthpack", "game_assets/sprites/healthpack.png");
         this.load.image("inventorySlot", "game_assets/sprites/inventory.png");
         this.load.image("laserGun", "game_assets/sprites/laserGun.png");
+        this.load.image("RedHat", "game_assets/sprites/red-hat.png");
+        this.load.image("Shield", "game_assets/sprites/cardboard-shield.png");
+        this.load.image("RaccoonTail", "game_assets/sprites/raccoon-tail.png");
+        this.load.image("JetPack", "game_assets/sprites/cokepack.png");
+        this.load.image("Gum", "game_assets/sprites/used-gum.png");
+        this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
+        this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
     }
     /**
      * @see Scene.startScene
@@ -156,6 +173,7 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(PlayerEvent.PLAYER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
+
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
     }
@@ -184,7 +202,7 @@ export default class MainSMScene extends SMScene {
                 break;
             }
             case ItemEvent.ITEM_REQUEST: {
-                this.handleItemRequest(event.data.get("node"), event.data.get("inventory"));
+                //this.handleItemRequest(event.data.get("node"), event.data.get("inventory"));
                 break;
             }
             default: {
@@ -193,7 +211,7 @@ export default class MainSMScene extends SMScene {
         }
     }
 
-    protected handleItemRequest(node: GameNode, inventory: Inventory): void {
+/*     protected handleItemRequest(node: GameNode, inventory: Inventory): void {
         let items: Item[] = new Array<Item>(...this.healthpacks, ...this.laserguns).filter((item: Item) => {
             return item.inventory === null && item.position.distanceTo(node.position) <= 100;
         });
@@ -201,7 +219,7 @@ export default class MainSMScene extends SMScene {
         if (items.length > 0) {
             inventory.add(items.reduce(ClosestPositioned(node)));
         }
-    }
+    } */
 
     /**
      * Handles an NPC being killed by unregistering the NPC from the scenes subsystems
@@ -244,11 +262,11 @@ export default class MainSMScene extends SMScene {
         player.health = 10;
         player.maxHealth = 10;
 
-        player.inventory.onChange = ItemEvent.INVENTORY_CHANGED
-        this.inventoryHud = new InventoryHUD(this, player.inventory, "inventorySlot", {
+        player.abilities.onChange = ItemEvent.INVENTORY_CHANGED
+        this.inventoryHud = new InventoryHUD(this, player.abilities, "inventorySlot", {
             start: new Vec2(232, 24),
             slotLayer: "slots",
-            padding: 8,
+            padding: 3,
             itemLayer: "items"
         });
 
@@ -378,22 +396,49 @@ export default class MainSMScene extends SMScene {
      * Initialize the items in the scene (healthpacks and laser guns)
      */
     protected initializeItems(): void {
-        let laserguns = this.load.getObject("laserguns");
-        this.laserguns = new Array<LaserGun>(laserguns.items.length);
-        for (let i = 0; i < laserguns.items.length; i++) {
-            let sprite = this.add.sprite("laserGun", "primary");
-            let line = <Line>this.add.graphic(GraphicType.LINE, "primary", {start: Vec2.ZERO, end: Vec2.ZERO});
-            this.laserguns[i] = LaserGun.create(sprite, line);
-            this.laserguns[i].position.set(laserguns.items[i][0], laserguns.items[i][1]);
-        }
-
-        let healthpacks = this.load.getObject("healthpacks");
-        this.healthpacks = new Array<Healthpack>(healthpacks.items.length);
-        for (let i = 0; i < healthpacks.items.length; i++) {
+/*         let equippables = this.load.getObject("equippables");
+        this.equippables = new Array<Item>(equippables.items.length);
+        for (let i = 0; i < equippables.items.length; i++) {
+            switch()
             let sprite = this.add.sprite("healthpack", "primary");
-            this.healthpacks[i] = new Healthpack(sprite);
-            this.healthpacks[i].position.set(healthpacks.items[i][0], healthpacks.items[i][1]);
-        }
+            this.equippables[i] = new Healthpack(sprite);
+            this.equippables[i].position.set(equippables.items[i][0], equippables.items[i][1]);
+        } */
+
+        //Probably the dumbest way of all time to do this, but for testing purposes, shes here
+        let playerAt = this.walls.getWorldPosition(32, 32);
+
+        let shieldSprite = this.add.sprite("Shield", "primary");
+        let shield = new Shield(shieldSprite);
+        shield.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 10));
+
+        let redHatSprite = this.add.sprite("RedHat", "primary");
+        let redHat = new RedHat(redHatSprite);
+        redHat.position.copy(new Vec2(playerAt.x - 10, playerAt.y + 10));
+
+        let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+        let raccoonTail = new RaccoonTail(raccoonTailSprite);
+        raccoonTail.position.copy(new Vec2(playerAt.x + 10, playerAt.y - 10));
+
+        let jetPackSprite = this.add.sprite("JetPack", "primary");
+        let jetPack = new JetPack(jetPackSprite);
+        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 10));
+
+        let healthPackSprite = this.add.sprite("healthpack", "primary");
+        let healthPack = new Healthpack(healthPackSprite);
+        healthPack.position.copy(new Vec2(playerAt.x + 10, playerAt.y));
+
+        let gumSprite = this.add.sprite("Gum", "primary");
+        let gum = new Gum(gumSprite);
+        gum.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 20));
+
+        let daNeedleSprite = this.add.sprite("DaNeedle", "primary");
+        let daNeedle = new DaNeedle(daNeedleSprite);
+        daNeedle.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 10));
+
+        let antennaSprite = this.add.sprite("Antennas", "primary");
+        let antennas = new Antennas(antennaSprite);
+        antennas.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 20));
     }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
