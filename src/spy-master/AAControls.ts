@@ -3,5 +3,6 @@ export enum AAControls {
     MOVE_RIGHT = "MOVE_RIGHT",
     MOVE_UP = "MOVE_UP",
     MOVE_DOWN = "MOVE_DOWN",
-    ATTACK = "ATTACK"
+    ATTACK = "ATTACK",
+    INTERACT = "INTERACT"
 };

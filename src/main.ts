@@ -17,6 +17,7 @@ import { AAControls } from "./spy-master/AAControls";
             {name: AAControls.MOVE_LEFT, keys: ["a"]},
             {name: AAControls.MOVE_RIGHT, keys: ["d"]},
             {name: AAControls.ATTACK, keys: ["mouse"]},
+            {name: AAControls.INTERACT, keys: ["e"]},
             //{name: AAControls.PICKUP_ITEM, keys: ["e"]},
            // {name: AAControls.DROP_ITEM, keys: ["q"]},
             {name: "slot1", keys: ["1"]},
