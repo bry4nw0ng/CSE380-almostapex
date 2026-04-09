@@ -91,7 +91,7 @@ export default class MainSMScene extends SMScene {
 
         // Load in the enemy sprites
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
-        this.load.spritesheet("RedEnemy", "game_assets/spritesheets/RedEnemy.json");
+        this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
 
@@ -233,7 +233,6 @@ export default class MainSMScene extends SMScene {
     protected handleDaNeedleUsed(needlePosition) { //IMPORTANT NEED TO DEBUG WITH ENEMIES
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
-                console.log("dist to enemy:", battler.position.distanceTo(needlePosition));
                 if (battler.position.distanceTo(needlePosition) < 70) {
                     battler.health = battler.health - 5;
                 }
@@ -364,6 +363,7 @@ export default class MainSMScene extends SMScene {
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            npc.scale.set(0.25, 0.25);
 
             // Give the NPC a healthbar
             let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
@@ -380,6 +380,7 @@ export default class MainSMScene extends SMScene {
 
             // Play the NPCs "IDLE" animation 
             npc.animation.play("IDLE");
+            
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
