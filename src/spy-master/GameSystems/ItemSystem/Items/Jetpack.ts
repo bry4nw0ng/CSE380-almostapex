@@ -24,8 +24,6 @@ export default class JetPack extends Item {
 
     public override useAbility(player: PlayerActor): void {
         //Need animation
-        player.setJPOn(true);
-        let activeTimer = new Timer(3000, () => player.setJPOn(false), false);
         this.emitter.fireEvent(AbilityEvent.USED_JETPACK);
     }
 

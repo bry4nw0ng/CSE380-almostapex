@@ -25,7 +25,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _inventory: Inventory | null;
     protected _targetable: TargetableEntity;
     protected _equippableOffset: Vec2;
-    protected _isAbility
+    protected _isAbility: boolean = false;
 
     protected constructor(sprite: Sprite){ 
         this.sprite = sprite;
@@ -73,7 +73,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     public useAbility(player: PlayerActor): void { //Make noise since no ability
     }
 
-    public isAbility(item: Item) {
-        return this._isAbility;
+    public get isAbility(): boolean { 
+        return this._isAbility; 
     }
 }

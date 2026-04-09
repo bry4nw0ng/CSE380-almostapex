@@ -1,6 +1,6 @@
 import Spritesheet from "../../Wolfie2D/DataTypes/Spritesheet";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
-import { BattlerEvent, ItemEvent } from "../Events";
+import { AbilityEvent, BattlerEvent, ItemEvent } from "../Events";
 import BasicBattler from "../GameSystems/BattleSystem/BasicBattler";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
@@ -39,7 +39,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.targetable = new BasicTargetable(this);
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
-
+        this.receiver.subscribe(AbilityEvent.USED_JETPACK)
+        
         this.jPMultiplier
         this._damageReduction = 1;
         this._luck = 1;
@@ -113,14 +114,6 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._invincible = !(this._invincible);
     }
 
-    setJPOn(isOn: boolean) {
-        if (isOn) {
-            this.speed = this.speed * 2;
-        }
-        else {
-            this.speed = this.speed / 2;
-        }
-    }
 
     set isCoolingDown(isOn: boolean) {
         this._isCoolingDown = isOn;
@@ -130,6 +123,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     }
 
     public equip(equippable: Item): void{
+        console.log("isAbility:", equippable.isAbility);
         console.log("Equipped:", equippable);
         this.equippables.add(equippable);
         if (equippable.isAbility) {

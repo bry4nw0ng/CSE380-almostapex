@@ -85,7 +85,9 @@ export default class Inventory implements Unique {
      * @returns if the Item was successfully added to the inventory; null otherwise
      */
     public add(item: Item): Item | null { 
-        if (this.has(item.id) || this.size >= this.capacity || item.inventory !== null) {
+        if (this.has(item.id) || this.size >= this.capacity) {
+            console.log(this.has(item.id), this.size >= this.capacity, item.inventory !== null)
+            console.log("Doom error%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
             return null;
         }
         this.inventory.set(item.id, item);

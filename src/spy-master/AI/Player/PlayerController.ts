@@ -11,6 +11,7 @@ import Dead from "./PlayerStates/Dead";
 //import PlayerWeapon from "./PlayerWeapon";
 import Input from "../../../Wolfie2D/Input/Input";
 
+import GameEvent from "../../../Wolfie2D/Events/GameEvent";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
@@ -66,6 +67,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.health = 5
         this.maxHealth = 5;
 
+        this.receiver.subscribe(AbilityEvent.USED_JETPACK);
         
         // Add the different states the player can be in to the PlayerController 
 		this.addState(AAPlayerStates.IDLE, new Idle(this, this.owner));
@@ -78,7 +80,26 @@ export default class PlayerController extends StateMachineAI implements AI{
         // Start the player in the Idle state
         this.initialize(AAPlayerStates.IDLE);
     }
+    
+    public handleEvent(event: GameEvent): void {
+        switch(event.type) {
+            case AbilityEvent.USED_JETPACK: {
+                this.handleJetPackTriggered();
+                break;
+            }
+            default: {
+                super.handleEvent(event);
+                break;
+            }
+        }
+    } 
 
+    public handleJetPackTriggered() {
+        let prevSpeed = this.speed;
+        this.speed = this.speed * 2;
+        let activeTimer = new Timer(3000, () => this.speed = prevSpeed, false);
+        activeTimer.start();
+    }
     /** 
 	 * Get the inputs from the keyboard, or Vec2.Zero if nothing is being pressed
 	 */
@@ -102,10 +123,10 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
         }
         if (!this.owner.isCoolingDown) {
-            if (Input.isPressed(AAControls.ABILITY1)) { 
-                console.log(this.owner.abilities);         
-                let ab = this.owner.abilities.get(0);
-                console.log(ab);
+            let abilityOpts = [...this.owner.abilities.items()];
+            if (Input.isPressed(AAControls.ABILITY1)) {          
+                let ab = abilityOpts[0];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
                     ab.useAbility(this.owner);
                     this.owner.isCoolingDown = true;
@@ -113,8 +134,8 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             }
             if (Input.isPressed(AAControls.ABILITY2)) {
-                let ab = this.owner.abilities.get(1);
-                console.log(ab);
+                let ab = abilityOpts[1];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
                     ab.useAbility(this.owner);
                     this.owner.isCoolingDown = true;
@@ -122,8 +143,8 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             }
             if (Input.isPressed(AAControls.ABILITY3)) {
-                let ab = this.owner.abilities.get(2);
-                console.log(ab);
+                let ab = abilityOpts[2];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
                     ab.useAbility(this.owner);
                     this.owner.isCoolingDown = true;
