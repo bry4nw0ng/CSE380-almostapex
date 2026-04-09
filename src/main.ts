@@ -18,6 +18,7 @@ import { AbilityEvent } from "./spy-master/Events";
             {name: AAControls.MOVE_LEFT, keys: ["a"]},
             {name: AAControls.MOVE_RIGHT, keys: ["d"]},
             {name: AAControls.ATTACK, keys: ["mouse"]},
+            {name: AAControls.MEELEE, keys: ["space"]},
             {name: AAControls.ABILITY1, keys: ["1"]},
             {name: AAControls.ABILITY2, keys: ["2"]},
             {name: AAControls.ABILITY3, keys: ["3"]},

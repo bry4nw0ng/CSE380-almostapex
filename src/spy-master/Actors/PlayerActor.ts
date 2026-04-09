@@ -25,13 +25,13 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _damageReduction: number;
     protected _luck: number;
     protected _invincible: boolean;
-    protected _canSearch: boolean;
+    //protected _canSearch: boolean;
     protected _isCoolingDown: boolean;
+    protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
 
     public equippables: Inventory = new Inventory(10);
-    public abilities: Inventory = new Inventory(3);
-
+    public abilities: Inventory = new Inventory(4);
 
     constructor(sheet: Spritesheet) {
         super(sheet);
@@ -45,8 +45,9 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._damageReduction = 1;
         this._luck = 1;
         this._invincible = false;
-        this._canSearch = false;
+        //this._canSearch = false;
         this._isCoolingDown = false;
+        this._isWeaponTired = false;
 
     }
 
@@ -120,6 +121,13 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     }
     get isCoolingDown() {
         return this._isCoolingDown;
+    }
+
+    set isWeaponTired(isOn: boolean) {
+        this._isWeaponTired = isOn;
+    }
+    get isWeaponTired() {
+        return this._isWeaponTired;
     }
 
     public equip(equippable: Item): void{

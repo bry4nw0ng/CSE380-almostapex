@@ -11,7 +11,6 @@ export default class Gum extends Item {
     
     //protected _speedDebuff: number;
     //protected _active: boolean;
-
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isAbility = true;

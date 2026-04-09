@@ -27,6 +27,9 @@ import PlayerActor from "../../Actors/PlayerActor";
 import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
 import Item from "../../GameSystems/ItemSystem/Item";
 import Inventory from "../../GameSystems/ItemSystem/Inventory";
+
+import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
+
 /**
  * The controller that controls the player.
  */
@@ -43,6 +46,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     protected _velocity: Vec2;
 	protected _speed: number;
+    protected playerFacingDir: number;
 
     //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
@@ -50,6 +54,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     protected iTimer: Timer;
     protected cooldownTimer: Timer;
+    protected weaponTiredTimer: Timer;
 
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
@@ -58,12 +63,13 @@ export default class PlayerController extends StateMachineAI implements AI{
         //this.weapon = options.weaponSystem;
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
         this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
+        this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
         this.speed = 800;
         this.velocity = Vec2.ZERO;
-
+        this.playerFacingDir = 1;
         this.health = 5
         this.maxHealth = 5;
 
@@ -119,12 +125,27 @@ export default class PlayerController extends StateMachineAI implements AI{
     public update(deltaT: number): void {
 		super.update(deltaT);
 
-        if (Input.isPressed(AAControls.PICKUP_ITEM)) {
+        if (this.inputDir.x > 0) {
+            this.playerFacingDir = 1;
+        }
+        else {
+            this.playerFacingDir = -1;
+        }
+
+        if (Input.isJustPressed(AAControls.PICKUP_ITEM)) {
             this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
+        }
+        if (Input.isJustPressed(AAControls.MEELEE)) {
+            let weapon = this.owner.equippables.find(item => item.isWeapon == true); //Might have to change if add more meelees
+            if (weapon && !(this.owner.isWeaponTired)) {
+                weapon.useWeapon(this.owner, this.playerFacingDir);
+                this.owner.isWeaponTired = true;
+                this.weaponTiredTimer.start();
+            }
         }
         if (!this.owner.isCoolingDown) {
             let abilityOpts = [...this.owner.abilities.items()];
-            if (Input.isPressed(AAControls.ABILITY1)) {          
+            if (Input.isJustPressed(AAControls.ABILITY1)) {          
                 let ab = abilityOpts[0];
                 console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
@@ -133,7 +154,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                     this.cooldownTimer.start();
                 }
             }
-            if (Input.isPressed(AAControls.ABILITY2)) {
+            if (Input.isJustPressed(AAControls.ABILITY2)) {
                 let ab = abilityOpts[1];
                 console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
@@ -142,7 +163,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                     this.cooldownTimer.start();
                 }
             }
-            if (Input.isPressed(AAControls.ABILITY3)) {
+            if (Input.isJustPressed(AAControls.ABILITY3)) {
                 let ab = abilityOpts[2];
                 console.log(ab, "USED%%%%%%%%%%%%%%%%%");
                 if (ab) {
@@ -176,17 +197,41 @@ export default class PlayerController extends StateMachineAI implements AI{
             */
            //Reset position of items each update
             for (let equippable of this.owner.equippables.items()) {
-                equippable.position.set(
-                    this.owner.position.x + equippable.equippableOffset.x,
-                    this.owner.position.y + equippable.equippableOffset.y
-                );
-                
+                if (this.playerFacingDir == -1) {
+                    equippable.getSprite().invertX = true;
+                }
+                else {
+                    equippable.getSprite().invertX = false;
+                }
+                if (equippable instanceof DaNeedle) {
+                    this.makeDaNeedleSpin(equippable, deltaT);
+                }
+                else {
+                    equippable.position.set(
+                        this.owner.position.x + equippable.equippableOffset.x * this.playerFacingDir,
+                        this.owner.position.y + equippable.equippableOffset.y
+                    );
+                }
             };
-
-
-            
+        
     }
 
+    public makeDaNeedleSpin(needle: DaNeedle, roc: number) {
+        if (needle.isSpinning) {
+            needle.curAngle = needle.curAngle + roc * 2 * Math.PI * this.playerFacingDir;
+            needle.position.set(
+                    this.owner.position.x + (needle.radiusToPlayer * Math.cos(needle.curAngle)),
+                    this.owner.position.y + (needle.radiusToPlayer * Math.sin(needle.curAngle))
+                );
+            needle.getSprite().rotation = -1 * this.playerFacingDir * (needle.curAngle + Math.PI / 2);
+        }
+        else {
+            needle.position.set(
+                this.owner.position.x + needle.equippableOffset.x * this.playerFacingDir,
+                this.owner.position.y + needle.equippableOffset.y
+            );
+        }
+    }
 
     public get velocity(): Vec2 { return this._velocity; }
     public set velocity(velocity: Vec2) { this._velocity = velocity; }

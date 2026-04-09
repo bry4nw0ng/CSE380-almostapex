@@ -26,6 +26,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _targetable: TargetableEntity;
     protected _equippableOffset: Vec2;
     protected _isAbility: boolean = false;
+    protected _isWeapon: boolean = false;
 
     protected constructor(sprite: Sprite){ 
         this.sprite = sprite;
@@ -48,7 +49,9 @@ export default abstract class Item implements Unique, TargetableEntity {
         this._targetable.removeTargeting(targeting);
     }
     
-    public get relativePosition(): Vec2 { return this.sprite.relativePosition; }
+    public get relativePosition(): Vec2 { return this.sprite.relativePosition; };
+
+    public getSprite(): Sprite { return this.sprite; };
 
     public get id(): number { return this.sprite.id; }
 
@@ -73,7 +76,13 @@ export default abstract class Item implements Unique, TargetableEntity {
     public useAbility(player: PlayerActor): void { //Make noise since no ability
     }
 
+    public useWeapon(player: PlayerActor, facingDir: number): void { //Make noise since no ability
+    }
     public get isAbility(): boolean { 
         return this._isAbility; 
+    }
+
+    public get isWeapon(): boolean { 
+        return this._isWeapon; 
     }
 }

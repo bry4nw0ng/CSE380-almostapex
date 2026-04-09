@@ -21,7 +21,7 @@ import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
 import { AAControls } from "../AAControls";
-import { ItemEvent, PlayerEvent, BattlerEvent } from "../Events";
+import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -128,10 +128,10 @@ export default class MainSMScene extends SMScene {
         // Add in the tilemap
         let tilemapLayers = this.add.tilemap("level");
 
-        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[2].setDepth(5); // Wall-NonCollidable
         tilemapLayers[0].setDepth(0); // Floor  
         tilemapLayers[1].setDepth(1); // Wall
-        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
+        tilemapLayers[3].setDepth(6); // Transparent, player at 3, so should be above
 
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
@@ -164,7 +164,17 @@ export default class MainSMScene extends SMScene {
         // Subscribe to relevant events
         this.receiver.subscribe("healthpack");
         this.receiver.subscribe("enemyDied");
+
+        //Pickup
         this.receiver.subscribe(ItemEvent.ITEM_REQUEST);
+
+        //Abilities
+        this.receiver.subscribe(AbilityEvent.OPEN_TREASURE);
+        this.receiver.subscribe(AbilityEvent.USED_GUM);
+
+        //Weapons
+        this.receiver.subscribe(ItemEvent.DANEEDLE_USED);
+
 
         // Add a UI for health
         this.addUILayer("health");
@@ -194,16 +204,28 @@ export default class MainSMScene extends SMScene {
      */
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
+            case ItemEvent.ITEM_REQUEST: {
+                console.log("Request recieved");
+                this.handleItemRequest(event.data.get("player"), event.data.get("inventory"));
+                break;
+            }
+            case ItemEvent.DANEEDLE_USED: {
+                this.handleDaNeedleUsed(event.data.get("position"));
+                break;
+            }
+            case AbilityEvent.USED_GUM: {
+                this.handleUsedGum();
+                break;
+            }
+            case AbilityEvent.OPEN_TREASURE: {
+
+                break;
+            }
             case BattlerEvent.BATTLER_KILLED: {
                 this.handleBattlerKilled(event);
                 break;
             }
             case BattlerEvent.BATTLER_RESPAWN: {
-                break;
-            }
-            case ItemEvent.ITEM_REQUEST: {
-                console.log("Request recieved");
-                this.handleItemRequest(event.data.get("player"), event.data.get("inventory"));
                 break;
             }
             default: {
@@ -212,14 +234,31 @@ export default class MainSMScene extends SMScene {
         }
     }
 
+    protected handleDaNeedleUsed(needlePosition) { //IMPORTANT NEED TO DEBUG WITH ENEMIES
+        this.battlers.forEach(battler => {
+            if (battler instanceof NPCActor) {
+                if (battler.position.distanceTo(needlePosition) < 40) {
+                    battler.health = battler.health - 5;
+                }
+            }
+        });
+    }
+    protected handleUsedGum() {
+        this.battlers.forEach(battler => {
+            if (battler instanceof NPCActor) {
+                let prevSpeed = battler.speed;
+                battler.speed = battler.speed / 2;
+                let activeTimer = new Timer(5000, () => battler.speed = prevSpeed, false);
+                activeTimer.start();
+            }
+        });
+    }
+
     protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
-        console.log("handling request");
         console.log("Total equippables:", this.sceneEquippables.length);
         let items: Item[] = this.sceneEquippables.filter((item: Item) => {
-            console.log(item, "distance:", item.position.distanceTo(player.position), "inventory:", item.inventory);
             return item.inventory === null && item.position.distanceTo(player.position) <= 100;
         });
-        console.log("Items in range:", items.length);
         if (items.length > 0) {
             player.equip(items.reduce(ClosestPositioned(player)));
         }
@@ -234,6 +273,7 @@ export default class MainSMScene extends SMScene {
         let battler = this.battlers.find(b => b.id === id);
 
         if (battler) {
+            //Implement RummageSpot
             battler.battlerActive = false;
             this.healthbars.get(id).visible = false;
         }
@@ -414,42 +454,42 @@ export default class MainSMScene extends SMScene {
 
         let shieldSprite = this.add.sprite("Shield", "primary");
         let shield = new Shield(shieldSprite);
-        shield.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 10));
+        shield.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 100));
         this.sceneEquippables.push(shield);
 
         let redHatSprite = this.add.sprite("RedHat", "primary");
         let redHat = new RedHat(redHatSprite);
-        redHat.position.copy(new Vec2(playerAt.x - 10, playerAt.y + 10));
+        redHat.position.copy(new Vec2(playerAt.x - 100, playerAt.y + 100));
         this.sceneEquippables.push(redHat);
 
         let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
         let raccoonTail = new RaccoonTail(raccoonTailSprite);
-        raccoonTail.position.copy(new Vec2(playerAt.x + 10, playerAt.y - 10));
+        raccoonTail.position.copy(new Vec2(playerAt.x + 100, playerAt.y - 100));
         this.sceneEquippables.push(raccoonTail);
 
         let jetPackSprite = this.add.sprite("JetPack", "primary");
         let jetPack = new JetPack(jetPackSprite);
-        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 10));
+        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 100));
         this.sceneEquippables.push(jetPack);
 
         let healthPackSprite = this.add.sprite("healthpack", "primary");
         let healthPack = new Healthpack(healthPackSprite);
-        healthPack.position.copy(new Vec2(playerAt.x + 10, playerAt.y));
+        healthPack.position.copy(new Vec2(playerAt.x + 100, playerAt.y));
         this.sceneEquippables.push(healthPack);
 
         let gumSprite = this.add.sprite("Gum", "primary");
         let gum = new Gum(gumSprite);
-        gum.position.copy(new Vec2(playerAt.x + 10, playerAt.y + 20));
+        gum.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 200));
         this.sceneEquippables.push(gum);
 
         let daNeedleSprite = this.add.sprite("DaNeedle", "primary");
         let daNeedle = new DaNeedle(daNeedleSprite);
-        daNeedle.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 10));
+        daNeedle.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 100));
         this.sceneEquippables.push(daNeedle);
 
         let antennaSprite = this.add.sprite("Antennas", "primary");
         let antennas = new Antennas(antennaSprite);
-        antennas.position.copy(new Vec2(playerAt.x + 20, playerAt.y + 20));
+        antennas.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 200));
         this.sceneEquippables.push(antennas);
     }
     /**
