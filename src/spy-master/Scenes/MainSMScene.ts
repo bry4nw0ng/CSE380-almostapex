@@ -60,7 +60,6 @@ export default class MainSMScene extends SMScene {
     /** Healthbars for the battlers */
     private healthbars: Map<number, HealthbarHUD>;
 
-
     private bases: BattlerBase[];
 
     private healthpacks: Array<Healthpack>;
@@ -151,15 +150,12 @@ export default class MainSMScene extends SMScene {
 
         this.initLayers();
         
-        // Create the player
-        this.initializePlayer();
-        this.initializeItems();
-
-        
         this.initializeNavmesh(new PositionGraph(), this.walls);
 
-        // Create the NPCS
-        //this.initializeNPCs();
+        // Create the Player/NPCS
+        this.initializeNPCs(this.initializePlayer());
+        // Create the player
+        this.initializeItems();
 
         // Subscribe to relevant events
         this.receiver.subscribe("healthpack");
@@ -237,7 +233,8 @@ export default class MainSMScene extends SMScene {
     protected handleDaNeedleUsed(needlePosition) { //IMPORTANT NEED TO DEBUG WITH ENEMIES
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
-                if (battler.position.distanceTo(needlePosition) < 40) {
+                console.log("dist to enemy:", battler.position.distanceTo(needlePosition));
+                if (battler.position.distanceTo(needlePosition) < 70) {
                     battler.health = battler.health - 5;
                 }
             }
@@ -283,6 +280,7 @@ export default class MainSMScene extends SMScene {
     /** Initializes the layers in the scene */
     protected initLayers(): void {
         this.addLayer("primary", 3); //Trying to make player render behind overlayed walls
+        this.addLayer("equippables", 5);
         this.addUILayer("slots");
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);
@@ -290,17 +288,16 @@ export default class MainSMScene extends SMScene {
     }
 
 
-
-
     /**
      * Initializes the player in the scene
      */
-    protected initializePlayer(): void {
+    protected initializePlayer(): PlayerActor {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
-        let centerCol = Math.floor(this.walls.getDimensions().x / 2);
+/*         let centerCol = Math.floor(this.walls.getDimensions().x / 2);
         let centerRow = Math.floor(this.walls.getDimensions().y / 2);
-        let centerPos = new Vec2(centerCol, centerRow);
-        player.position.copy(this.walls.getWorldPosition(centerPos.x, centerPos.y)!);
+        let centerPos = new Vec2(centerCol, centerRow); */
+        let spawnPos = new Vec2(-1500, 1000);
+        player.position.copy(spawnPos);
         player.battleGroup = 2;
 
         player.health = 10;
@@ -330,17 +327,19 @@ export default class MainSMScene extends SMScene {
 
         this.battlers.push(player);
         this.viewport.follow(player);
+
+        return player;
     }
     /**
      * Initialize the NPCs 
      */
-    protected initializeNPCs(): void {
+    protected initializeNPCs(player): void {
 
         // Get the object data for the red enemies
         let red = this.load.getObject("red");
 
         // Initialize the red healers
-        for (let i = 0; i < red.healers.length; i++) {
+/*         for (let i = 0; i < red.healers.length; i++) {
             let npc = this.add.animatedSprite(NPCActor, "RedHealer", "primary");
             npc.position.set(red.healers[i][0], red.healers[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -358,9 +357,10 @@ export default class MainSMScene extends SMScene {
             npc.addAI(HealerBehavior);
             npc.animation.play("IDLE");
             this.battlers.push(npc);
-        }
+        } */
 
         for (let i = 0; i < red.enemies.length; i++) {
+            console.log("spawned red");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -376,19 +376,20 @@ export default class MainSMScene extends SMScene {
             npc.maxHealth = 10;
             npc.navkey = "navmesh";
 
-            npc.addAI(GuardBehavior, {target: new BasicTargetable(new Position(npc.position.x, npc.position.y)), range: 100});
+            npc.addAI(GuardBehavior, {target: player, range: 100});
 
             // Play the NPCs "IDLE" animation 
             npc.animation.play("IDLE");
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
-
+/*
         // Get the object data for the blue enemies
         let blue = this.load.getObject("blue");
 
         // Initialize the blue enemies
         for (let i = 0; i < blue.enemies.length; i++) {
+            console.log("spawned blue");
             let npc = this.add.animatedSprite(NPCActor, "BlueEnemy", "primary");
             npc.position.set(blue.enemies[i][0], blue.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -410,10 +411,10 @@ export default class MainSMScene extends SMScene {
             npc.animation.play("IDLE");
 
             this.battlers.push(npc);
-        }
+        } */
 
         // Initialize the blue healers
-        for (let i = 0; i < blue.healers.length; i++) {
+/*         for (let i = 0; i < blue.healers.length; i++) {
             
             let npc = this.add.animatedSprite(NPCActor, "BlueHealer", "primary");
             npc.position.set(blue.healers[i][0], blue.healers[i][1]);
@@ -431,7 +432,7 @@ export default class MainSMScene extends SMScene {
             npc.addAI(HealerBehavior);
             npc.animation.play("IDLE");
             this.battlers.push(npc);
-        }
+        } */
 
 
     }
@@ -440,17 +441,51 @@ export default class MainSMScene extends SMScene {
      * Initialize the items in the scene (healthpacks and laser guns)
      */
     protected initializeItems(): void {
-/*         let equippables = this.load.getObject("equippables");
-        this.equippables = new Array<Item>(equippables.items.length);
-        for (let i = 0; i < equippables.items.length; i++) {
-            switch()
-            let sprite = this.add.sprite("healthpack", "primary");
-            this.equippables[i] = new Healthpack(sprite);
-            this.equippables[i].position.set(equippables.items[i][0], equippables.items[i][1]);
-        } */
+        /*let equippables = this.load.getObject("equippables"); This wouldnt work with my map json, not totally sure why
+        let sprite;
+        let newOb;
+        for (let equippable of equippables.objects) {
+            switch(equippable.gid) {
+                case 101:
+                    sprite = this.add.sprite("Shield", "equippables");
+                    newOb = new Shield(newOb);
+                    break;
+                case 102:
+                    sprite = this.add.sprite("RedHat", "equippables");
+                    newOb = new RedHat(newOb);
+                    break;
+                case 103:
+                    sprite = this.add.sprite("RaccoonTail", "equippables");
+                    newOb = new RaccoonTail(newOb);
+                    break;
+                case 104:
+                    sprite = this.add.sprite("JetPack", "equippables");
+                    newOb = new JetPack(newOb);
+                    break;
+                case 105:
+                    sprite = this.add.sprite("healthpack", "equippables");
+                    newOb = new Healthpack(newOb);
+                    break;
+                case 106:
+                    sprite = this.add.sprite("Gum", "equippables");
+                    newOb = new Gum(newOb);
+                    break;
+                case 107:
+                    sprite = this.add.sprite("DaNeedle", "equippables");
+                    newOb = new DaNeedle(newOb);
+                    break;
+                case 108:
+                    sprite = this.add.sprite("Antennas", "equippables");
+                    newOb = new Antennas(newOb);
+                    break;
+                default:
+                    continue;
+            }
 
-        //Probably the dumbest way of all time to do this, but for testing purposes, shes here
-        let playerAt = this.walls.getWorldPosition(32, 32);
+            newOb.position.set(equippable.x, equippable.y);
+            this.sceneEquippables.push(newOb);
+        }*/
+        let playerAt = new Vec2(-1500, 1000);
 
         let shieldSprite = this.add.sprite("Shield", "primary");
         let shield = new Shield(shieldSprite);
@@ -491,6 +526,7 @@ export default class MainSMScene extends SMScene {
         let antennas = new Antennas(antennaSprite);
         antennas.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 200));
         this.sceneEquippables.push(antennas);
+
     }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
@@ -499,10 +535,7 @@ export default class MainSMScene extends SMScene {
      * 
      */
     protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
-        // Create the graph
-        this.graph = new PositionGraph();
-
-        let dim: Vec2 = this.walls.getDimensions();
+        let dim: Vec2 = walls.getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
                 let pos: Vec2 = walls.getWorldPosition(j, i);
@@ -511,29 +544,29 @@ export default class MainSMScene extends SMScene {
         }
 
         let rc: Vec2;
-        for (let i = 0; i < this.graph.numVertices; i++) {
-            rc = this.walls.getTileColRow(i);
-            if (!this.walls.isTileCollidable(rc.x, rc.y) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
-                !this.walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
+        for (let i = 0; i < graph.numVertices; i++) {
+            rc = walls.getTileColRow(i);
+            if (!walls.isTileCollidable(rc.x, rc.y) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
+                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
 
             ) {
                 // Create edge to the left
-                rc = this.walls.getTileColRow(i + 1);
-                if ((i + 1) % dim.x !== 0 && !this.walls.isTileCollidable(rc.x, rc.y)) {
-                    this.graph.addEdge(i, i + 1);
+                rc = walls.getTileColRow(i + 1);
+                if ((i + 1) % dim.x !== 0 && !walls.isTileCollidable(rc.x, rc.y)) {
+                    graph.addEdge(i, i + 1);
                     // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
                 }
                 // Create edge below
-                rc = this.walls.getTileColRow(i + dim.x);
-                if (i + dim.x < this.graph.numVertices && !this.walls.isTileCollidable(rc.x, rc.y)) {
-                    this.graph.addEdge(i, i + dim.x);
+                rc = walls.getTileColRow(i + dim.x);
+                if (i + dim.x < graph.numVertices && !walls.isTileCollidable(rc.x, rc.y)) {
+                    graph.addEdge(i, i + dim.x);
                     // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
                 }
 
@@ -542,7 +575,7 @@ export default class MainSMScene extends SMScene {
         }
 
         // Set this graph as a navigable entity
-        let navmesh = new Navmesh(this.graph);
+        let navmesh = new Navmesh(graph);
         
         // Add different strategies to use for this navmesh
         navmesh.registerStrategy("direct", new DirectStrategy(navmesh));

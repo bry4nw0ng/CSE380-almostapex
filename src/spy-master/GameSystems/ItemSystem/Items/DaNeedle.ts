@@ -65,11 +65,12 @@ export default class DaNeedle extends Item {
         else {
             this.curAngle = Math.PI;
         }
+
         this._isSpinning = true;
         this._spinTimer.start();
         
         //this.playNeedleAnimation();
-        this.emitter.fireEvent(ItemEvent.DANEEDLE_USED, {position: player.position.clone()});
+        this.emitter.fireEvent(ItemEvent.DANEEDLE_USED, {position: this._needle.position.clone()});
     }
 
     get isSpinning() {
