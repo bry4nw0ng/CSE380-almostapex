@@ -230,6 +230,7 @@ export default class MainMenu extends SMScene {
                 this.popupOpen = true;
                 this.popupDim.visible = true;
                 this.popupMap.visible = true;
+                this.zoneLabel.visible = false;
                 break;
             case Zones.BOOK_TABLE: break; // TODO: open help/controls
             case Zones.BED:        break; // TODO: exit game
