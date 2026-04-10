@@ -59,6 +59,10 @@ export default class MainMenu extends SMScene {
     private popupOpen: boolean = false;
     private popupDim: Graphic;
     private popupMap: Sprite;
+    private popupClose: Sprite;
+
+    private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
+    private readonly CLOSE_HIT = 25;               // click radius in px
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -77,6 +81,7 @@ export default class MainMenu extends SMScene {
         this.addLayer("player", 1);
         this.addLayer("debug", 2);
         this.addLayer("popup", 3);
+        this.addLayer("popupOverlay", 4);
         this.addUILayer("ui");
 
         // Black background
@@ -146,6 +151,12 @@ export default class MainMenu extends SMScene {
         this.popupMap.position.set(center.x, center.y);
         this.popupMap.visible = false;
 
+        // TODO: replace with a proper close button sprite
+        this.popupClose = this.add.sprite("map", "popupOverlay");
+        this.popupClose.position.set(this.CLOSE_POS.x + 50, this.CLOSE_POS.y + 50);
+        this.popupClose.scale.set(0.1, 0.1); // tune scale to match final sprite size
+        this.popupClose.visible = false;
+
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
@@ -155,6 +166,15 @@ export default class MainMenu extends SMScene {
         if (this.popupOpen) {
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
+                return;
+            }
+            if (Input.isMouseJustPressed()) {
+                const mouse = Input.getMousePressPosition();
+                const btn = this.popupClose.position;
+                if (Math.abs(mouse.x - btn.x) <= this.CLOSE_HIT &&
+                    Math.abs(mouse.y - btn.y) <= this.CLOSE_HIT) {
+                    this.closePopup();
+                }
             }
             return;
         }
@@ -187,6 +207,7 @@ export default class MainMenu extends SMScene {
         this.popupOpen = false;
         this.popupDim.visible = false;
         this.popupMap.visible = false;
+        this.popupClose.visible = false;
         this.zoneLabel.visible = false;
     }
 
@@ -230,6 +251,7 @@ export default class MainMenu extends SMScene {
                 this.popupOpen = true;
                 this.popupDim.visible = true;
                 this.popupMap.visible = true;
+                this.popupClose.visible = true;
                 this.zoneLabel.visible = false;
                 break;
             case Zones.BOOK_TABLE: break; // TODO: open help/controls
