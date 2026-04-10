@@ -6,6 +6,8 @@ import Input from "../../Wolfie2D/Input/Input";
 import Color from "../../Wolfie2D/Utils/Color";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import Label from "../../Wolfie2D/Nodes/UIElements/Label";
+import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
+import Graphic from "../../Wolfie2D/Nodes/Graphic";
 import RenderingManager from "../../Wolfie2D/Rendering/RenderingManager";
 import SceneManager from "../../Wolfie2D/Scene/SceneManager";
 import Viewport from "../../Wolfie2D/SceneGraph/Viewport";
@@ -54,6 +56,10 @@ export default class MainMenu extends SMScene {
     private activeZone: Zone | null = null;
     private lastValidPos: Vec2 = new Vec2(500, 600);
 
+    private popupOpen: boolean = false;
+    private popupDim: Graphic;
+    private popupMap: Sprite;
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
     }
@@ -61,6 +67,7 @@ export default class MainMenu extends SMScene {
     public loadScene(): void {
         this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
         this.load.image("mainmenu", "game_assets/ui/menu/mainmenu.png");
+        this.load.image("map", "game_assets/ui/menu/map.png");
     }
 
     public startScene(): void {
@@ -69,6 +76,7 @@ export default class MainMenu extends SMScene {
         this.addLayer("bg", 0);
         this.addLayer("player", 1);
         this.addLayer("debug", 2);
+        this.addLayer("popup", 3);
         this.addUILayer("ui");
 
         // Black background
@@ -126,12 +134,31 @@ export default class MainMenu extends SMScene {
         this.zoneLabel.fontSize = 22;
         this.zoneLabel.visible = false;
 
+        // Map popup — dim overlay + map image, hidden until Wall Map is interacted with
+        this.popupDim = this.add.graphic(GraphicType.RECT, "popup", {
+            position: new Vec2(center.x, center.y),
+            size: new Vec2(1024, 1024)
+        });
+        this.popupDim.color = new Color(0, 0, 0, 0.7);
+        this.popupDim.visible = false;
+
+        this.popupMap = this.add.sprite("map", "popup");
+        this.popupMap.position.set(center.x, center.y);
+        this.popupMap.visible = false;
+
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
     }
 
     public updateScene(_deltaT: number): void {
+        if (this.popupOpen) {
+            if (Input.isKeyJustPressed("escape")) {
+                this.closePopup();
+            }
+            return;
+        }
+
         this.constrainPlayerToFloor();
         this.checkZoneProximity();
 
@@ -154,6 +181,13 @@ export default class MainMenu extends SMScene {
         while (this.receiver.hasNextEvent()) {
             this.handleEvent(this.receiver.getNextEvent());
         }
+    }
+
+    private closePopup(): void {
+        this.popupOpen = false;
+        this.popupDim.visible = false;
+        this.popupMap.visible = false;
+        this.zoneLabel.visible = false;
     }
 
     // box player in
@@ -193,14 +227,12 @@ export default class MainMenu extends SMScene {
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
             case Zones.WALL_MAP:
-                console.log("Wall Map — Level Select goes here");
+                this.popupOpen = true;
+                this.popupDim.visible = true;
+                this.popupMap.visible = true;
                 break;
-            case Zones.BOOK_TABLE:
-                console.log("Book Table — Help/Controls goes here");
-                break;
-            case Zones.BED:
-                console.log("Bed — Exit goes here");
-                break;
+            case Zones.BOOK_TABLE: break; // TODO: open help/controls
+            case Zones.BED:        break; // TODO: exit game
         }
     }
 
