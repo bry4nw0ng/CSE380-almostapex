@@ -12,11 +12,11 @@ export default class RaccoonTail extends Item {
     
     protected _speedBoost: number;
 
-
     public constructor(sprite: Sprite) {
         super(sprite);
         this._speedBoost = 1.1;
         this._isAbility = true;
+        this.equippableOffset = new Vec2(-28, 5);
     }
 
     public get speedBoost(): number { return this._speedBoost;}

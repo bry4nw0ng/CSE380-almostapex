@@ -19,10 +19,11 @@ export default class Walk extends PlayerState {
 		let dir = this.parent.inputDir;
 
         if (dir.x > 0) {
-            this.owner.animation.playIfNotAlready(PlayerAnimations.WALK_RIGHT);
+            this.owner.animation.playIfNotAlready(PlayerAnimations.WALK);
         }
         else if (dir.x < 0) {
-            this.owner.animation.playIfNotAlready(PlayerAnimations.WALK_LEFT);
+            this.owner.invertX;
+            this.owner.animation.playIfNotAlready(PlayerAnimations.WALK);
         }
         /*else if (dir.y < 0) {//IMPORTANT MAKE DOWN AND UP, ONLY DOES IF STRAIGHT
             this.owner.animation.playIfNotAlready(PlayerAnimations.WALK_DOWN);

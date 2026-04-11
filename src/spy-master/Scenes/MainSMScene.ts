@@ -87,7 +87,7 @@ export default class MainSMScene extends SMScene {
      */
     public override loadScene() {
         // Load the player and enemy spritesheets
-        this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
+        this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
 
         // Load in the enemy sprites
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
@@ -102,6 +102,9 @@ export default class MainSMScene extends SMScene {
         // Load the enemy locations
         this.load.object("red", "game_assets/data/enemies/red.json");
         this.load.object("blue", "game_assets/data/enemies/blue.json");
+
+        this.load.image("DumpsterSprite", "game_assets/sprites/dumpster.png");
+        this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
 
         // Load the healthpack and lasergun loactions
         //this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
@@ -312,7 +315,7 @@ export default class MainSMScene extends SMScene {
 
         // Give the player physics
         player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
-        player.scale.set(0.25, 0.25); //IMPORTANT Only do this for 32x32
+        player.scale.set(1, 1); //IMPORTANT Only do this for 32x32
 
         // Give the player a healthbar
         let healthbar = new HealthbarHUD(this, player, "primary", {size: player.size.clone().scaled(2, 1/2), offset: player.size.clone().scaled(0, -1/2)});
@@ -384,6 +387,28 @@ export default class MainSMScene extends SMScene {
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
+        
+        let dumpster = this.load.getObject("dumpster");
+
+        for (let i = 0; i < dumpster.dumpsters.length; i++) {
+            console.log("spawned dumpster");
+            let treasure = this.add.sprite("DumpsterSprite", "primary");
+            treasure.position.set(dumpster.dumpsters[i][0], dumpster.dumpsters[i][1]);
+            //treasure.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            treasure.scale.set(1, 1);
+            
+            //treasure.health = 1;
+
+
+            //npc.addAI(GuardBehavior, {target: player, range: 100});
+
+            // Play the NPCs "IDLE" animation 
+            //npc.animation.play("IDLE");
+            
+            // Add the NPC to the battlers array
+            //this.battlers.push(npc);
+        }
+
 /*
         // Get the object data for the blue enemies
         let blue = this.load.getObject("blue");
