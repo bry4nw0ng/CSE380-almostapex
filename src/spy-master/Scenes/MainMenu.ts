@@ -62,9 +62,9 @@ export default class MainMenu extends SMScene {
     private popupClose: Sprite;
 
     private helpOpen: boolean = false;
-    private helpPage: number = 0;       // 0 = help, 1 = controls
+    private helpPage: number = 0;       // 0 = about, 1 = help, 2 = controls
     private helpDim: Graphic;
-    private helpPages: Sprite[] = [];   // [help-page, controls-page]
+    private helpPages: Sprite[] = [];   // [about-page, help-page, controls-page]
     private helpClose: Sprite;
     private helpNext: Sprite;
     private helpPrev: Sprite;
@@ -80,8 +80,13 @@ export default class MainMenu extends SMScene {
         this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
         this.load.image("mainmenu",      "game_assets/ui/menu/mainmenu.png");
         this.load.image("map",           "game_assets/ui/menu/map.png");
-        this.load.image("help-page",     "game_assets/ui/menu/help-page.png");
-        this.load.image("controls-page", "game_assets/ui/menu/controls-page.png");
+        // TODO: replace temp images with final versions
+        // this.load.image("about-page",    "game_assets/ui/menu/about-page.png");
+        // this.load.image("help-page",     "game_assets/ui/menu/help-page.png");
+        // this.load.image("controls-page", "game_assets/ui/menu/controls-page.png");
+        this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
+        this.load.image("help-page",     "game_assets/ui/menu/temp/temphelp.png");
+        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png");
     }
 
     public startScene(): void {
@@ -157,7 +162,7 @@ export default class MainMenu extends SMScene {
         this.popupDim.color = new Color(0, 0, 0, 0.7);
         this.popupDim.visible = false;
 
-        this.popupMap = this.add.sprite("map", "popup");
+        this.popupMap = this.add.sprite("map", "popupOverlay");
         this.popupMap.position.set(center.x, center.y);
         this.popupMap.visible = false;
 
@@ -176,8 +181,9 @@ export default class MainMenu extends SMScene {
         this.helpDim.visible = false;
 
         this.helpPages = [
-            this.add.sprite("help-page",     "popup"),
-            this.add.sprite("controls-page", "popup"),
+            this.add.sprite("about-page",    "popupOverlay"),
+            this.add.sprite("help-page",     "popupOverlay"),
+            this.add.sprite("controls-page", "popupOverlay"),
         ];
         for (const page of this.helpPages) {
             page.position.set(center.x, center.y);
@@ -237,20 +243,20 @@ export default class MainMenu extends SMScene {
                     return;
                 }
 
-                if (this.helpPage === 0) {
-                    const next = this.helpNext.position;
-                    if (Math.abs(mouse.x - next.x) <= this.CLOSE_HIT &&
-                        Math.abs(mouse.y - next.y) <= this.CLOSE_HIT) {
-                        this.setHelpPage(1);
-                        return;
-                    }
-                } else {
-                    const prev = this.helpPrev.position;
-                    if (Math.abs(mouse.x - prev.x) <= this.CLOSE_HIT &&
-                        Math.abs(mouse.y - prev.y) <= this.CLOSE_HIT) {
-                        this.setHelpPage(0);
-                        return;
-                    }
+                const next = this.helpNext.position;
+                if (this.helpNext.visible &&
+                    Math.abs(mouse.x - next.x) <= this.CLOSE_HIT &&
+                    Math.abs(mouse.y - next.y) <= this.CLOSE_HIT) {
+                    this.setHelpPage(this.helpPage + 1);
+                    return;
+                }
+
+                const prev = this.helpPrev.position;
+                if (this.helpPrev.visible &&
+                    Math.abs(mouse.x - prev.x) <= this.CLOSE_HIT &&
+                    Math.abs(mouse.y - prev.y) <= this.CLOSE_HIT) {
+                    this.setHelpPage(this.helpPage - 1);
+                    return;
                 }
             }
             return;
@@ -307,10 +313,11 @@ export default class MainMenu extends SMScene {
 
     private setHelpPage(page: number): void {
         this.helpPage = page;
-        this.helpPages[0].visible = page === 0;
-        this.helpPages[1].visible = page === 1;
-        this.helpNext.visible = page === 0; // next arrow only on help page
-        this.helpPrev.visible = page === 1; // prev arrow only on controls page
+        for (let i = 0; i < this.helpPages.length; i++) {
+            this.helpPages[i].visible = i === page;
+        }
+        this.helpNext.visible = page < this.helpPages.length - 1;
+        this.helpPrev.visible = page > 0;
     }
 
     // box player in
