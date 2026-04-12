@@ -61,6 +61,14 @@ export default class MainMenu extends SMScene {
     private popupMap: Sprite;
     private popupClose: Sprite;
 
+    private helpOpen: boolean = false;
+    private helpPage: number = 0;       // 0 = help, 1 = controls
+    private helpDim: Graphic;
+    private helpPages: Sprite[] = [];   // [help-page, controls-page]
+    private helpClose: Sprite;
+    private helpNext: Sprite;
+    private helpPrev: Sprite;
+
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
     private readonly CLOSE_HIT = 25;               // click radius in px
 
@@ -70,8 +78,10 @@ export default class MainMenu extends SMScene {
 
     public loadScene(): void {
         this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
-        this.load.image("mainmenu", "game_assets/ui/menu/mainmenu.png");
-        this.load.image("map", "game_assets/ui/menu/map.png");
+        this.load.image("mainmenu",      "game_assets/ui/menu/mainmenu.png");
+        this.load.image("map",           "game_assets/ui/menu/map.png");
+        this.load.image("help-page",     "game_assets/ui/menu/help-page.png");
+        this.load.image("controls-page", "game_assets/ui/menu/controls-page.png");
     }
 
     public startScene(): void {
@@ -139,7 +149,7 @@ export default class MainMenu extends SMScene {
         this.zoneLabel.fontSize = 22;
         this.zoneLabel.visible = false;
 
-        // Map popup — dim overlay + map image, hidden until Wall Map is interacted with
+        // map popup 
         this.popupDim = this.add.graphic(GraphicType.RECT, "popup", {
             position: new Vec2(center.x, center.y),
             size: new Vec2(1024, 1024)
@@ -156,6 +166,39 @@ export default class MainMenu extends SMScene {
         this.popupClose.position.set(this.CLOSE_POS.x + 50, this.CLOSE_POS.y + 50);
         this.popupClose.scale.set(0.1, 0.1); // tune scale to match final sprite size
         this.popupClose.visible = false;
+
+        // help/controls popup 
+        this.helpDim = this.add.graphic(GraphicType.RECT, "popup", {
+            position: new Vec2(center.x, center.y),
+            size: new Vec2(1024, 1024)
+        });
+        this.helpDim.color = new Color(0, 0, 0, 0.7);
+        this.helpDim.visible = false;
+
+        this.helpPages = [
+            this.add.sprite("help-page",     "popup"),
+            this.add.sprite("controls-page", "popup"),
+        ];
+        for (const page of this.helpPages) {
+            page.position.set(center.x, center.y);
+            page.visible = false;
+        }
+
+        // TODO: replace with proper close/nav button sprites
+        this.helpClose = this.add.sprite("map", "popupOverlay");
+        this.helpClose.position.set(this.CLOSE_POS.x + 50, this.CLOSE_POS.y + 50);
+        this.helpClose.scale.set(0.1, 0.1);
+        this.helpClose.visible = false;
+
+        this.helpNext = this.add.sprite("map", "popupOverlay");
+        this.helpNext.position.set(center.x + 430, center.y); // right side — tune with final sprite
+        this.helpNext.scale.set(0.05, 0.05);
+        this.helpNext.visible = false;
+
+        this.helpPrev = this.add.sprite("map", "popupOverlay");
+        this.helpPrev.position.set(center.x - 430, center.y); // left side — tune with final sprite
+        this.helpPrev.scale.set(0.05, 0.05);
+        this.helpPrev.visible = false;
 
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
@@ -174,6 +217,40 @@ export default class MainMenu extends SMScene {
                 if (Math.abs(mouse.x - btn.x) <= this.CLOSE_HIT &&
                     Math.abs(mouse.y - btn.y) <= this.CLOSE_HIT) {
                     this.closePopup();
+                }
+            }
+            return;
+        }
+
+        if (this.helpOpen) {
+            if (Input.isKeyJustPressed("escape")) {
+                this.closeHelp();
+                return;
+            }
+            if (Input.isMouseJustPressed()) {
+                const mouse = Input.getMousePressPosition();
+
+                const close = this.helpClose.position;
+                if (Math.abs(mouse.x - close.x) <= this.CLOSE_HIT &&
+                    Math.abs(mouse.y - close.y) <= this.CLOSE_HIT) {
+                    this.closeHelp();
+                    return;
+                }
+
+                if (this.helpPage === 0) {
+                    const next = this.helpNext.position;
+                    if (Math.abs(mouse.x - next.x) <= this.CLOSE_HIT &&
+                        Math.abs(mouse.y - next.y) <= this.CLOSE_HIT) {
+                        this.setHelpPage(1);
+                        return;
+                    }
+                } else {
+                    const prev = this.helpPrev.position;
+                    if (Math.abs(mouse.x - prev.x) <= this.CLOSE_HIT &&
+                        Math.abs(mouse.y - prev.y) <= this.CLOSE_HIT) {
+                        this.setHelpPage(0);
+                        return;
+                    }
                 }
             }
             return;
@@ -209,6 +286,31 @@ export default class MainMenu extends SMScene {
         this.popupMap.visible = false;
         this.popupClose.visible = false;
         this.zoneLabel.visible = false;
+    }
+
+    private openHelp(): void {
+        this.helpOpen = true;
+        this.helpDim.visible = true;
+        this.helpClose.visible = true;
+        this.zoneLabel.visible = false;
+        this.setHelpPage(0);
+    }
+
+    private closeHelp(): void {
+        this.helpOpen = false;
+        this.helpDim.visible = false;
+        this.helpClose.visible = false;
+        this.helpNext.visible = false;
+        this.helpPrev.visible = false;
+        for (const page of this.helpPages) page.visible = false;
+    }
+
+    private setHelpPage(page: number): void {
+        this.helpPage = page;
+        this.helpPages[0].visible = page === 0;
+        this.helpPages[1].visible = page === 1;
+        this.helpNext.visible = page === 0; // next arrow only on help page
+        this.helpPrev.visible = page === 1; // prev arrow only on controls page
     }
 
     // box player in
@@ -254,7 +356,7 @@ export default class MainMenu extends SMScene {
                 this.popupClose.visible = true;
                 this.zoneLabel.visible = false;
                 break;
-            case Zones.BOOK_TABLE: break; // TODO: open help/controls
+            case Zones.BOOK_TABLE: this.openHelp(); break;
             case Zones.BED:        break; // TODO: exit game
         }
     }
