@@ -1,6 +1,6 @@
 import Spritesheet from "../../Wolfie2D/DataTypes/Spritesheet";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
-import { BattlerEvent, ItemEvent } from "../Events";
+import { AbilityEvent, BattlerEvent, ItemEvent } from "../Events";
 import BasicBattler from "../GameSystems/BattleSystem/BasicBattler";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
@@ -9,7 +9,7 @@ import BasicTargetable from "../GameSystems/Targeting/BasicTargetable";
 import { TargetableEntity } from "../GameSystems/Targeting/TargetableEntity";
 import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import SMScene from "../Scenes/SMScene";
-
+import Item from "../GameSystems/ItemSystem/Item";
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -21,6 +21,17 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected targetable: TargetableEntity;
 
     protected heldItem: SMItem;
+    //Buffs
+    protected _damageReduction: number;
+    protected _luck: number;
+    protected _invincible: boolean;
+    //protected _canSearch: boolean;
+    protected _isCoolingDown: boolean;
+    protected _isWeaponTired: boolean;
+    protected jPMultiplier: number;
+
+    public equippables: Inventory = new Inventory(10);
+    public abilities: Inventory = new Inventory(4);
 
     constructor(sheet: Spritesheet) {
         super(sheet);
@@ -28,6 +39,16 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.targetable = new BasicTargetable(this);
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
+        this.receiver.subscribe(AbilityEvent.USED_JETPACK)
+        
+        this.jPMultiplier
+        this._damageReduction = 1;
+        this._luck = 1;
+        this._invincible = false;
+        //this._canSearch = false;
+        this._isCoolingDown = false;
+        this._isWeaponTired = false;
+
     }
 
     get battlerActive(): boolean {
@@ -75,4 +96,57 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     get inventory(): Inventory {
         return this.battler.inventory;
     }
+
+    get damageReduction(): number {
+        return this._damageReduction;
+    }
+    set damageReduction(newDR: number) {
+        this._damageReduction = newDR;
+    }
+
+    get luck(): number {
+        return this._luck;
+    }
+    set luck(newLuck: number) {
+        this._luck = newLuck;
+    }
+
+    toggleInvincible(): void {
+        this._invincible = !(this._invincible);
+    }
+
+
+    set isCoolingDown(isOn: boolean) {
+        this._isCoolingDown = isOn;
+    }
+    get isCoolingDown() {
+        return this._isCoolingDown;
+    }
+
+    set isWeaponTired(isOn: boolean) {
+        this._isWeaponTired = isOn;
+    }
+    get isWeaponTired() {
+        return this._isWeaponTired;
+    }
+
+    public equip(equippable: Item): void{
+        console.log("isAbility:", equippable.isAbility);
+        console.log("Equipped:", equippable);
+        this.equippables.add(equippable);
+        if (equippable.isAbility) {
+            console.log("Added ability");
+            this.abilities.add(equippable);
+        }
+        equippable.applyBuff(this);
+    }
+
+    public unEquip(equippable: Item): void {
+        this.equippables.remove(equippable.id);
+        if (equippable.isAbility) {
+            this.abilities.add(equippable);
+        }
+        equippable.removeBuff(this);
+    }
+    
 }

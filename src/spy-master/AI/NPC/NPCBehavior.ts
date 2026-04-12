@@ -45,7 +45,6 @@ export default abstract class NPCBehavior extends StateMachineGoapAI<NPCAction> 
     public handleEvent(event: GameEvent): void {
         switch(event.type) {
             case ItemEvent.LASERGUN_FIRED: {
-                // console.log("Catching and handling lasergun fired event!!!");
                 this.handleLasergunFired(event.data.get("actorId"), event.data.get("to"), event.data.get("from"));
                 break;
             }

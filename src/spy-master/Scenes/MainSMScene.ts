@@ -21,7 +21,7 @@ import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
 import { AAControls } from "../AAControls";
-import { ItemEvent, PlayerEvent, BattlerEvent } from "../Events";
+import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -36,6 +36,14 @@ import Position from "../GameSystems/Targeting/Position";
 import AstarStrategy from "../Pathfinding/AstarStrategy";
 import SMScene from "./SMScene";
 import PlayerController from "../AI/Player/PlayerController";
+import Shield from "../GameSystems/ItemSystem/Items/Shield";
+import RedHat from "../GameSystems/ItemSystem/Items/RedHat";
+import RaccoonTail from "../GameSystems/ItemSystem/Items/RaccoonTail";
+import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
+import Gum from "../GameSystems/ItemSystem/Items/Gum";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
+import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
+
 
 const BattlerGroups = {
     RED: 1,
@@ -52,11 +60,11 @@ export default class MainSMScene extends SMScene {
     /** Healthbars for the battlers */
     private healthbars: Map<number, HealthbarHUD>;
 
-
     private bases: BattlerBase[];
 
     private healthpacks: Array<Healthpack>;
     private laserguns: Array<LaserGun>;
+    private sceneEquippables: Array<Item>;
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
@@ -70,8 +78,8 @@ export default class MainSMScene extends SMScene {
         this.battlers = new Array<Battler & Actor>();
         this.healthbars = new Map<number, HealthbarHUD>();
 
-        this.laserguns = new Array<LaserGun>();
-        this.healthpacks = new Array<Healthpack>();
+        this.laserguns = new Array<LaserGun>;
+        this.sceneEquippables = new Array<Item>();
     }
 
     /**
@@ -79,30 +87,41 @@ export default class MainSMScene extends SMScene {
      */
     public override loadScene() {
         // Load the player and enemy spritesheets
-        this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
+        this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
 
         // Load in the enemy sprites
         this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
-        this.load.spritesheet("RedEnemy", "game_assets/spritesheets/RedEnemy.json");
+        this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
-        this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
+        this.load.image("tiles", "game_assets/tilemaps/city-tileset-completed.png");
 
         // Load the enemy locations
         this.load.object("red", "game_assets/data/enemies/red.json");
         this.load.object("blue", "game_assets/data/enemies/blue.json");
 
+        this.load.image("DumpsterSprite", "game_assets/sprites/dumpster.png");
+        this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
+
         // Load the healthpack and lasergun loactions
-        this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
-        this.load.object("laserguns", "game_assets/data/items/laserguns.json");
+        //this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
+        //this.load.object("laserguns", "game_assets/data/items/laserguns.json");
+        //this.load.object("equippables", "game_assets/data/items/equippables.json");
 
         // Load the healthpack, inventory slot, and laser gun sprites
         this.load.image("healthpack", "game_assets/sprites/healthpack.png");
         this.load.image("inventorySlot", "game_assets/sprites/inventory.png");
         this.load.image("laserGun", "game_assets/sprites/laserGun.png");
+        this.load.image("RedHat", "game_assets/sprites/red-hat.png");
+        this.load.image("Shield", "game_assets/sprites/cardboard-shield.png");
+        this.load.image("RaccoonTail", "game_assets/sprites/raccoon-tail.png");
+        this.load.image("JetPack", "game_assets/sprites/cokepack.png");
+        this.load.image("Gum", "game_assets/sprites/used-gum.png");
+        this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
+        this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
     }
     /**
      * @see Scene.startScene
@@ -111,10 +130,10 @@ export default class MainSMScene extends SMScene {
         // Add in the tilemap
         let tilemapLayers = this.add.tilemap("level");
 
-        tilemapLayers[2].setDepth(2); // Wall-NonCollidable
+        tilemapLayers[2].setDepth(5); // Wall-NonCollidable
         tilemapLayers[0].setDepth(0); // Floor  
         tilemapLayers[1].setDepth(1); // Wall
-        tilemapLayers[3].setDepth(4); // Transparent, player at 3, so should be above
+        tilemapLayers[3].setDepth(6); // Transparent, player at 3, so should be above
 
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
@@ -134,20 +153,27 @@ export default class MainSMScene extends SMScene {
 
         this.initLayers();
         
-        // Create the player
-        this.initializePlayer();
-        this.initializeItems();
-
-        
         this.initializeNavmesh(new PositionGraph(), this.walls);
 
-        // Create the NPCS
-        //this.initializeNPCs();
+        // Create the Player/NPCS
+        this.initializeNPCs(this.initializePlayer());
+        // Create the player
+        this.initializeItems();
 
         // Subscribe to relevant events
         this.receiver.subscribe("healthpack");
         this.receiver.subscribe("enemyDied");
+
+        //Pickup
         this.receiver.subscribe(ItemEvent.ITEM_REQUEST);
+
+        //Abilities
+        this.receiver.subscribe(AbilityEvent.OPEN_TREASURE);
+        this.receiver.subscribe(AbilityEvent.USED_GUM);
+
+        //Weapons
+        this.receiver.subscribe(ItemEvent.DANEEDLE_USED);
+
 
         // Add a UI for health
         this.addUILayer("health");
@@ -156,6 +182,7 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(PlayerEvent.PLAYER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
+
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
     }
@@ -176,15 +203,28 @@ export default class MainSMScene extends SMScene {
      */
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
+            case ItemEvent.ITEM_REQUEST: {
+                console.log("Request recieved");
+                this.handleItemRequest(event.data.get("player"), event.data.get("inventory"));
+                break;
+            }
+            case ItemEvent.DANEEDLE_USED: {
+                this.handleDaNeedleUsed(event.data.get("position"));
+                break;
+            }
+            case AbilityEvent.USED_GUM: {
+                this.handleUsedGum();
+                break;
+            }
+            case AbilityEvent.OPEN_TREASURE: {
+
+                break;
+            }
             case BattlerEvent.BATTLER_KILLED: {
                 this.handleBattlerKilled(event);
                 break;
             }
             case BattlerEvent.BATTLER_RESPAWN: {
-                break;
-            }
-            case ItemEvent.ITEM_REQUEST: {
-                this.handleItemRequest(event.data.get("node"), event.data.get("inventory"));
                 break;
             }
             default: {
@@ -193,15 +233,35 @@ export default class MainSMScene extends SMScene {
         }
     }
 
-    protected handleItemRequest(node: GameNode, inventory: Inventory): void {
-        let items: Item[] = new Array<Item>(...this.healthpacks, ...this.laserguns).filter((item: Item) => {
-            return item.inventory === null && item.position.distanceTo(node.position) <= 100;
+    protected handleDaNeedleUsed(needlePosition) { //IMPORTANT NEED TO DEBUG WITH ENEMIES
+        this.battlers.forEach(battler => {
+            if (battler instanceof NPCActor) {
+                if (battler.position.distanceTo(needlePosition) < 70) {
+                    battler.health = battler.health - 5;
+                }
+            }
         });
-
-        if (items.length > 0) {
-            inventory.add(items.reduce(ClosestPositioned(node)));
-        }
     }
+    protected handleUsedGum() {
+        this.battlers.forEach(battler => {
+            if (battler instanceof NPCActor) {
+                let prevSpeed = battler.speed;
+                battler.speed = battler.speed / 2;
+                let activeTimer = new Timer(5000, () => battler.speed = prevSpeed, false);
+                activeTimer.start();
+            }
+        });
+    }
+
+    protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
+        console.log("Total equippables:", this.sceneEquippables.length);
+        let items: Item[] = this.sceneEquippables.filter((item: Item) => {
+            return item.inventory === null && item.position.distanceTo(player.position) <= 100;
+        });
+        if (items.length > 0) {
+            player.equip(items.reduce(ClosestPositioned(player)));
+        }
+    } 
 
     /**
      * Handles an NPC being killed by unregistering the NPC from the scenes subsystems
@@ -212,6 +272,7 @@ export default class MainSMScene extends SMScene {
         let battler = this.battlers.find(b => b.id === id);
 
         if (battler) {
+            //Implement RummageSpot
             battler.battlerActive = false;
             this.healthbars.get(id).visible = false;
         }
@@ -221,6 +282,7 @@ export default class MainSMScene extends SMScene {
     /** Initializes the layers in the scene */
     protected initLayers(): void {
         this.addLayer("primary", 3); //Trying to make player render behind overlayed walls
+        this.addLayer("equippables", 5);
         this.addUILayer("slots");
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);
@@ -228,33 +290,32 @@ export default class MainSMScene extends SMScene {
     }
 
 
-
-
     /**
      * Initializes the player in the scene
      */
-    protected initializePlayer(): void {
+    protected initializePlayer(): PlayerActor {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
-        let centerCol = Math.floor(this.walls.getDimensions().x / 2);
+/*         let centerCol = Math.floor(this.walls.getDimensions().x / 2);
         let centerRow = Math.floor(this.walls.getDimensions().y / 2);
-        let centerPos = new Vec2(centerCol, centerRow);
-        player.position.copy(this.walls.getWorldPosition(centerPos.x, centerPos.y)!);
+        let centerPos = new Vec2(centerCol, centerRow); */
+        let spawnPos = new Vec2(-1500, 1000);
+        player.position.copy(spawnPos);
         player.battleGroup = 2;
 
         player.health = 10;
         player.maxHealth = 10;
 
-        player.inventory.onChange = ItemEvent.INVENTORY_CHANGED
-        this.inventoryHud = new InventoryHUD(this, player.inventory, "inventorySlot", {
+        player.abilities.onChange = ItemEvent.INVENTORY_CHANGED
+        this.inventoryHud = new InventoryHUD(this, player.abilities, "inventorySlot", {
             start: new Vec2(232, 24),
             slotLayer: "slots",
-            padding: 8,
+            padding: 3,
             itemLayer: "items"
         });
 
         // Give the player physics
         player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
-        player.scale.set(0.25, 0.25); //IMPORTANT Only do this for 32x32
+        player.scale.set(1, 1); //IMPORTANT Only do this for 32x32
 
         // Give the player a healthbar
         let healthbar = new HealthbarHUD(this, player, "primary", {size: player.size.clone().scaled(2, 1/2), offset: player.size.clone().scaled(0, -1/2)});
@@ -268,17 +329,19 @@ export default class MainSMScene extends SMScene {
 
         this.battlers.push(player);
         this.viewport.follow(player);
+
+        return player;
     }
     /**
      * Initialize the NPCs 
      */
-    protected initializeNPCs(): void {
+    protected initializeNPCs(player): void {
 
         // Get the object data for the red enemies
         let red = this.load.getObject("red");
 
         // Initialize the red healers
-        for (let i = 0; i < red.healers.length; i++) {
+/*         for (let i = 0; i < red.healers.length; i++) {
             let npc = this.add.animatedSprite(NPCActor, "RedHealer", "primary");
             npc.position.set(red.healers[i][0], red.healers[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -296,12 +359,14 @@ export default class MainSMScene extends SMScene {
             npc.addAI(HealerBehavior);
             npc.animation.play("IDLE");
             this.battlers.push(npc);
-        }
+        } */
 
         for (let i = 0; i < red.enemies.length; i++) {
+            console.log("spawned red");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            npc.scale.set(0.25, 0.25);
 
             // Give the NPC a healthbar
             let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
@@ -314,19 +379,43 @@ export default class MainSMScene extends SMScene {
             npc.maxHealth = 10;
             npc.navkey = "navmesh";
 
-            npc.addAI(GuardBehavior, {target: new BasicTargetable(new Position(npc.position.x, npc.position.y)), range: 100});
+            npc.addAI(GuardBehavior, {target: player, range: 100});
 
             // Play the NPCs "IDLE" animation 
             npc.animation.play("IDLE");
+            
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
+        
+        let dumpster = this.load.getObject("dumpster");
 
+        for (let i = 0; i < dumpster.dumpsters.length; i++) {
+            console.log("spawned dumpster");
+            let treasure = this.add.sprite("DumpsterSprite", "primary");
+            treasure.position.set(dumpster.dumpsters[i][0], dumpster.dumpsters[i][1]);
+            //treasure.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            treasure.scale.set(1, 1);
+            
+            //treasure.health = 1;
+
+
+            //npc.addAI(GuardBehavior, {target: player, range: 100});
+
+            // Play the NPCs "IDLE" animation 
+            //npc.animation.play("IDLE");
+            
+            // Add the NPC to the battlers array
+            //this.battlers.push(npc);
+        }
+
+/*
         // Get the object data for the blue enemies
         let blue = this.load.getObject("blue");
 
         // Initialize the blue enemies
         for (let i = 0; i < blue.enemies.length; i++) {
+            console.log("spawned blue");
             let npc = this.add.animatedSprite(NPCActor, "BlueEnemy", "primary");
             npc.position.set(blue.enemies[i][0], blue.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -348,10 +437,10 @@ export default class MainSMScene extends SMScene {
             npc.animation.play("IDLE");
 
             this.battlers.push(npc);
-        }
+        } */
 
         // Initialize the blue healers
-        for (let i = 0; i < blue.healers.length; i++) {
+/*         for (let i = 0; i < blue.healers.length; i++) {
             
             let npc = this.add.animatedSprite(NPCActor, "BlueHealer", "primary");
             npc.position.set(blue.healers[i][0], blue.healers[i][1]);
@@ -369,7 +458,7 @@ export default class MainSMScene extends SMScene {
             npc.addAI(HealerBehavior);
             npc.animation.play("IDLE");
             this.battlers.push(npc);
-        }
+        } */
 
 
     }
@@ -378,22 +467,92 @@ export default class MainSMScene extends SMScene {
      * Initialize the items in the scene (healthpacks and laser guns)
      */
     protected initializeItems(): void {
-        let laserguns = this.load.getObject("laserguns");
-        this.laserguns = new Array<LaserGun>(laserguns.items.length);
-        for (let i = 0; i < laserguns.items.length; i++) {
-            let sprite = this.add.sprite("laserGun", "primary");
-            let line = <Line>this.add.graphic(GraphicType.LINE, "primary", {start: Vec2.ZERO, end: Vec2.ZERO});
-            this.laserguns[i] = LaserGun.create(sprite, line);
-            this.laserguns[i].position.set(laserguns.items[i][0], laserguns.items[i][1]);
-        }
+        /*let equippables = this.load.getObject("equippables"); This wouldnt work with my map json, not totally sure why
+        let sprite;
+        let newOb;
+        for (let equippable of equippables.objects) {
+            switch(equippable.gid) {
+                case 101:
+                    sprite = this.add.sprite("Shield", "equippables");
+                    newOb = new Shield(newOb);
+                    break;
+                case 102:
+                    sprite = this.add.sprite("RedHat", "equippables");
+                    newOb = new RedHat(newOb);
+                    break;
+                case 103:
+                    sprite = this.add.sprite("RaccoonTail", "equippables");
+                    newOb = new RaccoonTail(newOb);
+                    break;
+                case 104:
+                    sprite = this.add.sprite("JetPack", "equippables");
+                    newOb = new JetPack(newOb);
+                    break;
+                case 105:
+                    sprite = this.add.sprite("healthpack", "equippables");
+                    newOb = new Healthpack(newOb);
+                    break;
+                case 106:
+                    sprite = this.add.sprite("Gum", "equippables");
+                    newOb = new Gum(newOb);
+                    break;
+                case 107:
+                    sprite = this.add.sprite("DaNeedle", "equippables");
+                    newOb = new DaNeedle(newOb);
+                    break;
+                case 108:
+                    sprite = this.add.sprite("Antennas", "equippables");
+                    newOb = new Antennas(newOb);
+                    break;
+                default:
+                    continue;
+            }
 
-        let healthpacks = this.load.getObject("healthpacks");
-        this.healthpacks = new Array<Healthpack>(healthpacks.items.length);
-        for (let i = 0; i < healthpacks.items.length; i++) {
-            let sprite = this.add.sprite("healthpack", "primary");
-            this.healthpacks[i] = new Healthpack(sprite);
-            this.healthpacks[i].position.set(healthpacks.items[i][0], healthpacks.items[i][1]);
-        }
+            newOb.position.set(equippable.x, equippable.y);
+            this.sceneEquippables.push(newOb);
+        }*/
+        let playerAt = new Vec2(-1500, 1000);
+
+        let shieldSprite = this.add.sprite("Shield", "primary");
+        let shield = new Shield(shieldSprite);
+        shield.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 100));
+        this.sceneEquippables.push(shield);
+
+        let redHatSprite = this.add.sprite("RedHat", "primary");
+        let redHat = new RedHat(redHatSprite);
+        redHat.position.copy(new Vec2(playerAt.x - 100, playerAt.y + 100));
+        this.sceneEquippables.push(redHat);
+
+        let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+        let raccoonTail = new RaccoonTail(raccoonTailSprite);
+        raccoonTail.position.copy(new Vec2(playerAt.x + 100, playerAt.y - 100));
+        this.sceneEquippables.push(raccoonTail);
+
+        let jetPackSprite = this.add.sprite("JetPack", "primary");
+        let jetPack = new JetPack(jetPackSprite);
+        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 100));
+        this.sceneEquippables.push(jetPack);
+
+        let healthPackSprite = this.add.sprite("healthpack", "primary");
+        let healthPack = new Healthpack(healthPackSprite);
+        healthPack.position.copy(new Vec2(playerAt.x + 100, playerAt.y));
+        this.sceneEquippables.push(healthPack);
+
+        let gumSprite = this.add.sprite("Gum", "primary");
+        let gum = new Gum(gumSprite);
+        gum.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 200));
+        this.sceneEquippables.push(gum);
+
+        let daNeedleSprite = this.add.sprite("DaNeedle", "primary");
+        let daNeedle = new DaNeedle(daNeedleSprite);
+        daNeedle.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 100));
+        this.sceneEquippables.push(daNeedle);
+
+        let antennaSprite = this.add.sprite("Antennas", "primary");
+        let antennas = new Antennas(antennaSprite);
+        antennas.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 200));
+        this.sceneEquippables.push(antennas);
+
     }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
@@ -402,10 +561,7 @@ export default class MainSMScene extends SMScene {
      * 
      */
     protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
-        // Create the graph
-        this.graph = new PositionGraph();
-
-        let dim: Vec2 = this.walls.getDimensions();
+        let dim: Vec2 = walls.getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
                 let pos: Vec2 = walls.getWorldPosition(j, i);
@@ -414,29 +570,29 @@ export default class MainSMScene extends SMScene {
         }
 
         let rc: Vec2;
-        for (let i = 0; i < this.graph.numVertices; i++) {
-            rc = this.walls.getTileColRow(i);
-            if (!this.walls.isTileCollidable(rc.x, rc.y) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
-                !this.walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !this.walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
+        for (let i = 0; i < graph.numVertices; i++) {
+            rc = walls.getTileColRow(i);
+            if (!walls.isTileCollidable(rc.x, rc.y) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
+                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
 
             ) {
                 // Create edge to the left
-                rc = this.walls.getTileColRow(i + 1);
-                if ((i + 1) % dim.x !== 0 && !this.walls.isTileCollidable(rc.x, rc.y)) {
-                    this.graph.addEdge(i, i + 1);
+                rc = walls.getTileColRow(i + 1);
+                if ((i + 1) % dim.x !== 0 && !walls.isTileCollidable(rc.x, rc.y)) {
+                    graph.addEdge(i, i + 1);
                     // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
                 }
                 // Create edge below
-                rc = this.walls.getTileColRow(i + dim.x);
-                if (i + dim.x < this.graph.numVertices && !this.walls.isTileCollidable(rc.x, rc.y)) {
-                    this.graph.addEdge(i, i + dim.x);
+                rc = walls.getTileColRow(i + dim.x);
+                if (i + dim.x < graph.numVertices && !walls.isTileCollidable(rc.x, rc.y)) {
+                    graph.addEdge(i, i + dim.x);
                     // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
                 }
 
@@ -445,7 +601,7 @@ export default class MainSMScene extends SMScene {
         }
 
         // Set this graph as a navigable entity
-        let navmesh = new Navmesh(this.graph);
+        let navmesh = new Navmesh(graph);
         
         // Add different strategies to use for this navmesh
         navmesh.registerStrategy("direct", new DirectStrategy(navmesh));

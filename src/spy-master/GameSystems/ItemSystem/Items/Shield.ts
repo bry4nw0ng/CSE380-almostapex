@@ -4,18 +4,23 @@ import SMScene from "../../../Scenes/SMScene";
 import Item from "../Item";
 import PlayerActor from "../../../Actors/PlayerActor";
 
-//Invulnerable for next hit, remove item on hit
-export default class Antennas extends Item {
+//Damage reduction
+export default class Shield extends Item {
+    
+    protected _damageReduction: number;
 
     public constructor(sprite: Sprite) {
         super(sprite);
-        this._equippableOffset = new Vec2(0,0);
+        this._damageReduction = 0.8;
     }
 
+    public get luckBoost(): number { return this._damageReduction; }
+    public set luckBoost(boost: number) { this._damageReduction = boost; }
+
     public override applyBuff(player: PlayerActor) {
-        player.toggleInvincible();
+        player.damageReduction = this._damageReduction;
     }
     public override removeBuff(player: PlayerActor) {
-        player.toggleInvincible();
+        player.damageReduction = 1;
     }
 }

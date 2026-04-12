@@ -4,5 +4,14 @@ export enum AAControls {
     MOVE_UP = "MOVE_UP",
     MOVE_DOWN = "MOVE_DOWN",
     ATTACK = "ATTACK",
+<<<<<<< HEAD
     INTERACT = "INTERACT"
+=======
+    MEELEE = "MEELEE",
+    ABILITY1 = "ABILITY1",
+    ABILITY2 = "ABILITY2",
+    ABILITY3 = "ABILITY3",
+    PICKUP_ITEM = "PICKUP_ITEM"
+
+>>>>>>> braden
 };

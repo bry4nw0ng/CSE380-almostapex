@@ -11,10 +11,11 @@ import Dead from "./PlayerStates/Dead";
 //import PlayerWeapon from "./PlayerWeapon";
 import Input from "../../../Wolfie2D/Input/Input";
 
+import GameEvent from "../../../Wolfie2D/Events/GameEvent";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
-import { AAEvents } from "../../Events";
+import { AAEvents, AbilityEvent, ItemEvent } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
@@ -24,6 +25,11 @@ import { PlayerAnimations } from "./PlayerAnimations";
 import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
 import PlayerActor from "../../Actors/PlayerActor";
 import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
+import Item from "../../GameSystems/ItemSystem/Item";
+import Inventory from "../../GameSystems/ItemSystem/Inventory";
+
+import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
+
 /**
  * The controller that controls the player.
  */
@@ -40,16 +46,15 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     protected _velocity: Vec2;
 	protected _speed: number;
+    protected playerFacingDir: number;
 
     //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
     //protected weapon: PlayerWeapon;
 
-    //Need to make item file
-    protected equippables: Array<{name: string, equippable: Sprite}>;
-
-
     protected iTimer: Timer;
+    protected cooldownTimer: Timer;
+    protected weaponTiredTimer: Timer;
 
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
@@ -57,19 +62,23 @@ export default class PlayerController extends StateMachineAI implements AI{
 
         //this.weapon = options.weaponSystem;
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
+        this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
+        this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
         this.speed = 800;
         this.velocity = Vec2.ZERO;
-
+        this.playerFacingDir = 1;
         this.health = 5
         this.maxHealth = 5;
 
+        this.receiver.subscribe(AbilityEvent.USED_JETPACK);
         
         // Add the different states the player can be in to the PlayerController 
 		this.addState(AAPlayerStates.IDLE, new Idle(this, this.owner));
 		this.addState(AAPlayerStates.WALK, new Walk(this, this.owner));
+
         this.addState(AAPlayerStates.DEAD, new Dead(this, this.owner));
         this.addState(AAPlayerStates.DYING, new Dying(this, this.owner));
         this.addState(AAPlayerStates.HURT, new Hurt(this, this.owner));
@@ -77,7 +86,26 @@ export default class PlayerController extends StateMachineAI implements AI{
         // Start the player in the Idle state
         this.initialize(AAPlayerStates.IDLE);
     }
+    
+    public handleEvent(event: GameEvent): void {
+        switch(event.type) {
+            case AbilityEvent.USED_JETPACK: {
+                this.handleJetPackTriggered();
+                break;
+            }
+            default: {
+                super.handleEvent(event);
+                break;
+            }
+        }
+    } 
 
+    public handleJetPackTriggered() {
+        let prevSpeed = this.speed;
+        this.speed = this.speed * 2;
+        let activeTimer = new Timer(3000, () => this.speed = prevSpeed, false);
+        activeTimer.start();
+    }
     /** 
 	 * Get the inputs from the keyboard, or Vec2.Zero if nothing is being pressed
 	 */
@@ -88,6 +116,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 		return direction.normalize();
     }
+
     /** 
      * Gets the direction of the mouse from the player's position as a Vec2
      */
@@ -96,6 +125,55 @@ export default class PlayerController extends StateMachineAI implements AI{
     public update(deltaT: number): void {
 		super.update(deltaT);
 
+        console.log("PLayer locX: ", this.owner.position.x, " locY: ", this.owner.position.y)
+        if (this.inputDir.x > 0) {
+            this.playerFacingDir = 1;
+        }
+        else {
+            this.playerFacingDir = -1;
+        }
+
+        if (Input.isJustPressed(AAControls.PICKUP_ITEM)) {
+            this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
+        }
+        if (Input.isJustPressed(AAControls.MEELEE)) {
+            let weapon = this.owner.equippables.find(item => item.isWeapon == true); //Might have to change if add more meelees
+            if (weapon && !(this.owner.isWeaponTired)) {
+                weapon.useWeapon(this.owner, this.playerFacingDir);
+                this.owner.isWeaponTired = true;
+                this.weaponTiredTimer.start();
+            }
+        }
+        if (!this.owner.isCoolingDown) {
+            let abilityOpts = [...this.owner.abilities.items()];
+            if (Input.isJustPressed(AAControls.ABILITY1)) {          
+                let ab = abilityOpts[0];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
+            }
+            if (Input.isJustPressed(AAControls.ABILITY2)) {
+                let ab = abilityOpts[1];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
+            }
+            if (Input.isJustPressed(AAControls.ABILITY3)) {
+                let ab = abilityOpts[2];
+                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
+                if (ab) {
+                    ab.useAbility(this.owner);
+                    this.owner.isCoolingDown = true;
+                    this.cooldownTimer.start();
+                }
+            }
+        }
         // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
         /*if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
             // Start the particle system at the player's current position
@@ -118,11 +196,43 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
             }
             */
-           //forEach => 
-            
+           //Reset position of items each update
+            for (let equippable of this.owner.equippables.items()) {
+                if (this.playerFacingDir == -1) {
+                    equippable.getSprite().invertX = true;
+                }
+                else {
+                    equippable.getSprite().invertX = false;
+                }
+                if (equippable instanceof DaNeedle) {
+                    this.makeDaNeedleSpin(equippable, deltaT);
+                }
+                else {
+                    equippable.position.set(
+                        this.owner.position.x + equippable.equippableOffset.x * this.playerFacingDir,
+                        this.owner.position.y + equippable.equippableOffset.y
+                    );
+                }
+            };
+        
     }
 
-
+    public makeDaNeedleSpin(needle: DaNeedle, roc: number) {
+        if (needle.isSpinning) {
+            needle.curAngle = needle.curAngle + roc * 2 * Math.PI * this.playerFacingDir;
+            needle.position.set(
+                    this.owner.position.x + (needle.radiusToPlayer * Math.cos(needle.curAngle)),
+                    this.owner.position.y + (needle.radiusToPlayer * Math.sin(needle.curAngle))
+                );
+            needle.getSprite().rotation = -1 * this.playerFacingDir * (needle.curAngle + Math.PI / 2);
+        }
+        else {
+            needle.position.set(
+                this.owner.position.x + needle.equippableOffset.x * this.playerFacingDir,
+                this.owner.position.y + needle.equippableOffset.y
+            );
+        }
+    }
 
     public get velocity(): Vec2 { return this._velocity; }
     public set velocity(velocity: Vec2) { this._velocity = velocity; }
@@ -150,14 +260,5 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 }
 
-    public equip(name: string, equippable: Sprite): void{
-        if (!(name in this.equippables)) {
-            this.equippables.push({name, equippable});
-        }
 
-    }
-
-    public unEquip(_name: string): void {
-        this.equippables.filter(equippable => equippable.name !== _name);
-    }
 }

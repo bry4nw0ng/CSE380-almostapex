@@ -20,9 +20,9 @@ export default class ApexLevelOne extends Scene {
 
         public loadScene(): void {
             this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
-            this.load.image("tiles", "game_assets/tilemaps/iso-tile-trial.png");
+            this.load.image("tiles", "game_assets/tilemaps/city-tileset-completed.png");
 
-            this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
+            this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
             this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");         
     }
 

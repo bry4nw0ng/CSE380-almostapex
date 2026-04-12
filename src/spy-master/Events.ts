@@ -12,7 +12,8 @@ export enum ItemEvent {
 
     LASERGUN_FIRED = "LASERGUN_FIRED",
 
-    WEAPON_USED = "WEAPON_USED",
+    DANEEDLE_USED = "DANEEDLE_USED",
+
     CONSUMABLE_USED = "CONSUMABLE_USED",
     INVENTORY_CHANGED = "INVENTORY_CHANGED",
 }
@@ -47,4 +48,10 @@ export enum AAEvents {
     // The event sent when the player dies. Gets sent after the player's death animation
     PLAYER_DEAD = "PLAYER_DEAD"
     
+}
+
+export enum AbilityEvent {
+    OPEN_TREASURE = "OPEN_TREASURE",
+    USED_GUM = "USED_GUM",
+    USED_JETPACK = "USED_JETPACK"
 }
