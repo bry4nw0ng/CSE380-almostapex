@@ -22,7 +22,6 @@ export default class Walk extends PlayerState {
             this.owner.animation.playIfNotAlready(PlayerAnimations.WALK);
         }
         else if (dir.x < 0) {
-            this.owner.invertX;
             this.owner.animation.playIfNotAlready(PlayerAnimations.WALK);
         }
         /*else if (dir.y < 0) {//IMPORTANT MAKE DOWN AND UP, ONLY DOES IF STRAIGHT
