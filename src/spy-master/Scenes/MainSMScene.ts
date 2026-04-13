@@ -27,6 +27,7 @@ import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
 import InventoryHUD from "../GameSystems/HUD/InventoryHUD";
 import RelicTrayHUD from "../GameSystems/HUD/RelicTrayHUD";
+import ActionSlotsHUD from "../GameSystems/HUD/ActionSlotsHUD";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
 import Item from "../GameSystems/ItemSystem/Item";
 import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
@@ -56,6 +57,7 @@ export default class MainSMScene extends SMScene {
     /** GameSystems in the SM Scene */
     private inventoryHud: InventoryHUD;
     private relicTray: RelicTrayHUD;
+    private actionSlots: ActionSlotsHUD;
 
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor)[];
@@ -333,6 +335,16 @@ export default class MainSMScene extends SMScene {
             size: new Vec2(400, 60),
             iconSize: 15,
             padding: 8
+        });
+
+        // weapon + ability slots (right of hp bar/tray)
+        this.actionSlots = new ActionSlotsHUD(this, "hud", {
+            startX: 200,
+            topY: -4,
+            height: 92,
+            boxWidth: 92,
+            weaponAbilityGap: 20,
+            abilityGap: -35
         });
 
         // Give the player PlayerAI
