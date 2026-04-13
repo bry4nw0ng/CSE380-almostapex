@@ -287,6 +287,9 @@ export default class MainSMScene extends SMScene {
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);
         this.getLayer("items").setDepth(2);
+        this.getLayer("slots").setHidden(true);
+        this.getLayer("items").setHidden(true);
+        this.addUILayer("hud");
     }
 
 
@@ -317,8 +320,8 @@ export default class MainSMScene extends SMScene {
         player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         player.scale.set(1, 1); //IMPORTANT Only do this for 32x32
 
-        // Give the player a healthbar
-        let healthbar = new HealthbarHUD(this, player, "primary", {size: player.size.clone().scaled(2, 1/2), offset: player.size.clone().scaled(0, -1/2)});
+        // player hp bar
+        let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
         this.healthbars.set(player.id, healthbar);
 
         // Give the player PlayerAI
