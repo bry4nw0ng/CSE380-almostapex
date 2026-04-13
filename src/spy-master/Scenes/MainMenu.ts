@@ -78,7 +78,7 @@ export default class MainMenu extends SMScene {
     }
 
     public loadScene(): void {
-        this.load.spritesheet("player1", "game_assets/spritesheets/wooper.json");
+        this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
         this.load.image("mainmenu",      "game_assets/ui/menu/mainmenu.png");
         this.load.image("map",           "game_assets/ui/menu/map.png");
         // TODO: replace temp images with final versions
