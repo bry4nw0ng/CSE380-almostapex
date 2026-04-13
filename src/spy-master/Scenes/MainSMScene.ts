@@ -43,7 +43,8 @@ import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
 import Gum from "../GameSystems/ItemSystem/Items/Gum";
 import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
-
+import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
+import RacconBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
 
 const BattlerGroups = {
     RED: 1,
@@ -60,11 +61,15 @@ export default class MainSMScene extends SMScene {
     /** Healthbars for the battlers */
     private healthbars: Map<number, HealthbarHUD>;
 
+    private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
+
     private bases: BattlerBase[];
 
     private healthpacks: Array<Healthpack>;
     private laserguns: Array<LaserGun>;
     private sceneEquippables: Array<Item>;
+
+    private player: PlayerActor;
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
@@ -94,6 +99,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
+        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
@@ -122,6 +128,10 @@ export default class MainSMScene extends SMScene {
         this.load.image("Gum", "game_assets/sprites/used-gum.png");
         this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
         this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
+
+        this.load.image("trash-paper", "game_assets/sprites/trash-paper.png");
+        this.load.image("trash-banana", "game_assets/sprites/trash-banana.png");
+
     }
     /**
      * @see Scene.startScene
@@ -195,6 +205,24 @@ export default class MainSMScene extends SMScene {
         }
         this.inventoryHud.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
+
+        this.trash.forEach((shot) => {
+            if (shot.stillCookin){               
+                if (shot.sprite.position.distanceTo(this.player.position) < 20) {
+                    this.player.health = this.player.health - 3;
+                    shot.sprite.visible = false;
+                    shot.stillCookin = false;
+                }
+                else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    shot.sprite.visible = false;
+                    shot.stillCookin = false;
+                }
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+            }
+        })
+        this.trash = this.trash.filter((shot) => shot.stillCookin == true);
     }
 
     /**
@@ -238,6 +266,7 @@ export default class MainSMScene extends SMScene {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
                     battler.health = battler.health - 5;
+                    battler.animation.playIfNotAlready("HURT", false);
                 }
             }
         });
@@ -330,6 +359,8 @@ export default class MainSMScene extends SMScene {
         this.battlers.push(player);
         this.viewport.follow(player);
 
+        this.player = player;
+
         return player;
     }
     /**
@@ -362,7 +393,7 @@ export default class MainSMScene extends SMScene {
         } */
 
         for (let i = 0; i < red.enemies.length; i++) {
-            console.log("spawned red");
+            console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
@@ -406,60 +437,33 @@ export default class MainSMScene extends SMScene {
             //npc.animation.play("IDLE");
             
             // Add the NPC to the battlers array
-            //this.battlers.push(npc);
+            //this.battlers.push(treasure);
         }
 
-/*
-        // Get the object data for the blue enemies
-        let blue = this.load.getObject("blue");
+        let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
+        boss.position.set(-1200, 1000);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+        boss.scale.set(1, 1);
 
-        // Initialize the blue enemies
-        for (let i = 0; i < blue.enemies.length; i++) {
-            console.log("spawned blue");
-            let npc = this.add.animatedSprite(NPCActor, "BlueEnemy", "primary");
-            npc.position.set(blue.enemies[i][0], blue.enemies[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+        // Give the NPC a healthbar
+        let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
+        this.healthbars.set(boss.id, healthbar);
+        
+        // Set the NPCs stats
+        boss.battleGroup = 1
+        boss.speed = 0;
+        boss.health = 30;
+        boss.maxHealth = 30;
+        boss.navkey = "navmesh";
 
-            // Give the NPCS their healthbars
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
+        boss.addAI(RacconBehavior, {target: player, range: 5000});
 
-            npc.battleGroup = 2
-            npc.speed = 30;
-            npc.health = 1;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            // Give the NPCs their AI
-            npc.addAI(GuardBehavior, {target: this.battlers[0], range: 100});
-
-            // Play the NPCs "IDLE" animation 
-            npc.animation.play("IDLE");
-
-            this.battlers.push(npc);
-        } */
-
-        // Initialize the blue healers
-/*         for (let i = 0; i < blue.healers.length; i++) {
-            
-            let npc = this.add.animatedSprite(NPCActor, "BlueHealer", "primary");
-            npc.position.set(blue.healers[i][0], blue.healers[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
-
-            npc.battleGroup = 2;
-            npc.speed = 30;
-            npc.health = 10;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
-
-            npc.addAI(HealerBehavior);
-            npc.animation.play("IDLE");
-            this.battlers.push(npc);
-        } */
-
+        // Play the NPCs "IDLE" animation 
+        boss.animation.play("IDLE");
+        
+        // Add the NPC to the battlers array
+        this.battlers.push(boss);
+      
 
     }
 
@@ -554,6 +558,23 @@ export default class MainSMScene extends SMScene {
         this.sceneEquippables.push(antennas);
 
     }
+
+    public spawnTrash(position: Vec2, direction: Vec2) {
+        let choice = Math.random();
+        let trashSprite;
+        if (choice > 0.5) {
+            trashSprite = "trash-paper"
+        }
+        else {
+            trashSprite = "trash-banana"
+        }
+
+        let trash = this.add.sprite(trashSprite, "primary");
+        trash.position.set(position.x, position.y);
+        trash.scale.set(1, 1);
+        this.trash.push({sprite: trash, velocity: direction.scaled(100), stillCookin: true})
+
+    }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
      * and it skips over some of the positions on the tilemap. If you can fix my navmesh generation algorithm,
@@ -617,7 +638,7 @@ export default class MainSMScene extends SMScene {
     public getBattlers(): Battler[] { return this.battlers; }
 
     //LOOKAT
-    public getPlayer(): Battler { this.battlers.find((player) => player instanceof PlayerActor); return this.battlers[0]}
+    public getPlayer(): PlayerActor { return this.player}
 
     public getWalls(): IsometricTilemap { return this.walls; }
 

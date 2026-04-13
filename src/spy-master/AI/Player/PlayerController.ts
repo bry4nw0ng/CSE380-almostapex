@@ -125,7 +125,7 @@ export default class PlayerController extends StateMachineAI implements AI{
     public update(deltaT: number): void {
 		super.update(deltaT);
 
-        console.log("PLayer locX: ", this.owner.position.x, " locY: ", this.owner.position.y)
+        //console.log("PLayer locX: ", this.owner.position.x, " locY: ", this.owner.position.y)
         if (this.inputDir.x > 0) {
             this.playerFacingDir = 1;
         }

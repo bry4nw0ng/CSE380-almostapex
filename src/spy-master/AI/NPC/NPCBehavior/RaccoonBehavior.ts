@@ -16,7 +16,9 @@ import GameEvent from "../../../../Wolfie2D/Events/GameEvent";
 import GoapAction from "../../../../Wolfie2D/AI/Goap/GoapAction";
 import GoapState from "../../../../Wolfie2D/AI/Goap/GoapState";
 import Battler from "../../../GameSystems/BattleSystem/Battler";
-
+import Timer from "../../../../Wolfie2D/Timing/Timer";
+import MainSMScene from "../../../Scenes/MainSMScene";
+import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 
 export default class RacconBehavior extends NPCBehavior {
 
@@ -24,6 +26,9 @@ export default class RacconBehavior extends NPCBehavior {
     protected target: TargetableEntity;
     /** The range the guard should be from the target they're guarding to be considered guarding the target */
     protected range: number;
+
+    protected switchTimer: Timer;
+    protected attackStrategy: string;
 
     /** Initialize the NPC AI */
     public initializeAI(owner: NPCActor, options: GuardOptions): void {
@@ -33,6 +38,7 @@ export default class RacconBehavior extends NPCBehavior {
         this.target = options.target
         this.range = options.range;
 
+        this.switchTimer = new Timer(1500, () => this.attack(), false);
         // Initialize guard statuses
         this.initializeStatuses();
         // Initialize guard actions
@@ -42,6 +48,8 @@ export default class RacconBehavior extends NPCBehavior {
 
         // Initialize the guard behavior
         this.initialize();
+
+        this.switchTimer.start();
     }
 
     public handleEvent(event: GameEvent): void {
@@ -58,58 +66,52 @@ export default class RacconBehavior extends NPCBehavior {
     }
 
     protected initializeStatuses(): void {
-
-/*         let scene = this.owner.getScene();
-
-        // A status checking if there are any enemies at target the guard is guarding
-        let enemyBattlerFinder = new BasicFinder<Battler>(null, BattlerActiveFilter(), EnemyFilter(this.owner), RangeFilter(this.target, 0, this.range*this.range))
-        let enemyAtGuardPosition = new TargetExists(scene.getBattlers(), enemyBattlerFinder)
-        this.addStatus(GuardStatuses.ENEMY_IN_GUARD_POSITION, enemyAtGuardPosition); */
-
-        // Add a status to check if a lasergun exists in the scene and it's visible
-        //this.addStatus(GuardStatuses.LASERGUN_EXISTS, new TargetExists(scene.getLaserGuns(), new BasicFinder<Item>(null, ItemFilter(LaserGun), (item: Item) => item.inventory === null)));
-        // Add a status to check if the guard has a lasergun
-        //this.addStatus(GuardStatuses.HAS_WEAPON, new HasItem(this.owner, new BasicFinder(null, ItemFilter(LaserGun))));
-
-        // Add the goal status 
         this.addStatus(GuardStatuses.GOAL, new FalseStatus());
     }
 
     protected initializeActions(): void {
-
-        let scene = this.owner.getScene();
-
-        // An action for shooting an enemy in the guards guard area
-        let shootEnemy = new ShootLaserGun(this, this.owner);
-        shootEnemy.targets = scene.getPlayer();
-        //shootEnemy.targetFinder = new BasicFinder<PlayerActor>(ClosestPositioned(this.owner), BattlerActiveFilter(), EnemyFilter(this.owner), RangeFilter(this.target, 0, this.range*this.range));
-        //shootEnemy.addEffect(GuardStatuses.GOAL);
-        //shootEnemy.cost = 1;
-        //this.addState(GuardActions.SHOOT_ENEMY, shootEnemy);
+        let scene = this.owner.getScene() as MainSMScene;
         let gitEm = new Idle(this, this.owner);
         gitEm.targets = [this.target];
         gitEm.targetFinder = new BasicFinder();
         gitEm.addEffect(GuardStatuses.GOAL);
         gitEm.cost = 1;
         this.addState(GuardActions.GUARD, gitEm);
+    }
 
-/*         // An action for picking up a lasergun
-        let pickupLaserGun = new PickupItem(this, this.owner);
-        pickupLaserGun.targets = scene.getLaserGuns();
-        pickupLaserGun.targetFinder = new BasicFinder<Item>(ClosestByPath(this.owner), (item: Item) => item.inventory === null, ItemFilter(LaserGun));
-        pickupLaserGun.addPrecondition(GuardStatuses.LASERGUN_EXISTS);
-        pickupLaserGun.addEffect(GuardStatuses.HAS_WEAPON);
-        pickupLaserGun.cost = 5;
-        this.addState(GuardActions.PICKUP_LASER_GUN, pickupLaserGun); */
+    public attack() {
+        let scene = this.owner.getScene() as MainSMScene;
+        
+        let choice = Math.random();
+        if (choice > 0.5) {
+            this.attackStrategy = "spray";
+        }
+        else {
+            this.attackStrategy = "aim"
+        }
 
-        // An action for guarding the guard's guard location
-/*         let guard = new Idle(this, this.owner);
-        guard.targets = [this.target];
-        guard.targetFinder = new BasicFinder();
-        guard.addPrecondition(GuardStatuses.HAS_WEAPON);
-        guard.addEffect(GuardStatuses.GOAL);
-        guard.cost = 1000;
-        this.addState(GuardActions.GUARD, guard); */
+        this.switchTimer.start();
+        this.owner.animation.play("ATTACK", false);
+        
+        if (this.attackStrategy == "spray") {
+            for (let i = 0; i <= 20; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let aim = new Vec2(Math.cos(angle), Math.sin(angle));
+                scene.spawnTrash(this.owner.position.clone(), aim);
+            }
+        }
+        else if (this.attackStrategy == "aim") {
+            let aim = this.owner.position.dirTo(this.target.position);
+            for (let i = 0; i <= 10; i++) {
+                let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 + Math.random() * 0.1))
+                scene.spawnTrash(this.owner.position.clone(), bloom);
+            }
+
+        }
+        else {
+            console.log("DOOMERROR: Attack type invalid")
+        }
+
     }
 
     public override addState(stateName: GuardAction, state: GoapAction): void {
@@ -130,10 +132,6 @@ export type GuardStatus = typeof GuardStatuses[keyof typeof GuardStatuses];
 export const GuardStatuses = {
 
     ENEMY_IN_GUARD_POSITION: "enemy-at-guard-position",
-
-    HAS_WEAPON: "has-weapon",
-
-    LASERGUN_EXISTS: "laser-gun-exists",
 
     GOAL: "goal"
 
