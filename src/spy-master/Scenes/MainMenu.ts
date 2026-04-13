@@ -19,6 +19,7 @@ import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
 import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import { AAControls } from "../AAControls";
 import SMScene from "./SMScene";
+import MainSMScene from "./MainSMScene";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -215,6 +216,10 @@ export default class MainMenu extends SMScene {
         if (this.popupOpen) {
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
+                return;
+            }
+            if (Input.isKeyJustPressed("1")) {
+                this.sceneManager.changeToScene(MainSMScene);
                 return;
             }
             if (Input.isMouseJustPressed()) {
