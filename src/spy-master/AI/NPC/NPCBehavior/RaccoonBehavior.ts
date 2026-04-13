@@ -18,7 +18,7 @@ import GoapState from "../../../../Wolfie2D/AI/Goap/GoapState";
 import Battler from "../../../GameSystems/BattleSystem/Battler";
 
 
-export default class GuardBehavior extends NPCBehavior {
+export default class RacconBehavior extends NPCBehavior {
 
     /** The target the guard should guard */
     protected target: TargetableEntity;
@@ -55,9 +55,6 @@ export default class GuardBehavior extends NPCBehavior {
 
     public update(deltaT: number): void { //IMPORTANT
         super.update(deltaT);
-        let dir = this.owner.position.dirTo(this.target.position);
-        this.owner.move(dir.scaled(this.owner.speed * deltaT));
-        this.owner.animation.playIfNotAlready("WALK", true);
     }
 
     protected initializeStatuses(): void {
@@ -83,11 +80,9 @@ export default class GuardBehavior extends NPCBehavior {
         let scene = this.owner.getScene();
 
         // An action for shooting an enemy in the guards guard area
-        //let shootEnemy = new ShootLaserGun(this, this.owner);
-        //shootEnemy.targets = scene.getBattlers();
-        //shootEnemy.targetFinder = new BasicFinder<Battler>(ClosestPositioned(this.owner), BattlerActiveFilter(), EnemyFilter(this.owner), RangeFilter(this.target, 0, this.range*this.range));
-        //shootEnemy.addPrecondition(GuardStatuses.HAS_WEAPON);
-        //shootEnemy.addPrecondition(GuardStatuses.ENEMY_IN_GUARD_POSITION);
+        let shootEnemy = new ShootLaserGun(this, this.owner);
+        shootEnemy.targets = scene.getPlayer();
+        //shootEnemy.targetFinder = new BasicFinder<PlayerActor>(ClosestPositioned(this.owner), BattlerActiveFilter(), EnemyFilter(this.owner), RangeFilter(this.target, 0, this.range*this.range));
         //shootEnemy.addEffect(GuardStatuses.GOAL);
         //shootEnemy.cost = 1;
         //this.addState(GuardActions.SHOOT_ENEMY, shootEnemy);

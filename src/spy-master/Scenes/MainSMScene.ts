@@ -369,13 +369,13 @@ export default class MainSMScene extends SMScene {
             npc.scale.set(0.25, 0.25);
 
             // Give the NPC a healthbar
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
+            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
             this.healthbars.set(npc.id, healthbar);
             
             // Set the NPCs stats
             npc.battleGroup = 1
             npc.speed = 30;
-            npc.health = 1;
+            npc.health = 10;
             npc.maxHealth = 10;
             npc.navkey = "navmesh";
 
@@ -615,6 +615,9 @@ export default class MainSMScene extends SMScene {
     }
 
     public getBattlers(): Battler[] { return this.battlers; }
+
+    //LOOKAT
+    public getPlayer(): Battler { this.battlers.find((player) => player instanceof PlayerActor); return this.battlers[0]}
 
     public getWalls(): IsometricTilemap { return this.walls; }
 
