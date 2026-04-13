@@ -45,6 +45,8 @@ import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
 import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
 import RacconBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
+import MainMenu from "./MainMenu";
+import GameOver from "./GameOver";
 
 const BattlerGroups = {
     RED: 1,
@@ -70,6 +72,7 @@ export default class MainSMScene extends SMScene {
     private sceneEquippables: Array<Item>;
 
     private player: PlayerActor;
+    private boss: NPCActor;
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
@@ -208,10 +211,11 @@ export default class MainSMScene extends SMScene {
 
         this.trash.forEach((shot) => {
             if (shot.stillCookin){               
-                if (shot.sprite.position.distanceTo(this.player.position) < 20) {
+                if (!(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
                     this.player.health = this.player.health - 3;
                     shot.sprite.visible = false;
                     shot.stillCookin = false;
+                    this.player.startIFrames();
                 }
                 else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
                     shot.sprite.visible = false;
@@ -302,10 +306,69 @@ export default class MainSMScene extends SMScene {
 
         if (battler) {
             //Implement RummageSpot
-            battler.battlerActive = false;
-            this.healthbars.get(id).visible = false;
+            if (battler instanceof PlayerActor) {
+                battler.animation.playIfNotAlready("DYING", false);
+                battler.speed = 0;
+                let deathTimer = new Timer(3000, () => this.sceneManager.changeToScene(GameOver), false);
+                deathTimer.start();
+            }
+            else if (battler == this.boss) {
+                let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+                let raccoonTail = new RaccoonTail(raccoonTailSprite);
+                raccoonTail.position.copy(this.boss.position);
+                this.sceneEquippables.push(raccoonTail);
+            }
+            else if (Math.random() * this.player.luck >= 0.15) {
+                battler.battlerActive = false;
+                this.healthbars.get(id).visible = false;
+                this.dropItem(battler.position.clone());
+            }
         }
+
         
+        
+    }
+
+    protected dropItem(position: Vec2) {
+        let choice = Math.floor(Math.random() * 7);
+
+        let sprite;
+        let newOb;
+        switch(choice) {
+            case 0:
+                sprite = this.add.sprite("Shield", "equippables");
+                newOb = new Shield(newOb);
+                break;
+            case 1:
+                sprite = this.add.sprite("RedHat", "equippables");
+                newOb = new RedHat(newOb);
+                break;
+            case 2:
+                sprite = this.add.sprite("JetPack", "equippables");
+                newOb = new JetPack(newOb);
+                break;
+            case 3:
+                sprite = this.add.sprite("healthpack", "equippables");
+                newOb = new Healthpack(newOb);
+                break;
+            case 4:
+                sprite = this.add.sprite("Gum", "equippables");
+                newOb = new Gum(newOb);
+                break;
+            case 5:
+                sprite = this.add.sprite("DaNeedle", "equippables");
+                newOb = new DaNeedle(newOb);
+                break;
+            case 6:
+                sprite = this.add.sprite("Antennas", "equippables");
+                newOb = new Antennas(newOb);
+                break;
+            default:
+                break;
+        }
+
+            newOb.position.set(position);
+            this.sceneEquippables.push(newOb);
     }
 
     /** Initializes the layers in the scene */
@@ -456,11 +519,14 @@ export default class MainSMScene extends SMScene {
         boss.maxHealth = 30;
         boss.navkey = "navmesh";
 
+
         boss.addAI(RacconBehavior, {target: player, range: 5000});
 
         // Play the NPCs "IDLE" animation 
         boss.animation.play("IDLE");
-        
+
+        this.boss = boss;
+
         // Add the NPC to the battlers array
         this.battlers.push(boss);
       

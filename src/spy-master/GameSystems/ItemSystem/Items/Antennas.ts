@@ -13,9 +13,9 @@ export default class Antennas extends Item {
     }
 
     public override applyBuff(player: PlayerActor) {
-        player.toggleInvincible();
+        player.toggleInvincible(true);
     }
     public override removeBuff(player: PlayerActor) {
-        player.toggleInvincible();
+        player.toggleInvincible(false);
     }
 }

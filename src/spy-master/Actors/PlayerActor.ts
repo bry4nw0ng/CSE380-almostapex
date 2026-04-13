@@ -10,6 +10,7 @@ import { TargetableEntity } from "../GameSystems/Targeting/TargetableEntity";
 import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import SMScene from "../Scenes/SMScene";
 import Item from "../GameSystems/ItemSystem/Item";
+import Timer from "../../Wolfie2D/Timing/Timer";
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -25,6 +26,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _damageReduction: number;
     protected _luck: number;
     protected _invincible: boolean;
+    protected iTimer: Timer;
     //protected _canSearch: boolean;
     protected _isCoolingDown: boolean;
     protected _isWeaponTired: boolean;
@@ -48,6 +50,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         //this._canSearch = false;
         this._isCoolingDown = false;
         this._isWeaponTired = false;
+        this.iTimer = new Timer(750, () => this.toggleInvincible(false), false);
 
     }
 
@@ -111,10 +114,13 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._luck = newLuck;
     }
 
-    toggleInvincible(): void {
-        this._invincible = !(this._invincible);
+    toggleInvincible(isOn: boolean): void {
+        this._invincible = isOn;
     }
 
+    get invincible(): boolean {
+        return this._invincible;
+    }
 
     set isCoolingDown(isOn: boolean) {
         this._isCoolingDown = isOn;
@@ -148,5 +154,9 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         }
         equippable.removeBuff(this);
     }
-    
+
+    public startIFrames() {
+        this.toggleInvincible(true);
+        this.iTimer.start();
+    }
 }

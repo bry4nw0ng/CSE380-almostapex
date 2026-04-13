@@ -63,6 +63,11 @@ export default class RacconBehavior extends NPCBehavior {
 
     public update(deltaT: number): void { //IMPORTANT
         super.update(deltaT);
+
+        if (this.owner.health <= 0) {
+            this.switchTimer.pause();
+            this.owner.animation.playIfNotAlready("DYING", false);
+        }
     }
 
     protected initializeStatuses(): void {
@@ -92,7 +97,7 @@ export default class RacconBehavior extends NPCBehavior {
 
         this.switchTimer.start();
         this.owner.animation.play("ATTACK", false);
-        
+
         if (this.attackStrategy == "spray") {
             for (let i = 0; i <= 20; i++) {
                 let angle = Math.random() * Math.PI * 2;
