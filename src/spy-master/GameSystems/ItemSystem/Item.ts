@@ -27,8 +27,9 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _equippableOffset: Vec2;
     protected _isAbility: boolean = false;
     protected _isWeapon: boolean = false;
+    protected _isPassive: boolean = false;
 
-    protected constructor(sprite: Sprite){ 
+    protected constructor(sprite: Sprite){
         this.sprite = sprite;
         this.emitter = new Emitter();
         this._equippableOffset = new Vec2(0,0);
@@ -37,6 +38,8 @@ export default abstract class Item implements Unique, TargetableEntity {
         this._targetable = new BasicTargetable(this.sprite);
 
         this._isAbility = false;
+        this._isWeapon = false;
+        this._isPassive = false;
     }
 
     getTargeting(): TargetingEntity[] { 
@@ -78,11 +81,15 @@ export default abstract class Item implements Unique, TargetableEntity {
 
     public useWeapon(player: PlayerActor, facingDir: number): void { //Make noise since no ability
     }
-    public get isAbility(): boolean { 
-        return this._isAbility; 
+    public get isAbility(): boolean {
+        return this._isAbility;
     }
 
-    public get isWeapon(): boolean { 
-        return this._isWeapon; 
+    public get isWeapon(): boolean {
+        return this._isWeapon;
+    }
+
+    public get isPassive(): boolean {
+        return this._isPassive;
     }
 }

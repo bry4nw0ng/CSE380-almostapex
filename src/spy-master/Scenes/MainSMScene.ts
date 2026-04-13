@@ -26,6 +26,7 @@ import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
 import InventoryHUD from "../GameSystems/HUD/InventoryHUD";
+import RelicTrayHUD from "../GameSystems/HUD/RelicTrayHUD";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
 import Item from "../GameSystems/ItemSystem/Item";
 import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
@@ -54,6 +55,7 @@ export default class MainSMScene extends SMScene {
 
     /** GameSystems in the SM Scene */
     private inventoryHud: InventoryHUD;
+    private relicTray: RelicTrayHUD;
 
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor)[];
@@ -194,6 +196,7 @@ export default class MainSMScene extends SMScene {
             this.handleEvent(this.receiver.getNextEvent());
         }
         this.inventoryHud.update(deltaT);
+        this.relicTray.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
     }
 
@@ -323,6 +326,14 @@ export default class MainSMScene extends SMScene {
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
         this.healthbars.set(player.id, healthbar);
+
+        // passive relic tray (below hp bar)
+        this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
+            position: new Vec2(115, 50),
+            size: new Vec2(400, 60),
+            iconSize: 15,
+            padding: 8
+        });
 
         // Give the player PlayerAI
         player.addAI(PlayerController);
@@ -553,7 +564,7 @@ export default class MainSMScene extends SMScene {
 
         let antennaSprite = this.add.sprite("Antennas", "primary");
         let antennas = new Antennas(antennaSprite);
-        antennas.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 200));
+        antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
         this.sceneEquippables.push(antennas);
 
     }

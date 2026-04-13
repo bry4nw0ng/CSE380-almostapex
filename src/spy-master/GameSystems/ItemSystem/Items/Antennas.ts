@@ -9,6 +9,7 @@ export default class Antennas extends Item {
 
     public constructor(sprite: Sprite) {
         super(sprite);
+        this._isPassive = true;
         this._equippableOffset = new Vec2(0,0);
     }
 

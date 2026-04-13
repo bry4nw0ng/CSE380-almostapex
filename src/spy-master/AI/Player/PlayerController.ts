@@ -133,7 +133,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.playerFacingDir = -1;
         }
 
-        if (Input.isJustPressed(AAControls.PICKUP_ITEM)) {
+        if (Input.isJustPressed(AAControls.INTERACT)) {
             this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
         }
         if (Input.isJustPressed(AAControls.MEELEE)) {
