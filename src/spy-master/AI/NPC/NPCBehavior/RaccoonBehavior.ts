@@ -19,6 +19,7 @@ import Battler from "../../../GameSystems/BattleSystem/Battler";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
 import MainSMScene from "../../../Scenes/MainSMScene";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
+import { BattlerEvent } from "../../../Events";
 
 export default class RacconBehavior extends NPCBehavior {
 
@@ -67,6 +68,8 @@ export default class RacconBehavior extends NPCBehavior {
         if (this.owner.health <= 0) {
             this.switchTimer.pause();
             this.owner.animation.playIfNotAlready("DYING", false);
+            this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.owner.id});
+            this.owner.visible = false;
         }
     }
 
@@ -86,7 +89,10 @@ export default class RacconBehavior extends NPCBehavior {
 
     public attack() {
         let scene = this.owner.getScene() as MainSMScene;
-        
+        if (this.owner.position.distanceTo(this.target.position) > 1000) {
+            this.switchTimer.start();
+            return;
+        }
         let choice = Math.random();
         if (choice > 0.5) {
             this.attackStrategy = "spray";

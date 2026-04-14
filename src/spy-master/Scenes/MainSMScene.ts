@@ -268,7 +268,7 @@ export default class MainSMScene extends SMScene {
                         shot.stillCookin = false;
 
                     }
-                    else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    else if (shot.sprite.position.distanceTo(this.player.position) > 1000) {
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
                     }
@@ -295,9 +295,11 @@ export default class MainSMScene extends SMScene {
                     if (shield) {
                         dr = 0.8
                     }
-                    this.player.health = this.player.health - 3 * dr;
-                    console.log(this.player.health);
-                    this.player.startIFrames();
+                    if (battler.health > 0) {
+                        this.player.health = this.player.health - 3 * dr;
+                        console.log(this.player.health);
+                        this.player.startIFrames();
+                    }
                 }
             }
         })
@@ -401,11 +403,15 @@ export default class MainSMScene extends SMScene {
                 raccoonTail.position.copy(deathSpot);
                 this.sceneEquippables.push(raccoonTail);
             }
-            else if (Math.random() * this.player.luck >= 0.15) {
+            else {
                 this.totKilled += 1;
                 battler.battlerActive = false;
                 this.healthbars.get(id).visible = false;
-                this.dropItem(deathSpot);
+                console.log("luck", this.player.luck)
+                if (Math.random() * this.player.luck >= 0.85) {
+                    this.dropItem(deathSpot);
+                }   
+
                 if (this.totKilled < 5) {
                     for (let i = 0; i <= 1; i++) {
                         this.spawnEnemies();
@@ -740,7 +746,7 @@ export default class MainSMScene extends SMScene {
         let spitball = this.add.sprite("spitball", "primary");
         spitball.position.set(position.x, position.y);
         spitball.scale.set(1, 1);
-        this.spitballs.push({sprite: spitball, velocity: direction.scaled(50), stillCookin: true})
+        this.spitballs.push({sprite: spitball, velocity: direction.scaled(30), stillCookin: true})
 
     }
     /**
@@ -805,8 +811,8 @@ export default class MainSMScene extends SMScene {
 
     public spawnBoss() {     
         let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
-        boss.position.set(-1200, 1000);
-        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+        boss.position.set(230, 1000);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(30, 53)), null, false);
         boss.scale.set(1, 1);
 
         // Give the NPC a healthbar
@@ -821,7 +827,7 @@ export default class MainSMScene extends SMScene {
         boss.navkey = "navmesh";
 
 
-        boss.addAI(RacconBehavior, {target: this.player, range: 5000});
+        boss.addAI(RacconBehavior, {target: this.player, range: 750});
 
         // Play the NPCs "IDLE" animation 
         boss.animation.play("IDLE");
@@ -835,7 +841,7 @@ export default class MainSMScene extends SMScene {
     public spawnEnemies() {
         let angle = Math.PI * 2 * Math.random();
         let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
-        let spawnPosY = this.player.position.x + Math.sin(angle) * 300;
+        let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
 
         if (this.totKilled == this.totEnemies) {
             this.spawnBoss()
@@ -847,6 +853,7 @@ export default class MainSMScene extends SMScene {
             console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(spawnPosX, spawnPosY);
+            console.log("spawned mouse at x:", spawnPosX, "y:", spawnPosY)
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
             npc.scale.set(0.25, 0.25);
 

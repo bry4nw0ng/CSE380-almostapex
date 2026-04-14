@@ -6,5 +6,5 @@
     {"name":"ATTACK","repeat":false, "frames":[{"index":1,"duration":8},{"index":2,"duration":8}]},
     {"name": "HURT", "repeat": false, "frames": [{"index": 3, "duration": 8}]},
     {"name":"DYING","repeat":false, "next": "DEAD", "frames":[{"index":4,"duration":12},{"index":5,"duration":12}]},
-    {"name":"DEATH","repeat":true,"frames":[{"index":6,"duration":1}]}
+    {"name":"DEAD","repeat":true,"frames":[{"index":6,"duration":1}]}
 ]}
