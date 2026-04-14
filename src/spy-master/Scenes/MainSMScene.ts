@@ -256,6 +256,9 @@ export default class MainSMScene extends SMScene {
 
                 shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
             }
+            else {
+                shot.sprite.destroy();
+            }
         })
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
 
@@ -276,6 +279,9 @@ export default class MainSMScene extends SMScene {
 
                     shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
                 })
+            }
+            else {
+                shot.sprite.destroy();
             }
         })
 
@@ -407,6 +413,7 @@ export default class MainSMScene extends SMScene {
                 this.totKilled += 1;
                 battler.battlerActive = false;
                 this.healthbars.get(id).visible = false;
+                this.battlers = this.battlers.filter(b => b.id !== id);
                 console.log("luck", this.player.luck)
                 if (Math.random() * this.player.luck >= 0.85) {
                     this.dropItem(deathSpot);
