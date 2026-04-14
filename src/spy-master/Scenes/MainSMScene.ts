@@ -86,6 +86,7 @@ export default class MainSMScene extends SMScene {
 
     private totKilled: number;
     private totEnemies: number;
+    private playerDead: boolean = false;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -222,8 +223,8 @@ export default class MainSMScene extends SMScene {
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
 
         this.trash.forEach((shot) => {
-            if (shot.stillCookin){               
-                if (!(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
+            if (shot.stillCookin){
+                if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
                     let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
                     if (antennas) {
                         this.player.equippables.remove(antennas.id);
@@ -248,7 +249,7 @@ export default class MainSMScene extends SMScene {
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
 
         this.battlers.forEach((battler) => {
-            if (!(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
+            if (this.player.health > 0 && !(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
                 let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                 if (antennas) {
                     this.player.equippables.remove(antennas.id);
@@ -348,9 +349,10 @@ export default class MainSMScene extends SMScene {
             //Implement RummageSpot
             let deathSpot = battler.position.clone();
             if (battler instanceof PlayerActor) {
-                battler.animation.playIfNotAlready("DYING", false);
-                battler.speed = 0;
-                let deathTimer = new Timer(3000, () => this.sceneManager.changeToScene(GameOver), false);
+                if (this.playerDead) return; // already dying, ignore repeated events
+                this.playerDead = true;
+                battler.animation.play("DYING", false, "DEAD");
+                let deathTimer = new Timer(4000, () => this.sceneManager.changeToScene(GameOver), false);
                 deathTimer.start();
             }
             else if (battler == this.boss) {
