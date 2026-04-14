@@ -1,0 +1,831 @@
+{
+    "name": "wooper",
+    "spriteSheetImage": "wooper.png",
+    "spriteWidth": 256,
+    "spriteHeight": 256,
+    "leftBuffer": 0,
+    "rightBuffer": 0,
+    "topBuffer": 0,
+    "bottomBuffer": 0,
+    "columns": 10,
+    "rows": 21,
+    "animations": [
+        {
+            "name": "IDLE",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 13,
+                    "duration": 18
+                },
+                {
+                    "index": 12,
+                    "duration": 12
+                },
+                {
+                    "index": 13,
+                    "duration": 18
+                },
+                {
+                    "index": 16,
+                    "duration": 12
+                }
+            ]
+        },
+        {
+            "name": "WALKING_LEFT",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 30,
+                    "duration": 6
+                },
+                {
+                    "index": 31,
+                    "duration": 6
+                },
+                {
+                    "index": 32,
+                    "duration": 6
+                },
+                {
+                    "index": 33,
+                    "duration": 6
+                },
+                {
+                    "index": 34,
+                    "duration": 6
+                },
+                {
+                    "index": 35,
+                    "duration": 6
+                },
+                {
+                    "index": 36,
+                    "duration": 6
+                },
+                {
+                    "index": 37,
+                    "duration": 6
+                },
+                {
+                    "index": 38,
+                    "duration": 6
+                },
+                {
+                    "index": 39,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "WALKING_RIGHT",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 20,
+                    "duration": 6
+                },
+                {
+                    "index": 21,
+                    "duration": 6
+                },
+                {
+                    "index": 22,
+                    "duration": 6
+                },
+                {
+                    "index": 23,
+                    "duration": 6
+                },
+                {
+                    "index": 24,
+                    "duration": 6
+                },
+                {
+                    "index": 25,
+                    "duration": 6
+                },
+                {
+                    "index": 26,
+                    "duration": 6
+                },
+                {
+                    "index": 27,
+                    "duration": 6
+                },
+                {
+                    "index": 28,
+                    "duration": 6
+                },
+                {
+                    "index": 29,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "JUMP",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 0,
+                    "duration": 6
+                },
+                {
+                    "index": 1,
+                    "duration": 6
+                },
+                {
+                    "index": 2,
+                    "duration": 6
+                },
+                {
+                    "index": 3,
+                    "duration": 6
+                },
+                {
+                    "index": 4,
+                    "duration": 6
+                },
+                {
+                    "index": 5,
+                    "duration": 6
+                },
+                {
+                    "index": 6,
+                    "duration": 6
+                },
+                {
+                    "index": 7,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "JUMP_LEFT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 50,
+                    "duration": 6
+                },
+                {
+                    "index": 51,
+                    "duration": 6
+                },
+                {
+                    "index": 52,
+                    "duration": 6
+                },
+                {
+                    "index": 53,
+                    "duration": 6
+                },
+                {
+                    "index": 54,
+                    "duration": 6
+                },
+                {
+                    "index": 55,
+                    "duration": 6
+                },
+                {
+                    "index": 56,
+                    "duration": 6
+                },
+                {
+                    "index": 57,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "JUMP_RIGHT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 40,
+                    "duration": 6
+                },
+                {
+                    "index": 41,
+                    "duration": 6
+                },
+                {
+                    "index": 42,
+                    "duration": 6
+                },
+                {
+                    "index": 43,
+                    "duration": 6
+                },
+                {
+                    "index": 44,
+                    "duration": 6
+                },
+                {
+                    "index": 45,
+                    "duration": 6
+                },
+                {
+                    "index": 46,
+                    "duration": 6
+                },
+                {
+                    "index": 47,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "FALLING_LEFT",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 130,
+                    "duration": 18
+                },
+                {
+                    "index": 131,
+                    "duration": 6
+                },
+                {
+                    "index": 132,
+                    "duration": 6
+                },
+                {
+                    "index": 133,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "FALLING_RIGHT",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 120,
+                    "duration": 18
+                },
+                {
+                    "index": 121,
+                    "duration": 6
+                },
+                {
+                    "index": 122,
+                    "duration": 6
+                },
+                {
+                    "index": 123,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "WATERGUN_LEFT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 70,
+                    "duration": 6
+                },
+                {
+                    "index": 71,
+                    "duration": 6
+                },
+                {
+                    "index": 72,
+                    "duration": 6
+                },
+                {
+                    "index": 73,
+                    "duration": 6
+                },
+                {
+                    "index": 74,
+                    "duration": 6
+                },
+                {
+                    "index": 75,
+                    "duration": 6
+                },
+                {
+                    "index": 76,
+                    "duration": 6
+                },
+                {
+                    "index": 77,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "WATERGUN_RIGHT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 60,
+                    "duration": 6
+                },
+                {
+                    "index": 61,
+                    "duration": 6
+                },
+                {
+                    "index": 62,
+                    "duration": 6
+                },
+                {
+                    "index": 63,
+                    "duration": 6
+                },
+                {
+                    "index": 64,
+                    "duration": 6
+                },
+                {
+                    "index": 65,
+                    "duration": 6
+                },
+                {
+                    "index": 66,
+                    "duration": 6
+                },
+                {
+                    "index": 67,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "SLAM_LEFT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 100,
+                    "duration": 3
+                },
+                {
+                    "index": 101,
+                    "duration": 3
+                },
+                {
+                    "index": 102,
+                    "duration": 3
+                },
+                {
+                    "index": 103,
+                    "duration": 3
+                },
+                {
+                    "index": 104,
+                    "duration": 3
+                },
+                {
+                    "index": 105,
+                    "duration": 3
+                },
+                {
+                    "index": 106,
+                    "duration": 3
+                },
+                {
+                    "index": 107,
+                    "duration": 3
+                },
+                {
+                    "index": 108,
+                    "duration": 3
+                },
+                {
+                    "index": 109,
+                    "duration": 3
+                },
+                {
+                    "index": 110,
+                    "duration": 3
+                },
+                {
+                    "index": 111,
+                    "duration": 3
+                },
+                {
+                    "index": 112,
+                    "duration": 3
+                },
+                {
+                    "index": 113,
+                    "duration": 3
+                },
+                {
+                    "index": 114,
+                    "duration": 3
+                },
+                {
+                    "index": 115,
+                    "duration": 3
+                },
+                {
+                    "index": 116,
+                    "duration": 3
+                },
+                {
+                    "index": 117,
+                    "duration": 3
+                },
+                {
+                    "index": 118,
+                    "duration": 3
+                }
+            ]
+        },
+        {
+            "name": "SLAM_RIGHT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 80,
+                    "duration": 3
+                },
+                {
+                    "index": 81,
+                    "duration": 3
+                },
+                {
+                    "index": 82,
+                    "duration": 3
+                },
+                {
+                    "index": 83,
+                    "duration": 3
+                },
+                {
+                    "index": 84,
+                    "duration": 3
+                },
+                {
+                    "index": 85,
+                    "duration": 3
+                },
+                {
+                    "index": 86,
+                    "duration": 3
+                },
+                {
+                    "index": 87,
+                    "duration": 3
+                },
+                {
+                    "index": 88,
+                    "duration": 3
+                },
+                {
+                    "index": 89,
+                    "duration": 3
+                },
+                {
+                    "index": 90,
+                    "duration": 3
+                },
+                {
+                    "index": 91,
+                    "duration": 3
+                },
+                {
+                    "index": 92,
+                    "duration": 3
+                },
+                {
+                    "index": 93,
+                    "duration": 3
+                },
+                {
+                    "index": 94,
+                    "duration": 3
+                },
+                {
+                    "index": 95,
+                    "duration": 3
+                },
+                {
+                    "index": 96,
+                    "duration": 3
+                },
+                {
+                    "index": 97,
+                    "duration": 3
+                },
+                {
+                    "index": 98,
+                    "duration": 3
+                }
+            ]
+        },
+        {
+            "name": "DAMAGE_LEFT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 150,
+                    "duration": 6
+                },
+                {
+                    "index": 151,
+                    "duration": 6
+                },
+                {
+                    "index": 152,
+                    "duration": 6
+                },
+                {
+                    "index": 153,
+                    "duration": 6
+                },
+                {
+                    "index": 154,
+                    "duration": 6
+                },
+                {
+                    "index": 155,
+                    "duration": 6
+                },
+                {
+                    "index": 156,
+                    "duration": 6
+                },
+                {
+                    "index": 157,
+                    "duration": 6
+                },
+                {
+                    "index": 158,
+                    "duration": 6
+                },
+                {
+                    "index": 159,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "DAMAGE_RIGHT",
+            "repeat": false,
+            "frames": [
+                {
+                    "index": 140,
+                    "duration": 6
+                },
+                {
+                    "index": 141,
+                    "duration": 6
+                },
+                {
+                    "index": 142,
+                    "duration": 6
+                },
+                {
+                    "index": 143,
+                    "duration": 6
+                },
+                {
+                    "index": 144,
+                    "duration": 6
+                },
+                {
+                    "index": 145,
+                    "duration": 6
+                },
+                {
+                    "index": 146,
+                    "duration": 6
+                },
+                {
+                    "index": 147,
+                    "duration": 6
+                },
+                {
+                    "index": 148,
+                    "duration": 6
+                },
+                {
+                    "index": 149,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "DYING",
+            "repeat": false,
+            "next": "DEAD",
+            "frames": [
+                {
+                    "index": 160,
+                    "duration": 6
+                },
+                {
+                    "index": 161,
+                    "duration": 6
+                },
+                {
+                    "index": 162,
+                    "duration": 6
+                },
+                {
+                    "index": 163,
+                    "duration": 6
+                },
+                {
+                    "index": 164,
+                    "duration": 6
+                },
+                {
+                    "index": 165,
+                    "duration": 6
+                },
+                {
+                    "index": 166,
+                    "duration": 6
+                },
+                {
+                    "index": 167,
+                    "duration": 6
+                },
+                {
+                    "index": 168,
+                    "duration": 6
+                },
+                {
+                    "index": 169,
+                    "duration": 6
+                },
+                {
+                    "index": 170,
+                    "duration": 6
+                },
+                {
+                    "index": 171,
+                    "duration": 6
+                },
+                {
+                    "index": 172,
+                    "duration": 6
+                },
+                {
+                    "index": 173,
+                    "duration": 6
+                },
+                {
+                    "index": 174,
+                    "duration": 6
+                },
+                {
+                    "index": 175,
+                    "duration": 6
+                },
+                {
+                    "index": 176,
+                    "duration": 6
+                },
+                {
+                    "index": 177,
+                    "duration": 6
+                },
+                {
+                    "index": 178,
+                    "duration": 6
+                },
+                {
+                    "index": 179,
+                    "duration": 6
+                },
+                {
+                    "index": 180,
+                    "duration": 6
+                },
+                {
+                    "index": 181,
+                    "duration": 6
+                },
+                {
+                    "index": 182,
+                    "duration": 6
+                },
+                {
+                    "index": 183,
+                    "duration": 6
+                },
+                {
+                    "index": 184,
+                    "duration": 6
+                },
+                {
+                    "index": 185,
+                    "duration": 6
+                },
+                {
+                    "index": 186,
+                    "duration": 6
+                },
+                {
+                    "index": 187,
+                    "duration": 6
+                },
+                {
+                    "index": 188,
+                    "duration": 6
+                },
+                {
+                    "index": 189,
+                    "duration": 6
+                },
+                {
+                    "index": 190,
+                    "duration": 6
+                },
+                {
+                    "index": 191,
+                    "duration": 6
+                },
+                {
+                    "index": 192,
+                    "duration": 6
+                },
+                {
+                    "index": 193,
+                    "duration": 6
+                },
+                {
+                    "index": 194,
+                    "duration": 6
+                },
+                {
+                    "index": 195,
+                    "duration": 6
+                },
+                {
+                    "index": 196,
+                    "duration": 6
+                },
+                {
+                    "index": 197,
+                    "duration": 6
+                },
+                {
+                    "index": 198,
+                    "duration": 6
+                },
+                {
+                    "index": 199,
+                    "duration": 6
+                },
+                {
+                    "index": 200,
+                    "duration": 6
+                },
+                {
+                    "index": 201,
+                    "duration": 6
+                },
+                {
+                    "index": 202,
+                    "duration": 6
+                },
+                {
+                    "index": 203,
+                    "duration": 6
+                },
+                {
+                    "index": 204,
+                    "duration": 6
+                },
+                {
+                    "index": 205,
+                    "duration": 6
+                },
+                {
+                    "index": 206,
+                    "duration": 6
+                },
+                {
+                    "index": 207,
+                    "duration": 6
+                }
+            ]
+        },
+        {
+            "name": "DEAD",
+            "repeat": true,
+            "frames": [
+                {
+                    "index": 209,
+                    "duration": 24
+                },
+                {
+                    "index": 208,
+                    "duration": 48
+                }
+            ]
+        }
+    ]
+}
