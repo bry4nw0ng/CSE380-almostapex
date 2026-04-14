@@ -97,7 +97,7 @@ export default class MainSMScene extends SMScene {
         this.sceneEquippables = new Array<Item>();
 
         this.totKilled = 0;
-        this.totEnemies = 100;
+        this.totEnemies = 50;
     }
 
     /**
@@ -260,6 +260,11 @@ export default class MainSMScene extends SMScene {
                 }
             }
         })
+        for (let equippable of this.player.equippables.items()) {
+            if (equippable instanceof DaNeedle && equippable.isSpinning) {
+                this.handleDaNeedleUsed(equippable.position);
+            }
+        }
     }
 
 
@@ -304,7 +309,7 @@ export default class MainSMScene extends SMScene {
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
-                    battler.health = battler.health - 5;
+                    battler.health = battler.health - 0.1;
                     battler.animation.playIfNotAlready("HURT", false);
                 }
             }
@@ -359,17 +364,17 @@ export default class MainSMScene extends SMScene {
                 battler.battlerActive = false;
                 this.healthbars.get(id).visible = false;
                 this.dropItem(deathSpot);
-                if (this.totKilled < 20) {
+                if (this.totKilled < 5) {
                     for (let i = 0; i <= 1; i++) {
                         this.spawnEnemies();
                     }
                 }
-                else if (this.totKilled >= 20 && this.totKilled <= 50) {
+                else if (this.totKilled >= 5 && this.totKilled <= 20) {
                     for (let i = 0; i <= 2; i++) {
                         this.spawnEnemies();
                     }
                 }
-                else if (this.totKilled > 50 && this.totKilled < 101) {
+                else if (this.totKilled > 20 && this.totKilled < 51) {
                     for (let i = 0; i <= 5; i++) {
                         this.spawnEnemies();
                     }
@@ -778,6 +783,10 @@ export default class MainSMScene extends SMScene {
       
     }
     public spawnEnemies() {
+        let angle = Math.PI * 2 * Math.random();
+        let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
+        let spawnPosY = this.player.position.x + Math.sin(angle) * 300;
+
         if (this.totKilled == this.totEnemies) {
             this.spawnBoss()
         }
@@ -787,6 +796,7 @@ export default class MainSMScene extends SMScene {
         else {   
             console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
+            npc.position.set(spawnPosX, spawnPosY);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
             npc.scale.set(0.25, 0.25);
 

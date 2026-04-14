@@ -131,9 +131,11 @@ export default class PlayerController extends StateMachineAI implements AI{
         //console.log("PLayer locX: ", this.owner.position.x, " locY: ", this.owner.position.y)
         if (this.inputDir.x > 0) {
             this.playerFacingDir = 1;
+            this.owner.invertX = false;
         }
         else {
             this.playerFacingDir = -1;
+            this.owner.invertX = true;
         }
 
         if (Input.isJustPressed(AAControls.INTERACT)) {
