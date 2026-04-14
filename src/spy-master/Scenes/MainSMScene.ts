@@ -80,6 +80,9 @@ export default class MainSMScene extends SMScene {
     // The position graph for the navmesh
     private graph: PositionGraph;
 
+    private totKilled: number;
+    private totEnemies: number;
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
 
@@ -88,6 +91,9 @@ export default class MainSMScene extends SMScene {
 
         this.laserguns = new Array<LaserGun>;
         this.sceneEquippables = new Array<Item>();
+
+        this.totKilled = 0;
+        this.totEnemies = 100;
     }
 
     /**
@@ -212,10 +218,17 @@ export default class MainSMScene extends SMScene {
         this.trash.forEach((shot) => {
             if (shot.stillCookin){               
                 if (!(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
-                    this.player.health = this.player.health - 3;
-                    shot.sprite.visible = false;
-                    shot.stillCookin = false;
-                    this.player.startIFrames();
+                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                    if (antennas) {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
+                    else{
+                        this.player.health = this.player.health - 3;
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                        this.player.startIFrames();
+                    }
                 }
                 else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
                     shot.sprite.visible = false;
@@ -227,7 +240,23 @@ export default class MainSMScene extends SMScene {
             }
         })
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
+
+        this.battlers.forEach((battler) => {
+            if (!(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
+                let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
+                if (antennas) {
+                    this.player.equippables.remove(antennas.id);
+                    antennas.visible = false;
+                }
+                else {
+                    this.player.health = this.player.health - 3;
+                    this.player.startIFrames();
+                }
+            }
+        })
     }
+
+
 
     /**
      * Handle events from the rest of the game
@@ -306,6 +335,7 @@ export default class MainSMScene extends SMScene {
 
         if (battler) {
             //Implement RummageSpot
+            let deathSpot = battler.position.clone();
             if (battler instanceof PlayerActor) {
                 battler.animation.playIfNotAlready("DYING", false);
                 battler.speed = 0;
@@ -315,13 +345,30 @@ export default class MainSMScene extends SMScene {
             else if (battler == this.boss) {
                 let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
                 let raccoonTail = new RaccoonTail(raccoonTailSprite);
-                raccoonTail.position.copy(this.boss.position);
+                raccoonTail.position.copy(deathSpot);
                 this.sceneEquippables.push(raccoonTail);
             }
             else if (Math.random() * this.player.luck >= 0.15) {
+                this.totKilled += 1;
                 battler.battlerActive = false;
                 this.healthbars.get(id).visible = false;
-                this.dropItem(battler.position.clone());
+                this.dropItem(deathSpot);
+                if (this.totKilled < 20) {
+                    for (let i = 0; i <= 1; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+                else if (this.totKilled >= 20 && this.totKilled <= 50) {
+                    for (let i = 0; i <= 2; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+                else if (this.totKilled > 50 && this.totKilled < 101) {
+                    for (let i = 0; i <= 5; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+
             }
         }
 
@@ -337,37 +384,37 @@ export default class MainSMScene extends SMScene {
         switch(choice) {
             case 0:
                 sprite = this.add.sprite("Shield", "equippables");
-                newOb = new Shield(newOb);
+                newOb = new Shield(sprite);
                 break;
             case 1:
                 sprite = this.add.sprite("RedHat", "equippables");
-                newOb = new RedHat(newOb);
+                newOb = new RedHat(sprite);
                 break;
             case 2:
                 sprite = this.add.sprite("JetPack", "equippables");
-                newOb = new JetPack(newOb);
+                newOb = new JetPack(sprite);
                 break;
             case 3:
                 sprite = this.add.sprite("healthpack", "equippables");
-                newOb = new Healthpack(newOb);
+                newOb = new Healthpack(sprite);
                 break;
             case 4:
                 sprite = this.add.sprite("Gum", "equippables");
-                newOb = new Gum(newOb);
+                newOb = new Gum(sprite);
                 break;
             case 5:
                 sprite = this.add.sprite("DaNeedle", "equippables");
-                newOb = new DaNeedle(newOb);
+                newOb = new DaNeedle(sprite);
                 break;
             case 6:
                 sprite = this.add.sprite("Antennas", "equippables");
-                newOb = new Antennas(newOb);
+                newOb = new Antennas(sprite);
                 break;
             default:
                 break;
         }
 
-            newOb.position.set(position);
+            newOb.position.set(position.x, position.y);
             this.sceneEquippables.push(newOb);
     }
 
@@ -502,34 +549,7 @@ export default class MainSMScene extends SMScene {
             // Add the NPC to the battlers array
             //this.battlers.push(treasure);
         }
-
-        let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
-        boss.position.set(-1200, 1000);
-        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
-        boss.scale.set(1, 1);
-
-        // Give the NPC a healthbar
-        let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
-        this.healthbars.set(boss.id, healthbar);
-        
-        // Set the NPCs stats
-        boss.battleGroup = 1
-        boss.speed = 0;
-        boss.health = 30;
-        boss.maxHealth = 30;
-        boss.navkey = "navmesh";
-
-
-        boss.addAI(RacconBehavior, {target: player, range: 5000});
-
-        // Play the NPCs "IDLE" animation 
-        boss.animation.play("IDLE");
-
-        this.boss = boss;
-
-        // Add the NPC to the battlers array
-        this.battlers.push(boss);
-      
+        this.spawnBoss();
 
     }
 
@@ -699,6 +719,70 @@ export default class MainSMScene extends SMScene {
 
         // Add this navmesh to the navigation manager
         this.navManager.addNavigableEntity("navmesh", navmesh);
+    }
+
+    public spawnBoss() {     
+        let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
+        boss.position.set(-1200, 1000);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+        boss.scale.set(1, 1);
+
+        // Give the NPC a healthbar
+        let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
+        this.healthbars.set(boss.id, healthbar);
+        
+        // Set the NPCs stats
+        boss.battleGroup = 1
+        boss.speed = 0;
+        boss.health = 30;
+        boss.maxHealth = 30;
+        boss.navkey = "navmesh";
+
+
+        boss.addAI(RacconBehavior, {target: this.player, range: 5000});
+
+        // Play the NPCs "IDLE" animation 
+        boss.animation.play("IDLE");
+
+        this.boss = boss;
+
+        // Add the NPC to the battlers array
+        this.battlers.push(boss);
+      
+    }
+    public spawnEnemies() {
+        if (this.totKilled == this.totEnemies) {
+            this.spawnBoss()
+        }
+        else if (this.totKilled > this.totEnemies) {
+            return;
+        }
+        else {   
+            console.log("spawned mouse");
+            let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            npc.scale.set(0.25, 0.25);
+
+            // Give the NPC a healthbar
+            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
+            this.healthbars.set(npc.id, healthbar);
+            
+            // Set the NPCs stats
+            npc.battleGroup = 1
+            npc.speed = 50;
+            npc.health = 10;
+            npc.maxHealth = 10;
+            npc.navkey = "navmesh";
+
+            npc.addAI(GuardBehavior, {target: this.player, range: 100});
+
+            // Play the NPCs "IDLE" animation 
+            npc.animation.play("IDLE");
+            
+            // Add the NPC to the battlers array
+            this.battlers.push(npc);
+        }
+
     }
 
     public getBattlers(): Battler[] { return this.battlers; }
