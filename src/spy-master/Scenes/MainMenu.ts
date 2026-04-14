@@ -289,6 +289,7 @@ export default class MainMenu extends SMScene {
             this.emitter.fireEvent(this.activeZone.event);
         }
 
+        
         while (this.receiver.hasNextEvent()) {
             this.handleEvent(this.receiver.getNextEvent());
         }

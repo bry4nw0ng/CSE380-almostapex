@@ -137,7 +137,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.playerFacingDir = 1;
             this.owner.invertX = false;
         }
-        else {
+        else if (this.inputDir.x < 0){
             this.playerFacingDir = -1;
             this.owner.invertX = true;
         }

@@ -236,7 +236,12 @@ export default class MainSMScene extends SMScene {
                         this.player.startIFrames();
                     }
                     else{
-                        this.player.health = this.player.health - 3;
+                        let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
+                        let dr = 1;
+                        if (shield) {
+                            dr = 0.8
+                        }
+                        this.player.health = this.player.health - 3 * dr;
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
                         this.player.startIFrames();
@@ -284,7 +289,13 @@ export default class MainSMScene extends SMScene {
                     this.player.startIFrames();
                 }
                 else {
-                    this.player.health = this.player.health - 3;
+                    let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
+                    let dr = 1;
+                    if (shield) {
+                        dr = 0.8
+                    }
+                    this.player.health = this.player.health - 3 * dr;
+                    console.log(this.player.health);
                     this.player.startIFrames();
                 }
             }
