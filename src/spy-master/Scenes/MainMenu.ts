@@ -279,7 +279,8 @@ export default class MainMenu extends SMScene {
 
         if (this.activeZone) {
             this.zoneLabel.text = `[E] ${this.activeZone.name}`;
-            this.zoneLabel.position.set(this.player.position.x, this.player.position.y - 30);
+            let half = this.viewport.getHalfSize();
+            this.zoneLabel.position.set(half.x, half.y - 30);
             this.zoneLabel.visible = true;
         } else {
             this.zoneLabel.visible = false;
