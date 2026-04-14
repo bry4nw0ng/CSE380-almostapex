@@ -11,7 +11,7 @@ export default class Antennas extends Item {
         super(sprite);
         this._isPassive = true;
         this._description = "Grants invincibility (lost on hit)";
-        this._equippableOffset = new Vec2(0,0);
+        this._equippableOffset = new Vec2(5,-6);
     }
 
     public override applyBuff(player: PlayerActor) {

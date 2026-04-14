@@ -67,7 +67,9 @@ export default class MainSMScene extends SMScene {
     /** Healthbars for the battlers */
     private healthbars: Map<number, HealthbarHUD>;
 
+    //bullets trash/player
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
+    private spitballs: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
 
     private bases: BattlerBase[];
 
@@ -142,9 +144,12 @@ export default class MainSMScene extends SMScene {
         this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
         this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
 
+        //raccoon bullets
         this.load.image("trash-paper", "game_assets/sprites/trash-paper.png");
         this.load.image("trash-banana", "game_assets/sprites/trash-banana.png");
 
+        //your bullets
+        this.load.image("spitball", "game_assets/sprites/spitball.png")
     }
     /**
      * @see Scene.startScene
@@ -228,6 +233,7 @@ export default class MainSMScene extends SMScene {
                     if (antennas) {
                         this.player.equippables.remove(antennas.id);
                         antennas.visible = false;
+                        this.player.startIFrames();
                     }
                     else{
                         this.player.health = this.player.health - 3;
@@ -247,12 +253,35 @@ export default class MainSMScene extends SMScene {
         })
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
 
+        this.spitballs.forEach((shot) => {
+            if (shot.stillCookin){    
+                this.battlers.forEach((battler) => {           
+                    if (battler instanceof NPCActor && shot.sprite.position.distanceTo(battler.position) < 20 ) {
+                        battler.health = battler.health - 1;
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+
+                    }
+                    else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                    }
+                    shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+
+                    shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+                })
+            }
+        })
+
+        this.spitballs = this.spitballs.filter((shot) => shot.stillCookin == true);
+
         this.battlers.forEach((battler) => {
             if (!(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
                 let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                 if (antennas) {
                     this.player.equippables.remove(antennas.id);
                     antennas.visible = false;
+                    this.player.startIFrames();
                 }
                 else {
                     this.player.health = this.player.health - 3;
@@ -691,6 +720,14 @@ export default class MainSMScene extends SMScene {
         trash.position.set(position.x, position.y);
         trash.scale.set(1, 1);
         this.trash.push({sprite: trash, velocity: direction.scaled(100), stillCookin: true})
+
+    }
+
+    public spawnSpitball(position: Vec2, direction: Vec2) {
+        let spitball = this.add.sprite("spitball", "primary");
+        spitball.position.set(position.x, position.y);
+        spitball.scale.set(1, 1);
+        this.spitballs.push({sprite: spitball, velocity: direction.scaled(50), stillCookin: true})
 
     }
     /**

@@ -1,5 +1,6 @@
 {
-    "includes": ["src/*", "src/**/*"],
+    "include": ["src/*", "src/**/*"],
+    "exclude": ["public", "dist", "node_modules"],
     "compilerOptions": {
         /* Visit https://aka.ms/tsconfig to read more about this file */
         "target": "es2016",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */

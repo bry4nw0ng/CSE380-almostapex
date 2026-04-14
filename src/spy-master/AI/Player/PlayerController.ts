@@ -29,6 +29,8 @@ import Item from "../../GameSystems/ItemSystem/Item";
 import Inventory from "../../GameSystems/ItemSystem/Inventory";
 
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
+//Could be circular,idk yet
+import MainSMScene from "../../Scenes/MainSMScene";
 
 /**
  * The controller that controls the player.
@@ -55,6 +57,7 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected iTimer: Timer;
     protected cooldownTimer: Timer;
     protected weaponTiredTimer: Timer;
+    protected weaponTiredGunTimer: Timer;
 
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
@@ -64,6 +67,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
         this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
         this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
+        this.weaponTiredGunTimer = new Timer(200, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
@@ -138,7 +142,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.owner.invertX = true;
         }
 
-        if (Input.isJustPressed(AAControls.INTERACT)) {
+        if (Input.isJustPressed(AAControls.PICKUP_ITEM)) {
             this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
         }
         if (Input.isJustPressed(AAControls.MEELEE)) {
@@ -147,6 +151,16 @@ export default class PlayerController extends StateMachineAI implements AI{
                 weapon.useWeapon(this.owner, this.playerFacingDir);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredTimer.start();
+            }
+        }
+        if (Input.isJustPressed(AAControls.ATTACK)) {
+            console.log("SHOOT");
+            if (!(this.owner.isWeaponTired)) {
+                let scene = this.owner.getScene() as MainSMScene;
+                let aim = this.faceDir;
+                scene.spawnSpitball(this.owner.position.clone(), aim);
+                this.owner.isWeaponTired = true;
+                this.weaponTiredGunTimer.start();
             }
         }
         let abilityOpts = [...this.owner.abilities.items()];
