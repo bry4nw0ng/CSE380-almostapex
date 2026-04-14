@@ -14,6 +14,8 @@ export default class JetPack extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isAbility = true;
+        this._description = "Double speed for 5s";
+        this._cooldownDuration = 10000;
     }
 
     public get speedBoost(): number { return this._speedBoost; }

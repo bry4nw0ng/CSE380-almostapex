@@ -26,6 +26,8 @@ import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
 import InventoryHUD from "../GameSystems/HUD/InventoryHUD";
+import RelicTrayHUD from "../GameSystems/HUD/RelicTrayHUD";
+import ActionSlotsHUD from "../GameSystems/HUD/ActionSlotsHUD";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
 import Item from "../GameSystems/ItemSystem/Item";
 import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
@@ -57,6 +59,8 @@ export default class MainSMScene extends SMScene {
 
     /** GameSystems in the SM Scene */
     private inventoryHud: InventoryHUD;
+    private relicTray: RelicTrayHUD;
+    private actionSlots: ActionSlotsHUD;
 
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor)[];
@@ -213,6 +217,8 @@ export default class MainSMScene extends SMScene {
             this.handleEvent(this.receiver.getNextEvent());
         }
         this.inventoryHud.update(deltaT);
+        this.relicTray.update(deltaT);
+        this.actionSlots.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
 
         this.trash.forEach((shot) => {
@@ -426,6 +432,9 @@ export default class MainSMScene extends SMScene {
         this.addUILayer("items");
         this.getLayer("slots").setDepth(1);
         this.getLayer("items").setDepth(2);
+        this.getLayer("slots").setHidden(true);
+        this.getLayer("items").setHidden(true);
+        this.addUILayer("hud");
     }
 
 
@@ -456,9 +465,27 @@ export default class MainSMScene extends SMScene {
         player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         player.scale.set(1, 1); //IMPORTANT Only do this for 32x32
 
-        // Give the player a healthbar
-        let healthbar = new HealthbarHUD(this, player, "primary", {size: player.size.clone().scaled(2, 1/2), offset: player.size.clone().scaled(0, -1/2)});
+        // player hp bar
+        let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
         this.healthbars.set(player.id, healthbar);
+
+        // passive relic tray (below hp bar)
+        this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
+            position: new Vec2(115, 50),
+            size: new Vec2(400, 60),
+            iconSize: 15,
+            padding: 8
+        });
+
+        // weapon + ability slots (right of hp bar/tray)
+        this.actionSlots = new ActionSlotsHUD(this, "hud", player.equippables, player.abilities, {
+            startX: 200,
+            topY: -4,
+            height: 92,
+            boxWidth: 92,
+            weaponAbilityGap: 20,
+            abilityGap: -35
+        });
 
         // Give the player PlayerAI
         player.addAI(PlayerController);
@@ -640,7 +667,7 @@ export default class MainSMScene extends SMScene {
 
         let antennaSprite = this.add.sprite("Antennas", "primary");
         let antennas = new Antennas(antennaSprite);
-        antennas.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 200));
+        antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
         this.sceneEquippables.push(antennas);
 
     }

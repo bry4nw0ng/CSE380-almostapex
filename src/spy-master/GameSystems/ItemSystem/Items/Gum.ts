@@ -14,6 +14,8 @@ export default class Gum extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isAbility = true;
+        this._description = "Slow all enemies 50% for 5s";
+        this._cooldownDuration = 15000;
     }
 
     public override useAbility(player: PlayerActor): void {

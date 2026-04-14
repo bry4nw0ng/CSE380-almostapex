@@ -16,6 +16,8 @@ interface Health {
 interface HealthBarOptions {
     size: Vec2;
     offset: Vec2;
+    static?: boolean;
+    staticPosition?: Vec2;
 }
 
 /**
@@ -34,6 +36,10 @@ export default class HealthbarHUD implements Updateable {
     protected size: Vec2;
     protected offset: Vec2;
 
+    /** if true, keep  healthbar fixed */
+    protected isStatic: boolean;
+    protected staticPosition: Vec2;
+
     /** The actual healthbar (the part with color) */
     protected healthBar: Label;
     /** The healthbars background (the part with the border) */
@@ -46,12 +52,16 @@ export default class HealthbarHUD implements Updateable {
 
         this.size = options.size;
         this.offset = options.offset;
+        this.isStatic = options.static ?? false;
+        this.staticPosition = options.staticPosition ?? Vec2.ZERO;
 
-        this.healthBar = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: this.owner.position.clone().add(this.offset), text: ""});
+        let initPos = this.isStatic ? this.staticPosition.clone() : this.owner.position.clone().add(this.offset);
+
+        this.healthBar = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: initPos.clone(), text: ""});
         this.healthBar.size.copy(this.size);
         this.healthBar.backgroundColor = Color.RED;
 
-        this.healthBarBg = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: this.owner.position.clone().add(this.offset), text: ""});
+        this.healthBarBg = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: initPos.clone(), text: ""});
         this.healthBarBg.backgroundColor = Color.TRANSPARENT;
         this.healthBarBg.borderColor = Color.BLACK;
         this.healthBarBg.borderWidth = 1;
@@ -63,17 +73,25 @@ export default class HealthbarHUD implements Updateable {
      * @param deltaT 
      */
     public update(deltaT: number): void {
-        
-        this.healthBar.position.copy(this.owner.position).add(this.offset);
-        this.healthBarBg.position.copy(this.owner.position).add(this.offset);
+        if (this.isStatic) {
+            this.healthBarBg.position.copy(this.staticPosition);
 
-        let scale = this.scene.getViewScale();
-        this.healthBar.scale.scale(scale);
-        this.healthBarBg.scale.scale(scale);
+            let unit = this.healthBarBg.size.x / this.owner.maxHealth;
+            let missingHealth = this.owner.maxHealth - this.owner.health;
+            this.healthBar.size.set(this.healthBarBg.size.x - unit * missingHealth, this.healthBarBg.size.y);
+            this.healthBar.position.set(this.healthBarBg.position.x - (unit / 2) * missingHealth, this.healthBarBg.position.y);
+        } else {
+            this.healthBar.position.copy(this.owner.position).add(this.offset);
+            this.healthBarBg.position.copy(this.owner.position).add(this.offset);
 
-        let unit = this.healthBarBg.size.x / this.owner.maxHealth;
-		this.healthBar.size.set(this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health), this.healthBarBg.size.y);
-		this.healthBar.position.set(this.healthBarBg.position.x - (unit / scale / 2) * (this.owner.maxHealth - this.owner.health), this.healthBarBg.position.y);
+            let scale = this.scene.getViewScale();
+            this.healthBar.scale.scale(scale);
+            this.healthBarBg.scale.scale(scale);
+
+            let unit = this.healthBarBg.size.x / this.owner.maxHealth;
+            this.healthBar.size.set(this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health), this.healthBarBg.size.y);
+            this.healthBar.position.set(this.healthBarBg.position.x - (unit / scale / 2) * (this.owner.maxHealth - this.owner.health), this.healthBarBg.position.y);
+        }
 
 		this.healthBar.backgroundColor = this.owner.health < this.owner.maxHealth * 1/4 ? Color.RED : this.owner.health < this.owner.maxHealth * 3/4 ? Color.YELLOW : Color.GREEN;
     }

@@ -11,6 +11,8 @@ export default class Shield extends Item {
 
     public constructor(sprite: Sprite) {
         super(sprite);
+        this._isPassive = true;
+        this._description = "Reduces damage taken by 20%";
         this._damageReduction = 0.8;
     }
 

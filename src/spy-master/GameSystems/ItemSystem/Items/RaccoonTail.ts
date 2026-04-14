@@ -16,6 +16,8 @@ export default class RaccoonTail extends Item {
         super(sprite);
         this._speedBoost = 1.1;
         this._isAbility = true;
+        this._description = "Search ability + 10% speed";
+        this._cooldownDuration = 8000;
         this.equippableOffset = new Vec2(-28, 5);
     }
 
