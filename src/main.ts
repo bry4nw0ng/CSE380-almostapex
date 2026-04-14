@@ -24,11 +24,6 @@ import { AbilityEvent } from "./spy-master/Events";
             {name: AAControls.ABILITY3, keys: ["3"]},
             {name: AAControls.PICKUP_ITEM, keys: ["q"]},
             {name: AAControls.INTERACT, keys: ["e"]},
-
-           // {name: AAControls.DROP_ITEM, keys: ["q"]},
-            {name: AAControls.ABILITY1, keys: ["i"]},
-            {name: AAControls.ABILITY2, keys: ["o"]},
-            {name: AAControls.ABILITY3, keys: ["p"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want

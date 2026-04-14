@@ -131,7 +131,7 @@ export default class MainMenu extends SMScene {
         // Player
         this.player = this.add.animatedSprite(PlayerActor, "player1", "player");
         this.player.position.set(500, 600);
-        this.player.scale.set(0.25, 0.25);
+        this.player.scale.set(1.25, 1.25);
         this.player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         this.player.addAI(PlayerController);
         this.player.animation.play("IDLE");
