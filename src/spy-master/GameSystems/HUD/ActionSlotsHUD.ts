@@ -48,6 +48,10 @@ export default class ActionSlotsHUD implements Updateable {
     /** Item IDs currently in each slot (to detect changes) */
     private slotItemIds: (number | null)[];
 
+    /** Original box colors for restoring after cooldown */
+    private boxColors: Color[];
+    private cooldownColor: Color = new Color(80, 80, 80, 200);
+
     /** Tooltip label shown on hover */
     private tooltip: Label;
 
@@ -58,6 +62,7 @@ export default class ActionSlotsHUD implements Updateable {
         this.abilities = abilities;
         this.boxes = [];
         this.boxPositions = [];
+        this.boxColors = [];
         this.boxSize = options.boxWidth;
         this.slotIcons = [null, null, null, null];
         this.slotItemIds = [null, null, null, null];
@@ -82,9 +87,13 @@ export default class ActionSlotsHUD implements Updateable {
             box.backgroundColor = i === 0 ? weaponColor : abilityColor;
             box.borderColor = Color.WHITE;
             box.borderWidth = 1;
+            box.textColor = Color.WHITE;
+            box.fontSize = 20;
+            box.font = "Arial";
 
             this.boxes.push(box);
             this.boxPositions.push(new Vec2(centerX, centerY));
+            this.boxColors.push(i === 0 ? weaponColor : abilityColor);
         }
 
         // Tooltip (hidden by default)
@@ -142,10 +151,23 @@ export default class ActionSlotsHUD implements Updateable {
                 }
             }
 
-            // Position icon
+            // Position icon and handle cooldown visuals
             if (this.slotIcons[i]) {
                 this.slotIcons[i].position.copy(pos);
                 this.slotIcons[i].visible = true;
+
+                if (item && item.isCoolingDown) {
+                    this.slotIcons[i].alpha = 0.3;
+                    this.boxes[i].backgroundColor = this.cooldownColor;
+                    let secondsLeft = Math.ceil(item.cooldownProgress * item.cooldownDuration / 1000);
+                    this.boxes[i].text = secondsLeft + "s";
+                } else {
+                    this.slotIcons[i].alpha = 1;
+                    this.boxes[i].backgroundColor = this.boxColors[i];
+                    this.boxes[i].text = "";
+                }
+            } else {
+                this.boxes[i].backgroundColor = this.boxColors[i];
             }
 
             // Check hover for tooltip
