@@ -3,7 +3,10 @@ import Color from "../../../Wolfie2D/Utils/Color";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 import Label from "../../../Wolfie2D/Nodes/UIElements/Label";
 import { UIElementType } from "../../../Wolfie2D/Nodes/UIElements/UIElementTypes";
+import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
 import Updateable from "../../../Wolfie2D/DataTypes/Interfaces/Updateable";
+import Inventory from "../ItemSystem/Inventory";
+import Item from "../ItemSystem/Item";
 
 interface ActionSlotsOptions {
     /** X position of the first box's left edge */
@@ -20,9 +23,10 @@ interface ActionSlotsOptions {
     abilityGap: number;
 }
 
+
 /**
  * Displays 4 action slot boxes: 1 weapon (distinct color) + 3 abilities.
- * Positioned to the right of the HP bar and passive tray.
+ * Shows equipped item sprites and tooltip on hover.
  */
 export default class ActionSlotsHUD implements Updateable {
 
@@ -31,14 +35,32 @@ export default class ActionSlotsHUD implements Updateable {
 
     /** The 4 box backgrounds: index 0 = weapon, 1-3 = abilities */
     private boxes: Label[];
+    /** Center positions of each box */
+    private boxPositions: Vec2[];
+    private boxSize: number;
+
+    /** The inventories to watch */
+    private equippables: Inventory;
+    private abilities: Inventory;
+
+    /** Sprites currently displayed in each slot */
+    private slotIcons: (Sprite | null)[];
+    /** Item IDs currently in each slot (to detect changes) */
+    private slotItemIds: (number | null)[];
 
     /** Tooltip label shown on hover */
     private tooltip: Label;
 
-    public constructor(scene: Scene, layer: string, options: ActionSlotsOptions) {
+    public constructor(scene: Scene, layer: string, equippables: Inventory, abilities: Inventory, options: ActionSlotsOptions) {
         this.scene = scene;
         this.layer = layer;
+        this.equippables = equippables;
+        this.abilities = abilities;
         this.boxes = [];
+        this.boxPositions = [];
+        this.boxSize = options.boxWidth;
+        this.slotIcons = [null, null, null, null];
+        this.slotItemIds = [null, null, null, null];
 
         let weaponColor = new Color(140, 60, 60, 200);
         let abilityColor = new Color(60, 60, 140, 200);
@@ -62,6 +84,7 @@ export default class ActionSlotsHUD implements Updateable {
             box.borderWidth = 1;
 
             this.boxes.push(box);
+            this.boxPositions.push(new Vec2(centerX, centerY));
         }
 
         // Tooltip (hidden by default)
@@ -77,6 +100,67 @@ export default class ActionSlotsHUD implements Updateable {
     }
 
     public update(deltaT: number): void {
-        // Functionality will be added later
+        // Find weapon from equippables
+        let weapon: Item | null = this.equippables.find(item => item.isWeapon);
+        // Get abilities as array
+        let abilityList: Item[] = [...this.abilities.items()];
+
+        // Map slot index to item: 0 = weapon, 1-3 = abilities
+        let slotItems: (Item | null)[] = [
+            weapon,
+            abilityList[0] || null,
+            abilityList[1] || null,
+            abilityList[2] || null
+        ];
+
+        let tooltipVisible = false;
+        let tooltipText = "";
+        let tooltipPos = Vec2.ZERO;
+
+        for (let i = 0; i < 4; i++) {
+            let item = slotItems[i];
+            let pos = this.boxPositions[i];
+            let itemId = item ? item.id : null;
+
+            // If item changed in this slot, update the icon
+            if (itemId !== this.slotItemIds[i]) {
+                // Hide old icon
+                if (this.slotIcons[i]) {
+                    this.slotIcons[i].visible = false;
+                }
+                this.slotIcons[i] = null;
+                this.slotItemIds[i] = null;
+
+                // Create new icon if there's an item
+                if (item) {
+                    let spriteKey = item.getSprite().imageId;
+                    let icon = this.scene.add.sprite(spriteKey, this.layer);
+                    let scale = (this.boxSize * 0.35) / Math.max(icon.size.x, icon.size.y);
+                    icon.scale.set(scale, scale);
+                    this.slotIcons[i] = icon;
+                    this.slotItemIds[i] = itemId;
+                }
+            }
+
+            // Position icon
+            if (this.slotIcons[i]) {
+                this.slotIcons[i].position.copy(pos);
+                this.slotIcons[i].visible = true;
+            }
+
+            // Check hover for tooltip
+            if (this.boxes[i]["isEntered"] && item) {
+                tooltipText = item.description || item.getSprite().imageId;
+                tooltipPos = new Vec2(pos.x, pos.y + this.boxSize / 2 + 5);
+                tooltipVisible = true;
+            }
+        }
+
+        // Update tooltip
+        this.tooltip.visible = tooltipVisible;
+        if (tooltipVisible) {
+            this.tooltip.text = tooltipText;
+            this.tooltip.position.copy(tooltipPos);
+        }
     }
 }

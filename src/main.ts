@@ -20,8 +20,9 @@ import { AAControls } from "./spy-master/AAControls";
             {name: AAControls.INTERACT, keys: ["e"]},
             //{name: AAControls.PICKUP_ITEM, keys: ["e"]},
            // {name: AAControls.DROP_ITEM, keys: ["q"]},
-            {name: "slot1", keys: ["1"]},
-            {name: "slot2", keys: ["2"]},
+            {name: AAControls.ABILITY1, keys: ["i"]},
+            {name: AAControls.ABILITY2, keys: ["o"]},
+            {name: AAControls.ABILITY3, keys: ["p"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want

@@ -103,7 +103,7 @@ export default class PlayerController extends StateMachineAI implements AI{
     public handleJetPackTriggered() {
         let prevSpeed = this.speed;
         this.speed = this.speed * 2;
-        let activeTimer = new Timer(3000, () => this.speed = prevSpeed, false);
+        let activeTimer = new Timer(5000, () => this.speed = prevSpeed, false);
         activeTimer.start();
     }
     /** 
@@ -144,33 +144,14 @@ export default class PlayerController extends StateMachineAI implements AI{
                 this.weaponTiredTimer.start();
             }
         }
-        if (!this.owner.isCoolingDown) {
-            let abilityOpts = [...this.owner.abilities.items()];
-            if (Input.isJustPressed(AAControls.ABILITY1)) {          
-                let ab = abilityOpts[0];
-                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
-                if (ab) {
+        let abilityOpts = [...this.owner.abilities.items()];
+        let abilityKeys = [AAControls.ABILITY1, AAControls.ABILITY2, AAControls.ABILITY3];
+        for (let i = 0; i < 3; i++) {
+            if (Input.isJustPressed(abilityKeys[i])) {
+                let ab = abilityOpts[i];
+                if (ab && !ab.isCoolingDown) {
                     ab.useAbility(this.owner);
-                    this.owner.isCoolingDown = true;
-                    this.cooldownTimer.start();
-                }
-            }
-            if (Input.isJustPressed(AAControls.ABILITY2)) {
-                let ab = abilityOpts[1];
-                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
-                if (ab) {
-                    ab.useAbility(this.owner);
-                    this.owner.isCoolingDown = true;
-                    this.cooldownTimer.start();
-                }
-            }
-            if (Input.isJustPressed(AAControls.ABILITY3)) {
-                let ab = abilityOpts[2];
-                console.log(ab, "USED%%%%%%%%%%%%%%%%%");
-                if (ab) {
-                    ab.useAbility(this.owner);
-                    this.owner.isCoolingDown = true;
-                    this.cooldownTimer.start();
+                    ab.startCooldown();
                 }
             }
         }

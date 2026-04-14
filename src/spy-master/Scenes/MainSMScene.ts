@@ -199,6 +199,7 @@ export default class MainSMScene extends SMScene {
         }
         this.inventoryHud.update(deltaT);
         this.relicTray.update(deltaT);
+        this.actionSlots.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
     }
 
@@ -338,7 +339,7 @@ export default class MainSMScene extends SMScene {
         });
 
         // weapon + ability slots (right of hp bar/tray)
-        this.actionSlots = new ActionSlotsHUD(this, "hud", {
+        this.actionSlots = new ActionSlotsHUD(this, "hud", player.equippables, player.abilities, {
             startX: 200,
             topY: -4,
             height: 92,

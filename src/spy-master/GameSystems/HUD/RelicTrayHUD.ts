@@ -15,13 +15,6 @@ interface RelicTrayOptions {
     padding: number;
 }
 
-/** Item descriptions for tooltip display */
-const ITEM_DESCRIPTIONS: Map<string, string> = new Map([
-    ["Shield", "Reduces damage taken by 20%"],
-    ["RedHat", "Increases luck by 10%"],
-    ["Antennas", "Grants invincibility (lost on hit)"],
-    ["RaccoonTail", "Increases speed by 10%"],
-]);
 
 /**
  * Displays a tray of passive relic icons below the HP bar.
@@ -145,8 +138,7 @@ export default class RelicTrayHUD implements Updateable {
 
             // check hover for tooltip
             if (zone["isEntered"]) {
-                let name = this.relicNames.get(item.id);
-                tooltipText = ITEM_DESCRIPTIONS.get(name) || name;
+                tooltipText = item.description || this.relicNames.get(item.id);
                 tooltipPos = new Vec2(this.position.x, this.position.y + this.size.y / 2 + 5);
                 tooltipVisible = true;
             }

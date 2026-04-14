@@ -26,6 +26,7 @@ export default class DaNeedle extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isWeapon = true;
+        this._description = "Spin attack - 5 damage";
         this._needle = sprite;
         //this.equippableOffset = new Vec2(-10, 10);
         this._needle.scale = new Vec2(2, 2);

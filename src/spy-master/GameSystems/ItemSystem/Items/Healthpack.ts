@@ -9,6 +9,7 @@ export default class Healthpack extends Item {
 
     public constructor(sprite: Sprite) {
         super(sprite);
+        this._description = "Restores 5 HP";
         this.hp = 5;
     }
 
