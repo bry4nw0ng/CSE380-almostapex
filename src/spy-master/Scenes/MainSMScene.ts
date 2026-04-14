@@ -400,7 +400,7 @@ export default class MainSMScene extends SMScene {
                 if (this.playerDead) return; // already dying, ignore repeated events
                 this.playerDead = true;
                 battler.animation.play("DYING", false, "DEAD");
-                let deathTimer = new Timer(4000, () => this.sceneManager.changeToScene(GameOver), false);
+                let deathTimer = new Timer(2500, () => this.sceneManager.changeToScene(GameOver), false);
                 deathTimer.start();
             }
             else if (battler == this.boss) {

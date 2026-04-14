@@ -127,11 +127,10 @@ export default class PlayerController extends StateMachineAI implements AI{
     public get faceDir(): Vec2 { return this.owner.position.dirTo(Input.getGlobalMousePosition()); }
 
     public update(deltaT: number): void {
-		super.update(deltaT);
-
         if (this.owner.health <= 0) {
             return;
         }
+		super.update(deltaT);
         //console.log("PLayer locX: ", this.owner.position.x, " locY: ", this.owner.position.y)
         if (this.inputDir.x > 0) {
             this.playerFacingDir = 1;

@@ -91,6 +91,8 @@ export default class MainMenu extends SMScene {
     }
 
     public startScene(): void {
+        this.viewport.setZoomLevel(1);
+        this.viewport.setCenter(512, 512);
         const center = this.viewport.getCenter();
 
         this.addLayer("bg", 0);
@@ -132,6 +134,8 @@ export default class MainMenu extends SMScene {
         this.player = this.add.animatedSprite(PlayerActor, "player1", "player");
         this.player.position.set(500, 600);
         this.player.scale.set(2, 2);
+        this.player.health = 1;
+        this.player.maxHealth = 1;
         this.player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         this.player.addAI(PlayerController);
         this.player.animation.play("IDLE");
