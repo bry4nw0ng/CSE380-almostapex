@@ -1,13 +1,7 @@
-export const PlayerAnimations = {//IMPORTANT FIX ANIMATION DIRECTION SITUATION
-    IDLE: "IDLE",
-    WALK: "WALK",
-    //WALK_LEFT: "WALKING_LEFT",
-    //WALK_RIGHT: "WALKING_RIGHT",
-    //SHOOT_LEFT: "WATERGUN_LEFT",
-    //SHOOT_RIGHT: "WATERGUN_RIGHT",
-    //DAMAGE_LEFT: "DAMAGE_LEFT",
-    //DAMAGE_RIGHT: "DAMAGE_RIGHT",
+export const PlayerAnimations = {
+    IDLE:   "IDLE",
+    WALK:   "WALK",
     DAMAGE: "DAMAGE",
-    DYING: "DYING",
-    DEAD: "DEAD"
+    DYING:  "DYING",
+    DEAD:   "DEAD"
 }

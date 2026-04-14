@@ -43,7 +43,10 @@ import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
 import Gum from "../GameSystems/ItemSystem/Items/Gum";
 import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
-
+import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
+import RacconBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
+import MainMenu from "./MainMenu";
+import GameOver from "./GameOver";
 
 const BattlerGroups = {
     RED: 1,
@@ -60,17 +63,25 @@ export default class MainSMScene extends SMScene {
     /** Healthbars for the battlers */
     private healthbars: Map<number, HealthbarHUD>;
 
+    private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
+
     private bases: BattlerBase[];
 
     private healthpacks: Array<Healthpack>;
     private laserguns: Array<LaserGun>;
     private sceneEquippables: Array<Item>;
 
+    private player: PlayerActor;
+    private boss: NPCActor;
+
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
 
     // The position graph for the navmesh
     private graph: PositionGraph;
+
+    private totKilled: number;
+    private totEnemies: number;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -80,6 +91,9 @@ export default class MainSMScene extends SMScene {
 
         this.laserguns = new Array<LaserGun>;
         this.sceneEquippables = new Array<Item>();
+
+        this.totKilled = 0;
+        this.totEnemies = 50;
     }
 
     /**
@@ -94,6 +108,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
+        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
@@ -122,6 +137,10 @@ export default class MainSMScene extends SMScene {
         this.load.image("Gum", "game_assets/sprites/used-gum.png");
         this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
         this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
+
+        this.load.image("trash-paper", "game_assets/sprites/trash-paper.png");
+        this.load.image("trash-banana", "game_assets/sprites/trash-banana.png");
+
     }
     /**
      * @see Scene.startScene
@@ -195,7 +214,54 @@ export default class MainSMScene extends SMScene {
         }
         this.inventoryHud.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
+
+        this.trash.forEach((shot) => {
+            if (shot.stillCookin){               
+                if (!(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
+                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                    if (antennas) {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
+                    else{
+                        this.player.health = this.player.health - 3;
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                        this.player.startIFrames();
+                    }
+                }
+                else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    shot.sprite.visible = false;
+                    shot.stillCookin = false;
+                }
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+            }
+        })
+        this.trash = this.trash.filter((shot) => shot.stillCookin == true);
+
+        this.battlers.forEach((battler) => {
+            if (!(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
+                let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
+                if (antennas) {
+                    this.player.equippables.remove(antennas.id);
+                    antennas.visible = false;
+                }
+                else {
+                    this.player.health = this.player.health - 3;
+                    this.player.startIFrames();
+                }
+            }
+        })
+        for (let equippable of this.player.equippables.items()) {
+            if (equippable instanceof DaNeedle && equippable.isSpinning) {
+                this.handleDaNeedleUsed(equippable.position);
+            }
+        }
     }
+
+
 
     /**
      * Handle events from the rest of the game
@@ -237,7 +303,8 @@ export default class MainSMScene extends SMScene {
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
-                    battler.health = battler.health - 5;
+                    battler.health = battler.health - 0.1;
+                    battler.animation.playIfNotAlready("HURT", false);
                 }
             }
         });
@@ -273,10 +340,87 @@ export default class MainSMScene extends SMScene {
 
         if (battler) {
             //Implement RummageSpot
-            battler.battlerActive = false;
-            this.healthbars.get(id).visible = false;
+            let deathSpot = battler.position.clone();
+            if (battler instanceof PlayerActor) {
+                battler.animation.playIfNotAlready("DYING", false);
+                battler.speed = 0;
+                let deathTimer = new Timer(3000, () => this.sceneManager.changeToScene(GameOver), false);
+                deathTimer.start();
+            }
+            else if (battler == this.boss) {
+                let raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+                let raccoonTail = new RaccoonTail(raccoonTailSprite);
+                raccoonTail.position.copy(deathSpot);
+                this.sceneEquippables.push(raccoonTail);
+            }
+            else if (Math.random() * this.player.luck >= 0.15) {
+                this.totKilled += 1;
+                battler.battlerActive = false;
+                this.healthbars.get(id).visible = false;
+                this.dropItem(deathSpot);
+                if (this.totKilled < 5) {
+                    for (let i = 0; i <= 1; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+                else if (this.totKilled >= 5 && this.totKilled <= 20) {
+                    for (let i = 0; i <= 2; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+                else if (this.totKilled > 20 && this.totKilled < 51) {
+                    for (let i = 0; i <= 5; i++) {
+                        this.spawnEnemies();
+                    }
+                }
+
+            }
         }
+
         
+        
+    }
+
+    protected dropItem(position: Vec2) {
+        let choice = Math.floor(Math.random() * 7);
+
+        let sprite;
+        let newOb;
+        switch(choice) {
+            case 0:
+                sprite = this.add.sprite("Shield", "equippables");
+                newOb = new Shield(sprite);
+                break;
+            case 1:
+                sprite = this.add.sprite("RedHat", "equippables");
+                newOb = new RedHat(sprite);
+                break;
+            case 2:
+                sprite = this.add.sprite("JetPack", "equippables");
+                newOb = new JetPack(sprite);
+                break;
+            case 3:
+                sprite = this.add.sprite("healthpack", "equippables");
+                newOb = new Healthpack(sprite);
+                break;
+            case 4:
+                sprite = this.add.sprite("Gum", "equippables");
+                newOb = new Gum(sprite);
+                break;
+            case 5:
+                sprite = this.add.sprite("DaNeedle", "equippables");
+                newOb = new DaNeedle(sprite);
+                break;
+            case 6:
+                sprite = this.add.sprite("Antennas", "equippables");
+                newOb = new Antennas(sprite);
+                break;
+            default:
+                break;
+        }
+
+            newOb.position.set(position.x, position.y);
+            this.sceneEquippables.push(newOb);
     }
 
     /** Initializes the layers in the scene */
@@ -330,6 +474,8 @@ export default class MainSMScene extends SMScene {
         this.battlers.push(player);
         this.viewport.follow(player);
 
+        this.player = player;
+
         return player;
     }
     /**
@@ -362,20 +508,20 @@ export default class MainSMScene extends SMScene {
         } */
 
         for (let i = 0; i < red.enemies.length; i++) {
-            console.log("spawned red");
+            console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
             npc.scale.set(0.25, 0.25);
 
             // Give the NPC a healthbar
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
+            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
             this.healthbars.set(npc.id, healthbar);
             
             // Set the NPCs stats
             npc.battleGroup = 1
             npc.speed = 30;
-            npc.health = 1;
+            npc.health = 10;
             npc.maxHealth = 10;
             npc.navkey = "navmesh";
 
@@ -406,60 +552,9 @@ export default class MainSMScene extends SMScene {
             //npc.animation.play("IDLE");
             
             // Add the NPC to the battlers array
-            //this.battlers.push(npc);
+            //this.battlers.push(treasure);
         }
-
-/*
-        // Get the object data for the blue enemies
-        let blue = this.load.getObject("blue");
-
-        // Initialize the blue enemies
-        for (let i = 0; i < blue.enemies.length; i++) {
-            console.log("spawned blue");
-            let npc = this.add.animatedSprite(NPCActor, "BlueEnemy", "primary");
-            npc.position.set(blue.enemies[i][0], blue.enemies[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
-
-            // Give the NPCS their healthbars
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
-
-            npc.battleGroup = 2
-            npc.speed = 30;
-            npc.health = 1;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            // Give the NPCs their AI
-            npc.addAI(GuardBehavior, {target: this.battlers[0], range: 100});
-
-            // Play the NPCs "IDLE" animation 
-            npc.animation.play("IDLE");
-
-            this.battlers.push(npc);
-        } */
-
-        // Initialize the blue healers
-/*         for (let i = 0; i < blue.healers.length; i++) {
-            
-            let npc = this.add.animatedSprite(NPCActor, "BlueHealer", "primary");
-            npc.position.set(blue.healers[i][0], blue.healers[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
-
-            npc.battleGroup = 2;
-            npc.speed = 30;
-            npc.health = 10;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
-
-            npc.addAI(HealerBehavior);
-            npc.animation.play("IDLE");
-            this.battlers.push(npc);
-        } */
-
+        this.spawnBoss();
 
     }
 
@@ -554,6 +649,23 @@ export default class MainSMScene extends SMScene {
         this.sceneEquippables.push(antennas);
 
     }
+
+    public spawnTrash(position: Vec2, direction: Vec2) {
+        let choice = Math.random();
+        let trashSprite;
+        if (choice > 0.5) {
+            trashSprite = "trash-paper"
+        }
+        else {
+            trashSprite = "trash-banana"
+        }
+
+        let trash = this.add.sprite(trashSprite, "primary");
+        trash.position.set(position.x, position.y);
+        trash.scale.set(1, 1);
+        this.trash.push({sprite: trash, velocity: direction.scaled(100), stillCookin: true})
+
+    }
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
      * and it skips over some of the positions on the tilemap. If you can fix my navmesh generation algorithm,
@@ -614,7 +726,79 @@ export default class MainSMScene extends SMScene {
         this.navManager.addNavigableEntity("navmesh", navmesh);
     }
 
+    public spawnBoss() {     
+        let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
+        boss.position.set(-1200, 1000);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+        boss.scale.set(1, 1);
+
+        // Give the NPC a healthbar
+        let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
+        this.healthbars.set(boss.id, healthbar);
+        
+        // Set the NPCs stats
+        boss.battleGroup = 1
+        boss.speed = 0;
+        boss.health = 30;
+        boss.maxHealth = 30;
+        boss.navkey = "navmesh";
+
+
+        boss.addAI(RacconBehavior, {target: this.player, range: 5000});
+
+        // Play the NPCs "IDLE" animation 
+        boss.animation.play("IDLE");
+
+        this.boss = boss;
+
+        // Add the NPC to the battlers array
+        this.battlers.push(boss);
+      
+    }
+    public spawnEnemies() {
+        let angle = Math.PI * 2 * Math.random();
+        let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
+        let spawnPosY = this.player.position.x + Math.sin(angle) * 300;
+
+        if (this.totKilled == this.totEnemies) {
+            this.spawnBoss()
+        }
+        else if (this.totKilled > this.totEnemies) {
+            return;
+        }
+        else {   
+            console.log("spawned mouse");
+            let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
+            npc.position.set(spawnPosX, spawnPosY);
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            npc.scale.set(0.25, 0.25);
+
+            // Give the NPC a healthbar
+            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
+            this.healthbars.set(npc.id, healthbar);
+            
+            // Set the NPCs stats
+            npc.battleGroup = 1
+            npc.speed = 50;
+            npc.health = 10;
+            npc.maxHealth = 10;
+            npc.navkey = "navmesh";
+
+            npc.addAI(GuardBehavior, {target: this.player, range: 100});
+
+            // Play the NPCs "IDLE" animation 
+            npc.animation.play("IDLE");
+            
+            // Add the NPC to the battlers array
+            this.battlers.push(npc);
+        }
+
+    }
+
     public getBattlers(): Battler[] { return this.battlers; }
+
+    //LOOKAT
+    public getPlayer(): PlayerActor { return this.player}
 
     public getWalls(): IsometricTilemap { return this.walls; }
 
