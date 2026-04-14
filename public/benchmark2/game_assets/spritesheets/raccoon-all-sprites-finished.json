@@ -1,0 +1,10 @@
+{"name":"raccoon-all-sprites-finished",
+"spriteSheetImage":"raccoon-all-sprites-finished.png",
+"spriteWidth":60,"spriteHeight":106,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":7,"rows":1,
+"animations":[
+    {"name":"IDLE","repeat":true, "frames":[{"index":0,"duration":5}]},
+    {"name":"ATTACK","repeat":false, "frames":[{"index":1,"duration":8},{"index":2,"duration":8}]},
+    {"name": "HURT", "repeat": false, "frames": [{"index": 3, "duration": 8}]},
+    {"name":"DYING","repeat":false, "frames":[{"index":4,"duration":12},{"index":5,"duration":12}]},
+    {"name":"DEATH","repeat":true,"frames":[{"index":6,"duration":1}]}
+]}

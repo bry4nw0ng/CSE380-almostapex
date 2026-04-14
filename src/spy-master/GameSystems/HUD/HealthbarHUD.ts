@@ -77,8 +77,8 @@ export default class HealthbarHUD implements Updateable {
             this.healthBarBg.position.copy(this.staticPosition);
 
             let unit = this.healthBarBg.size.x / this.owner.maxHealth;
-            let missingHealth = this.owner.maxHealth - this.owner.health;
-            this.healthBar.size.set(this.healthBarBg.size.x - unit * missingHealth, this.healthBarBg.size.y);
+            let missingHealth = Math.min(this.owner.maxHealth, this.owner.maxHealth - this.owner.health);
+            this.healthBar.size.set(Math.max(0, this.healthBarBg.size.x - unit * missingHealth), this.healthBarBg.size.y);
             this.healthBar.position.set(this.healthBarBg.position.x - (unit / 2) * missingHealth, this.healthBarBg.position.y);
         } else {
             this.healthBar.position.copy(this.owner.position).add(this.offset);
@@ -89,7 +89,7 @@ export default class HealthbarHUD implements Updateable {
             this.healthBarBg.scale.scale(scale);
 
             let unit = this.healthBarBg.size.x / this.owner.maxHealth;
-            this.healthBar.size.set(this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health), this.healthBarBg.size.y);
+            this.healthBar.size.set(Math.max(0, this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health)), this.healthBarBg.size.y);
             this.healthBar.position.set(this.healthBarBg.position.x - (unit / scale / 2) * (this.owner.maxHealth - this.owner.health), this.healthBarBg.position.y);
         }
 
