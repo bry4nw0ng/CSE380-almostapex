@@ -96,8 +96,8 @@ export default class MainMenu extends SMScene {
         this.addLayer("bg", 0);
         this.addLayer("player", 1);
         this.addLayer("debug", 2);
-        this.addLayer("popup", 3);
-        this.addLayer("popupOverlay", 4);
+        this.addUILayer("popup");
+        this.addUILayer("popupOverlay");
         this.addUILayer("ui");
 
         // Black background
@@ -137,6 +137,8 @@ export default class MainMenu extends SMScene {
         this.player.animation.play("IDLE");
 
         this.viewport.setCenter(center.x, center.y);
+        this.viewport.setZoomLevel(2);
+        this.viewport.follow(this.player);
 
         // DEBUG: uncomment to show x/y readout for tuning zone bounds
         // this.coordLabel = <Label>this.add.uiElement(UIElementType.LABEL, "ui", {
@@ -214,6 +216,7 @@ export default class MainMenu extends SMScene {
 
     public updateScene(_deltaT: number): void {
         if (this.popupOpen) {
+            this.viewport.setZoomLevel(1);
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
                 return;
@@ -297,6 +300,7 @@ export default class MainMenu extends SMScene {
         this.popupMap.visible = false;
         this.popupClose.visible = false;
         this.zoneLabel.visible = false;
+        this.viewport.setZoomLevel(2);
     }
 
     private openHelp(): void {
@@ -304,6 +308,7 @@ export default class MainMenu extends SMScene {
         this.helpDim.visible = true;
         this.helpClose.visible = true;
         this.zoneLabel.visible = false;
+        this.viewport.setZoomLevel(1);
         this.setHelpPage(0);
     }
 
@@ -313,6 +318,7 @@ export default class MainMenu extends SMScene {
         this.helpClose.visible = false;
         this.helpNext.visible = false;
         this.helpPrev.visible = false;
+        this.viewport.setZoomLevel(2);
         for (const page of this.helpPages) page.visible = false;
     }
 
