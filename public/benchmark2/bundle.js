@@ -11273,7 +11273,7 @@ const FalseStatus_1 = __importDefault(require("../NPCStatuses/FalseStatus"));
 const Timer_1 = __importDefault(require("../../../../Wolfie2D/Timing/Timer"));
 const Vec2_1 = __importDefault(require("../../../../Wolfie2D/DataTypes/Vec2"));
 const Events_1 = require("../../../Events");
-class RacconBehavior extends NPCBehavior_1.default {
+class RaccoonBehavior extends NPCBehavior_1.default {
     /** Initialize the NPC AI */
     initializeAI(owner, options) {
         super.initializeAI(owner, options);
@@ -11360,7 +11360,7 @@ class RacconBehavior extends NPCBehavior_1.default {
         super.addStatus(statusName, status);
     }
 }
-exports.default = RacconBehavior;
+exports.default = RaccoonBehavior;
 exports.GuardStatuses = {
     ENEMY_IN_GUARD_POSITION: "enemy-at-guard-position",
     GOAL: "goal"

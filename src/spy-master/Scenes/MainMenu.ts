@@ -22,6 +22,7 @@ import SMScene from "./SMScene";
 import MainSMScene from "./MainSMScene";
 import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
+import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -402,4 +403,6 @@ export default class MainMenu extends SMScene {
     public getHealthpacks(): Healthpack[] { return []; }
     public getLaserGuns(): LaserGun[] { return []; }
     public isTargetVisible(_pos: Vec2, _target: Vec2): boolean { return true; }
+    public getNavmesh(): Navmesh { return null as unknown as Navmesh;}
+
 }
