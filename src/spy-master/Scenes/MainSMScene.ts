@@ -49,6 +49,10 @@ import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
 import RacconBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
 import MainMenu from "./MainMenu";
 import GameOver from "./GameOver";
+import Input from "../../Wolfie2D/Input/Input";
+import { UIElementType } from "../../Wolfie2D/Nodes/UIElements/UIElementTypes";
+import Button from "../../Wolfie2D/Nodes/UIElements/Button";
+import Graphic from "../../Wolfie2D/Nodes/Graphic";
 
 const BattlerGroups = {
     RED: 1,
@@ -89,6 +93,18 @@ export default class MainSMScene extends SMScene {
     private totKilled: number;
     private totEnemies: number;
     private playerDead: boolean = false;
+
+    // Pause menu state
+    private paused: boolean = false;
+    private pauseDim: Graphic;
+    private pauseTitle: Button;
+    private pauseButtons: Button[] = [];
+
+    // Pause help/about/controls sub-overlay
+    private pauseHelpOpen: boolean = false;
+    private pauseHelpPages: Sprite[] = [];
+    private pauseHelpClose: Sprite;
+    private readonly PAUSE_CLOSE_HIT = 25;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -151,6 +167,11 @@ export default class MainSMScene extends SMScene {
 
         //your bullets
         this.load.image("spitball", "game_assets/sprites/spitball.png")
+
+        // TODO: replace temp pages with final about/help/controls page assets when designed
+        this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
+        this.load.image("help-page",     "game_assets/ui/menu/temp/temphelp.png");
+        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png");
     }
     /**
      * @see Scene.startScene
@@ -214,11 +235,44 @@ export default class MainSMScene extends SMScene {
 
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
+
+        // init pause menu UI
+        this.initPauseMenu();
     }
     /**
      * @see Scene.updateScene
      */
     public override updateScene(deltaT: number): void {
+        // ESC toggles pause / closes help overlay
+        if (Input.isKeyJustPressed("escape")) {
+            if (this.pauseHelpOpen) {
+                this.closePauseHelp();
+            } else if (this.paused) {
+                this.resumeGame();
+            } else {
+                this.pauseGame();
+            }
+        }
+
+        // While paused, only process UI events and help nav clicks
+        if (this.paused) {
+            while (this.receiver.hasNextEvent()) {
+                this.handleEvent(this.receiver.getNextEvent());
+            }
+
+            // mouse click for help page close button
+            if (this.pauseHelpOpen && Input.isMouseJustPressed()) {
+                const mouse = Input.getMousePressPosition();
+                const close = this.pauseHelpClose.position;
+                if (Math.abs(mouse.x - close.x) <= this.PAUSE_CLOSE_HIT &&
+                    Math.abs(mouse.y - close.y) <= this.PAUSE_CLOSE_HIT) {
+                    this.closePauseHelp();
+                    return;
+                }
+            }
+            return; // skip all gameplay updates while paused
+        }
+
         while (this.receiver.hasNextEvent()) {
             this.handleEvent(this.receiver.getNextEvent());
         }
@@ -346,6 +400,26 @@ export default class MainSMScene extends SMScene {
                 break;
             }
             case BattlerEvent.BATTLER_RESPAWN: {
+                break;
+            }
+            case "pause_resume": {
+                this.resumeGame();
+                break;
+            }
+            case "pause_mainmenu": {
+                this.sceneManager.changeToScene(MainMenu);
+                break;
+            }
+            case "pause_controls": {
+                this.openPauseHelp(2);
+                break;
+            }
+            case "pause_about": {
+                this.openPauseHelp(0);
+                break;
+            }
+            case "pause_help": {
+                this.openPauseHelp(1);
                 break;
             }
             default: {
@@ -495,6 +569,154 @@ export default class MainSMScene extends SMScene {
         this.getLayer("slots").setHidden(true);
         this.getLayer("items").setHidden(true);
         this.addUILayer("hud");
+    }
+
+    /** all pause menu UI elements (hidden by default) */
+    protected initPauseMenu(): void {
+        // pause UI layers rendered above everything
+        this.addUILayer("pause");
+        this.getLayer("pause").setDepth(10);
+        this.addUILayer("pauseOverlay");
+        this.getLayer("pauseOverlay").setDepth(11);
+
+        const cx = 256;
+        const cy = 256;
+
+        // dim overlay
+        this.pauseDim = this.add.graphic(GraphicType.RECT, "pause", {
+            position: new Vec2(cx, cy),
+            size: new Vec2(512, 512)
+        });
+        this.pauseDim.color = new Color(0, 0, 0, 0.7);
+        this.pauseDim.visible = false;
+
+        // "PAUSED" title label
+        this.pauseTitle = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+            position: new Vec2(cx, cy - 90),
+            text: "PAUSED"
+        });
+        this.pauseTitle.size.set(200, 30);
+        this.pauseTitle.borderWidth = 0;
+        this.pauseTitle.backgroundColor = new Color(0, 0, 0, 0);
+        this.pauseTitle.textColor = Color.WHITE;
+        this.pauseTitle.fontSize = 24;
+        this.pauseTitle.visible = false;
+
+        // Button definitions: [label, eventId]
+        const buttonDefs: [string, string][] = [
+            ["Resume",          "pause_resume"],
+            ["Return to Menu",  "pause_mainmenu"],
+            ["Controls",        "pause_controls"],
+            ["About",           "pause_about"],
+            ["Help",            "pause_help"],
+        ];
+
+        const startY = cy - 50;
+        const spacing = 35;
+
+        for (let i = 0; i < buttonDefs.length; i++) {
+            const [label, eventId] = buttonDefs[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label
+            });
+            btn.size.set(200, 28);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            btn.onClickEventId = eventId;
+            btn.visible = false;
+            this.pauseButtons.push(btn);
+        }
+
+        // subscribe to pause button events
+        this.receiver.subscribe("pause_resume");
+        this.receiver.subscribe("pause_mainmenu");
+        this.receiver.subscribe("pause_controls");
+        this.receiver.subscribe("pause_about");
+        this.receiver.subscribe("pause_help");
+
+        // TODO: replace temp pages with final about/help/controls page sprites when designed
+        this.pauseHelpPages = [
+            this.add.sprite("about-page",    "pauseOverlay"),
+            this.add.sprite("help-page",     "pauseOverlay"),
+            this.add.sprite("controls-page", "pauseOverlay"),
+        ];
+        for (const page of this.pauseHelpPages) {
+            page.position.set(cx, cy);
+            page.scale.set(0.4, 0.4);
+            page.visible = false;
+        }
+
+        // TODO: replace "healthpack" with a proper close button sprite when designed
+        this.pauseHelpClose = this.add.sprite("healthpack", "pauseOverlay");
+        this.pauseHelpClose.position.set(50, 50);
+        this.pauseHelpClose.scale.set(0.7, 0.7);
+        this.pauseHelpClose.visible = false;
+    }
+
+    /** pause menu */
+    protected pauseGame(): void {
+        this.paused = true;
+        this.getLayer("primary").setPaused(true);
+        this.getLayer("equippables").setPaused(true);
+
+        // Freeze all AI (AIManager updates independently of layer pause)
+        for (const battler of this.battlers) {
+            battler.aiActive = false;
+        }
+
+        this.pauseDim.visible = true;
+        this.pauseTitle.visible = true;
+        for (const btn of this.pauseButtons) btn.visible = true;
+    }
+
+    /** resume the game and hides all pause UI */
+    protected resumeGame(): void {
+        this.paused = false;
+        this.getLayer("primary").setPaused(false);
+        this.getLayer("equippables").setPaused(false);
+
+        // reenable all AI
+        for (const battler of this.battlers) {
+            battler.aiActive = true;
+        }
+
+        this.pauseDim.visible = false;
+        this.pauseTitle.visible = false;
+        for (const btn of this.pauseButtons) btn.visible = false;
+
+        // close help overlay if open
+        if (this.pauseHelpOpen) {
+            this.pauseHelpOpen = false;
+            for (const page of this.pauseHelpPages) page.visible = false;
+            this.pauseHelpClose.visible = false;
+        }
+    }
+
+    /** open a help/about/controls page from the pause menu */
+    protected openPauseHelp(page: number): void {
+        this.pauseHelpOpen = true;
+        // hide pause buttons
+        this.pauseTitle.visible = false;
+        for (const btn of this.pauseButtons) btn.visible = false;
+        // show requested page and close button
+        for (let i = 0; i < this.pauseHelpPages.length; i++) {
+            this.pauseHelpPages[i].visible = i === page;
+        }
+        this.pauseHelpClose.visible = true;
+    }
+
+    /** close help overlay and return to pause buttons */
+    protected closePauseHelp(): void {
+        this.pauseHelpOpen = false;
+        for (const page of this.pauseHelpPages) page.visible = false;
+        this.pauseHelpClose.visible = false;
+        // Show pause buttons again
+        this.pauseTitle.visible = true;
+        for (const btn of this.pauseButtons) btn.visible = true;
     }
 
 
