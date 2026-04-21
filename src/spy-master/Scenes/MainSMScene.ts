@@ -66,7 +66,10 @@ export default class MainSMScene extends SMScene {
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor)[];
     /** Healthbars for the battlers */
-    private healthbars: Map<number, HealthbarHUD>;
+    //Changed to map to battler instead (dont want to have to find every time)
+    private healthbars: Map<Battler & Actor, HealthbarHUD>;
+
+
 
     //bullets trash/player
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
@@ -114,7 +117,7 @@ export default class MainSMScene extends SMScene {
         super(viewport, sceneManager, renderingManager, options);
 
         this.battlers = new Array<Battler & Actor>();
-        this.healthbars = new Map<number, HealthbarHUD>();
+        this.healthbars = new Map<Battler & Actor, HealthbarHUD>();
         this.treasure = [];
 
         this.sceneEquippables = new Array<Item>();
@@ -278,15 +281,36 @@ export default class MainSMScene extends SMScene {
             this.handleEvent(this.receiver.getNextEvent());
         }
 
-        this.inventoryHud.update(deltaT);
+/*         this.inventoryHud.update(deltaT);
         this.relicTray.update(deltaT);
         this.actionSlots.update(deltaT);
-        this.healthbars.forEach(healthbar => healthbar.update(deltaT));
+        this.healthbars.forEach(healthbar => healthbar.update(deltaT)); */
+
+    this.inventoryHud.update(deltaT);
+    this.relicTray.update(deltaT);
+    this.actionSlots.update(deltaT);
+    //Rendering the heathbars was getting expensive, needed to change to only update if needed (Now doesnt show if max health)
+    this.healthbars.forEach((healthbar, battler) => {
+        if (battler instanceof PlayerActor) {
+            healthbar.update(deltaT);
+            return;
+        }
+
+        if (battler.position.distanceTo(this.player.position) < 300 && battler.health < battler.maxHealth) {
+            healthbar.visible = true;
+        }
+        if (healthbar.visible) {
+            healthbar.update(deltaT);
+        }
+        else {
+            healthbar.followNPC();
+        }
+    });
 
         this.updateTrash(deltaT);
         this.updateSpitballs(deltaT);
         this.updateContactDamage(deltaT);
-        
+
 
         if (this.player.hasNeedle && this.needle.isSpinning) {
             this.handleDaNeedleUsed(this.needle.position);
@@ -344,7 +368,7 @@ export default class MainSMScene extends SMScene {
                         }
                         else {
                             battler.health = battler.health - 1;  
-                            battler.animation.playIfNotAlready("HURT", false);                      
+                            battler.animation.playIfNotAlready("HURT", false);                     
                         }
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
@@ -516,11 +540,12 @@ export default class MainSMScene extends SMScene {
             else {
                 this.leftInCurWave -= 1;
                 battler.battlerActive = false;
-                this.healthbars.get(id).visible = false;
+                this.healthbars.get(battler).visible = false;
+                this.healthbars.delete(battler);
                 this.battlers = this.battlers.filter(b => b.id !== id);
-                console.log("luck", this.player.luck)
                 if (Math.random() * this.player.luck >= 0.85) {
                     this.dropItem(deathSpot);
+                    console.log("Item dropped!")
                 }
                 if (this.leftInCurWave < 1) {
                     //Wave finished tween
@@ -614,7 +639,7 @@ export default class MainSMScene extends SMScene {
 
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
-        this.healthbars.set(player.id, healthbar);
+        this.healthbars.set(player, healthbar);
 
         // passive relic tray (below hp bar)
         this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
@@ -653,9 +678,9 @@ export default class MainSMScene extends SMScene {
     protected initializeNPCs(player): void {
 
         // Get the object data for the red enemies
-        let red = this.load.getObject("red");
-
-
+        //let red = this.load.getObject("red");
+        //For debug
+/* 
         for (let i = 0; i < red.enemies.length; i++) {
             console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
@@ -665,7 +690,8 @@ export default class MainSMScene extends SMScene {
 
             // Give the NPC a healthbar
             let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
+            this.healthbars.set(npc, healthbar);
+            healthbar.visible = false;
             
             // Set the NPCs stats
             npc.battleGroup = 1
@@ -682,7 +708,7 @@ export default class MainSMScene extends SMScene {
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
-        
+         */
         let dumpster = this.load.getObject("dumpster");
 
         for (let i = 0; i < dumpster.dumpsters.length; i++) {
@@ -779,8 +805,8 @@ export default class MainSMScene extends SMScene {
         let dim: Vec2 = walls.getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
-                let pos: Vec2 = walls.getWorldPosition(j, i);
-                graph.addPositionedNode(pos);
+                let collider = walls.getTileCollider(j, i);
+                graph.addPositionedNode(collider.center);
             }
         }
 
@@ -802,15 +828,14 @@ export default class MainSMScene extends SMScene {
                 rc = walls.getTileColRow(i + 1);
                 if ((i + 1) % dim.x !== 0 && !walls.isTileCollidable(rc.x, rc.y)) {
                     graph.addEdge(i, i + 1);
-                    // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
+                    //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
                 }
                 // Create edge below
                 rc = walls.getTileColRow(i + dim.x);
                 if (i + dim.x < graph.numVertices && !walls.isTileCollidable(rc.x, rc.y)) {
                     graph.addEdge(i, i + dim.x);
-                    // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
+                    //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
                 }
-
 
             }
         }
@@ -884,7 +909,8 @@ export default class MainSMScene extends SMScene {
 
         // Give the NPC a healthbar
         let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
-        this.healthbars.set(boss.id, healthbar);
+        this.healthbars.set(boss, healthbar);
+        healthbar.visible = false;
         
         // Set the NPCs stats
         boss.battleGroup = 1
@@ -918,7 +944,8 @@ export default class MainSMScene extends SMScene {
 
         // Give the NPC a healthbar
         let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-        this.healthbars.set(npc.id, healthbar);
+        this.healthbars.set(npc, healthbar);
+        healthbar.visible = false;
         
         // Set the NPCs stats
         npc.battleGroup = 1
