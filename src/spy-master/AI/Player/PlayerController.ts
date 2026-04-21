@@ -15,7 +15,7 @@ import GameEvent from "../../../Wolfie2D/Events/GameEvent";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
-import { AAEvents, AbilityEvent, ItemEvent } from "../../Events";
+import { AAEvents, AbilityEvent, CheatEvent, ItemEvent } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
@@ -31,6 +31,7 @@ import Inventory from "../../GameSystems/ItemSystem/Inventory";
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
 import MainSMScene from "../../Scenes/MainSMScene";
+import Scene from "../../../Wolfie2D/Scene/Scene";
 
 /**
  * The controller that controls the player.
@@ -50,6 +51,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 	protected _speed: number;
     protected playerFacingDir: number;
 
+    protected scene: Scene;
     //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
     //protected weapon: PlayerWeapon;
@@ -76,6 +78,8 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.playerFacingDir = 1;
         this.health = 5
         this.maxHealth = 5;
+
+        this.scene = this.owner.getScene();
 
         this.receiver.subscribe(AbilityEvent.USED_JETPACK);
         
@@ -173,28 +177,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             }
         }
-        // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
-        /*if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
-            // Start the particle system at the player's current position
-            this.weapon.startSystem(500, 0, this.owner.position);
-
-            let xDir = this.faceDir.x;
-            if (xDir >= 0) {
-                this.owner.animation.play("WATERGUN_RIGHT", false);
-            }
-            else {
-                this.owner.animation.play("WATERGUN_LEFT", false);
-            }
-
-            if (this.iTimer.isStopped()) {
-                this.iTimer.start();
-            }
-            else {
-                this.iTimer.reset();
-                this.iTimer.start();
-            }
-            }
-            */
+        
            //Reset position of items each update
             for (let equippable of this.owner.equippables.items()) {
                 if (this.playerFacingDir == -1) {
@@ -214,6 +197,38 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             };
         
+        if (Input.isJustPressed(AAControls.CHEAT_INVINCIBLE)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_INVINCIBLE);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_POW_CANNON)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_POW_CANNON);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_CITY)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_CITY);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_MOUNTAIN)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_MOUNTAIN);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_OCEAN)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_OCEAN);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_TOP_LEVEL)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_TOP_LEVEL);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_GIVE_ITEMS)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_GIVE_ITEMS);
+            return;
+        }
+        if (Input.isJustPressed(AAControls.CHEAT_SPAWN_BOSS)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_SPAWN_BOSS);
+            return;
+        }
     }
 
     public makeDaNeedleSpin(needle: DaNeedle, roc: number) {

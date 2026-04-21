@@ -20,6 +20,9 @@ import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import { AAControls } from "../AAControls";
 import SMScene from "./SMScene";
 import MainSMScene from "./MainSMScene";
+import NPCActor from "../Actors/NPCActor";
+import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
+import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -27,7 +30,8 @@ const Zones = {
     BOOK_TABLE: "zone_book",
 } as const;
 
-const IMG_SCALE = 0.15;
+//const IMG_SCALE = 0.15;
+const IMG_SCALE = 5;
 
 // floor bounds 
 const FLOOR_POLYGON: Vec2[] = [
@@ -79,6 +83,7 @@ export default class MainMenu extends SMScene {
 
     public loadScene(): void {
         this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
+        this.load.spritesheet("home-animated", "game_assets/spritesheets/home-animated.json");
         this.load.image("mainmenu",      "game_assets/ui/menu/mainmenu.png");
         this.load.image("map",           "game_assets/ui/menu/map.png");
         // TODO: replace temp images with final versions
@@ -91,13 +96,15 @@ export default class MainMenu extends SMScene {
     }
 
     public startScene(): void {
+        
         this.viewport.setZoomLevel(1);
         this.viewport.setCenter(512, 512);
         const center = this.viewport.getCenter();
 
         this.addLayer("bg", 0);
-        this.addLayer("player", 1);
-        this.addLayer("debug", 2);
+        this.addLayer("home", 1);
+        this.addLayer("player", 2);
+        this.addLayer("debug", 3);
         this.addUILayer("popup");
         this.addUILayer("popupOverlay");
         this.addUILayer("ui");
@@ -110,9 +117,14 @@ export default class MainMenu extends SMScene {
         black.color = Color.BLACK;
 
         // Hut background image
-        const bg = this.add.sprite("mainmenu", "bg");
+/*         const bg = this.add.sprite("mainmenu", "bg");
+        bg.position.set(center.x, center.y);
+        bg.scale.set(IMG_SCALE, IMG_SCALE); */
+
+        const bg = this.add.animatedSprite(AnimatedSprite, "home-animated", "home");
         bg.position.set(center.x, center.y);
         bg.scale.set(IMG_SCALE, IMG_SCALE);
+        bg.animation.play("Idle");
 
         // DEBUG — floor polygon vertices
         // for (const v of FLOOR_POLYGON) {
@@ -138,7 +150,7 @@ export default class MainMenu extends SMScene {
         this.player.maxHealth = 1;
         this.player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         this.player.addAI(PlayerController);
-        this.player.animation.play("IDLE");
+        this.player.animation.play("IDLE", true);
 
         this.viewport.setCenter(center.x, center.y);
         this.viewport.setZoomLevel(2);
@@ -391,4 +403,6 @@ export default class MainMenu extends SMScene {
     public getHealthpacks(): Healthpack[] { return []; }
     public getLaserGuns(): LaserGun[] { return []; }
     public isTargetVisible(_pos: Vec2, _target: Vec2): boolean { return true; }
+    public getNavmesh(): Navmesh { return null as unknown as Navmesh;}
+
 }

@@ -19,9 +19,8 @@ import MathUtils from "../../Wolfie2D/Utils/MathUtils";
 import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
-import HealerBehavior from "../AI/NPC/NPCBehavior/HealerBehavior";
 import { AAControls } from "../AAControls";
-import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent } from "../Events";
+import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent, CheatEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -46,9 +45,11 @@ import Gum from "../GameSystems/ItemSystem/Items/Gum";
 import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
 import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
-import RacconBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
+import RaccoonBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
 import MainMenu from "./MainMenu";
 import GameOver from "./GameOver";
+import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
+import Input from "../../Wolfie2D/Input/Input";
 
 const BattlerGroups = {
     RED: 1,
@@ -71,10 +72,11 @@ export default class MainSMScene extends SMScene {
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
     private spitballs: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
 
+
+    private treasure: {sprite: Sprite, stillCookin: boolean}[];
+
     private bases: BattlerBase[];
 
-    private healthpacks: Array<Healthpack>;
-    private laserguns: Array<LaserGun>;
     private sceneEquippables: Array<Item>;
 
     private player: PlayerActor;
@@ -85,22 +87,61 @@ export default class MainSMScene extends SMScene {
 
     // The position graph for the navmesh
     private graph: PositionGraph;
+    private navmesh: Navmesh;
 
-    private totKilled: number;
-    private totEnemies: number;
+
+    //Spawn Logic
     private playerDead: boolean = false;
+    private curWave: number;
+    private leftInCurWave: number;
+    private totSpawned: number;
+    private curDelay: number;
+
+    private spawnDelayTimer: Timer;
+    private waveDelayTimer: Timer;
+
+    private bossDead: boolean;
+
+    private closestEnemy: NPCActor | null;
+
+    private needle: DaNeedle | null;
+
+    //Cheats
+    private CHEATINVINCIBLE = false;
+    private CHEATPOWGUN = false;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
 
         this.battlers = new Array<Battler & Actor>();
         this.healthbars = new Map<number, HealthbarHUD>();
+        this.treasure = [];
 
-        this.laserguns = new Array<LaserGun>;
         this.sceneEquippables = new Array<Item>();
 
-        this.totKilled = 0;
-        this.totEnemies = 50;
+        this.curDelay = 0;
+        this.totSpawned = 0;
+        this.curWave = 0;
+        this.leftInCurWave = 0;
+        this.waveDelayTimer = new Timer(5000, () => this.startWave(this.curWave), false);
+
+        this.spawnDelayTimer = new Timer(this.curDelay, () => {
+            if (!this.bossDead && this.totSpawned < this.leftInCurWave) {
+                this.spawnEnemies();
+                this.totSpawned += 1;
+                console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.leftInCurWave);
+            }
+            else if (this.totSpawned == this.leftInCurWave) {
+                console.log("All enemies spawned ", this.curWave);
+                this.spawnDelayTimer.pause()
+            }
+            else if (this.bossDead) {
+                console.log("You beat the boss!")
+                this.spawnDelayTimer.pause()
+            }
+        }, true);
+
+        this.bossDead = false;
     }
 
     /**
@@ -115,7 +156,9 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
-        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");
+        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");  
+
+        this.load.image("DumpsterSprite", "game_assets/spritesheets/dumpster.png");
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
@@ -125,7 +168,6 @@ export default class MainSMScene extends SMScene {
         this.load.object("red", "game_assets/data/enemies/red.json");
         this.load.object("blue", "game_assets/data/enemies/blue.json");
 
-        this.load.image("DumpsterSprite", "game_assets/sprites/dumpster.png");
         this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
 
         // Load the healthpack and lasergun loactions
@@ -190,7 +232,6 @@ export default class MainSMScene extends SMScene {
         this.initializeItems();
 
         // Subscribe to relevant events
-        this.receiver.subscribe("healthpack");
         this.receiver.subscribe("enemyDied");
 
         //Pickup
@@ -212,61 +253,99 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
         this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
 
+        this.receiver.subscribe(CheatEvent.CHEAT_POW_CANNON);
+        this.receiver.subscribe(CheatEvent.CHEAT_INVINCIBLE);
+        this.receiver.subscribe(CheatEvent.CHEAT_GIVE_ITEMS);
+        this.receiver.subscribe(CheatEvent.CHEAT_SPAWN_BOSS);
+
+        this.receiver.subscribe(CheatEvent.CHEAT_CITY);
+        this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
+        this.receiver.subscribe(CheatEvent.CHEAT_OCEAN);
+        this.receiver.subscribe(CheatEvent.CHEAT_TOP_LEVEL);
+
+
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
+
+        this.waveDelayTimer.start();
     }
     /**
      * @see Scene.updateScene
+     * UPDATER +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
      */
     public override updateScene(deltaT: number): void {
         while (this.receiver.hasNextEvent()) {
             this.handleEvent(this.receiver.getNextEvent());
         }
+
         this.inventoryHud.update(deltaT);
         this.relicTray.update(deltaT);
         this.actionSlots.update(deltaT);
         this.healthbars.forEach(healthbar => healthbar.update(deltaT));
 
-        this.trash.forEach((shot) => {
-            if (shot.stillCookin){
-                if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
-                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
-                    if (antennas) {
-                        this.player.equippables.remove(antennas.id);
-                        antennas.visible = false;
-                        this.player.startIFrames();
-                    }
-                    else{
-                        let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                        let dr = 1;
-                        if (shield) {
-                            dr = 0.8
+        this.updateTrash(deltaT);
+        this.updateSpitballs(deltaT);
+        this.updateContactDamage(deltaT);
+        
+
+        if (this.player.hasNeedle && this.needle.isSpinning) {
+            this.handleDaNeedleUsed(this.needle.position);
+        }
+    }
+
+    public updateTrash(deltaT) {           
+        if (!this.CHEATINVINCIBLE) {
+            this.trash.forEach((shot) => {
+                if (shot.stillCookin) {
+                    if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
+                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                        if (antennas) {
+                            this.player.equippables.remove(antennas.id);
+                            antennas.visible = false;
+                            this.player.startIFrames();
                         }
-                        this.player.health = this.player.health - 3 * dr;
+                        else {
+                            let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
+                            let dr = 1;
+                            if (shield) {
+                                dr = 0.8
+                            }
+                            this.player.health = this.player.health - 3 * dr;
+                            shot.sprite.visible = false;
+                            shot.stillCookin = false;
+                            this.player.animation.playIfNotAlready("DAMAGE", false);
+                            this.player.startIFrames();
+                        }
+
+                    }
+                    else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
-                        this.player.startIFrames();
                     }
-                }
-                else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
-                    shot.sprite.visible = false;
-                    shot.stillCookin = false;
-                }
-                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+                    shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
 
-                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
-            }
-            else {
-                shot.sprite.destroy();
-            }
-        })
+                    shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+                }
+                else {
+                    shot.sprite.destroy();
+                }
+            })
+        }
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
+    }
 
+    public updateSpitballs(deltaT) {
         this.spitballs.forEach((shot) => {
             if (shot.stillCookin){    
                 this.battlers.forEach((battler) => {           
                     if (battler instanceof NPCActor && shot.sprite.position.distanceTo(battler.position) < 20 ) {
-                        battler.health = battler.health - 1;
+                        if (this.CHEATPOWGUN) {
+                            battler.health = battler.health - 500;
+                        }
+                        else {
+                            battler.health = battler.health - 1;  
+                            battler.animation.playIfNotAlready("HURT", false);                      
+                        }
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
 
@@ -286,37 +365,35 @@ export default class MainSMScene extends SMScene {
         })
 
         this.spitballs = this.spitballs.filter((shot) => shot.stillCookin == true);
-
-        this.battlers.forEach((battler) => {
-            if (this.player.health > 0 && !(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
-                let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
-                if (antennas) {
-                    this.player.equippables.remove(antennas.id);
-                    antennas.visible = false;
-                    this.player.startIFrames();
-                }
-                else {
-                    let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                    let dr = 1;
-                    if (shield) {
-                        dr = 0.8
-                    }
-                    if (battler.health > 0) {
-                        this.player.health = this.player.health - 3 * dr;
-                        console.log(this.player.health);
-                        this.player.startIFrames();
-                    }
-                }
-            }
-        })
-        for (let equippable of this.player.equippables.items()) {
-            if (equippable instanceof DaNeedle && equippable.isSpinning) {
-                this.handleDaNeedleUsed(equippable.position);
-            }
-        }
     }
 
-
+    public updateContactDamage(deltaT) {
+        if (!this.CHEATINVINCIBLE) {
+            this.battlers.forEach((battler) => {
+                if (this.player.health > 0 && !(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
+                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
+                    if (antennas) {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                        this.player.startIFrames();
+                    }
+                    else {
+                        let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
+                        let dr = 1;
+                        if (shield) {
+                            dr = 0.8
+                        }
+                        if (battler.health > 0) {
+                            this.player.health = this.player.health - 3 * dr;
+                            console.log(this.player.health);
+                            this.player.animation.playIfNotAlready("DAMAGE", false);
+                            this.player.startIFrames();
+                        }
+                    }
+                }
+            })
+        }
+    }
 
     /**
      * Handle events from the rest of the game
@@ -338,7 +415,7 @@ export default class MainSMScene extends SMScene {
                 break;
             }
             case AbilityEvent.OPEN_TREASURE: {
-
+                this.handleUsedRaccoonTail();
                 break;
             }
             case BattlerEvent.BATTLER_KILLED: {
@@ -348,13 +425,29 @@ export default class MainSMScene extends SMScene {
             case BattlerEvent.BATTLER_RESPAWN: {
                 break;
             }
+            case CheatEvent.CHEAT_INVINCIBLE: {
+                this.toggleCheatInvincible();
+                break;
+            }
+            case CheatEvent.CHEAT_POW_CANNON: {
+                this.toggleCheatPow();
+                break;
+            }
+            case CheatEvent.CHEAT_GIVE_ITEMS: {
+                this.cheatGiveItems();
+                break;
+            }
+            case CheatEvent.CHEAT_SPAWN_BOSS: {
+                this.spawnBoss();
+                break;
+            }
             default: {
                 throw new Error(`Unhandled event type "${event.type}" caught in SMScene event handler`);
             }
         }
     }
 
-    protected handleDaNeedleUsed(needlePosition) { //IMPORTANT NEED TO DEBUG WITH ENEMIES
+    protected handleDaNeedleUsed(needlePosition) {
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
@@ -375,6 +468,15 @@ export default class MainSMScene extends SMScene {
         });
     }
 
+    protected handleUsedRaccoonTail() {
+        this.treasure.forEach(cache => {
+            if (cache.sprite.position.distanceTo(this.player.position) < 100) {
+                this.dropItem(cache.sprite.position);
+                cache.sprite.destroy();
+            }
+        })
+    }
+
     protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
         console.log("Total equippables:", this.sceneEquippables.length);
         let items: Item[] = this.sceneEquippables.filter((item: Item) => {
@@ -382,6 +484,8 @@ export default class MainSMScene extends SMScene {
         });
         if (items.length > 0) {
             player.equip(items.reduce(ClosestPositioned(player)));
+            //Checking if has needle at equip so that we dont have to run back through a loop every update to check for it
+            this.needle = this.player.equippables.find((equippable) => equippable instanceof DaNeedle) as DaNeedle ?? null;
         }
     } 
 
@@ -394,7 +498,6 @@ export default class MainSMScene extends SMScene {
         let battler = this.battlers.find(b => b.id === id);
 
         if (battler) {
-            //Implement RummageSpot
             let deathSpot = battler.position.clone();
             if (battler instanceof PlayerActor) {
                 if (this.playerDead) return; // already dying, ignore repeated events
@@ -408,38 +511,25 @@ export default class MainSMScene extends SMScene {
                 let raccoonTail = new RaccoonTail(raccoonTailSprite);
                 raccoonTail.position.copy(deathSpot);
                 this.sceneEquippables.push(raccoonTail);
+                this.bossDead = true;
             }
             else {
-                this.totKilled += 1;
+                this.leftInCurWave -= 1;
                 battler.battlerActive = false;
                 this.healthbars.get(id).visible = false;
                 this.battlers = this.battlers.filter(b => b.id !== id);
                 console.log("luck", this.player.luck)
                 if (Math.random() * this.player.luck >= 0.85) {
                     this.dropItem(deathSpot);
-                }   
-
-                if (this.totKilled < 5) {
-                    for (let i = 0; i <= 1; i++) {
-                        this.spawnEnemies();
-                    }
                 }
-                else if (this.totKilled >= 5 && this.totKilled <= 20) {
-                    for (let i = 0; i <= 2; i++) {
-                        this.spawnEnemies();
-                    }
-                }
-                else if (this.totKilled > 20 && this.totKilled < 51) {
-                    for (let i = 0; i <= 5; i++) {
-                        this.spawnEnemies();
-                    }
+                if (this.leftInCurWave < 1) {
+                    //Wave finished tween
+                    this.waveDelayTimer.start();
                 }
 
             }
         }
-
-        
-        
+ 
     }
 
     protected dropItem(position: Vec2) {
@@ -503,9 +593,6 @@ export default class MainSMScene extends SMScene {
      */
     protected initializePlayer(): PlayerActor {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
-/*         let centerCol = Math.floor(this.walls.getDimensions().x / 2);
-        let centerRow = Math.floor(this.walls.getDimensions().y / 2);
-        let centerPos = new Vec2(centerCol, centerRow); */
         let spawnPos = new Vec2(-1500, 1000);
         player.position.copy(spawnPos);
         player.battleGroup = 2;
@@ -523,7 +610,7 @@ export default class MainSMScene extends SMScene {
 
         // Give the player physics
         player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
-        player.scale.set(1, 1); //IMPORTANT Only do this for 32x32
+        player.scale.set(1, 1);
 
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
@@ -568,32 +655,12 @@ export default class MainSMScene extends SMScene {
         // Get the object data for the red enemies
         let red = this.load.getObject("red");
 
-        // Initialize the red healers
-/*         for (let i = 0; i < red.healers.length; i++) {
-            let npc = this.add.animatedSprite(NPCActor, "RedHealer", "primary");
-            npc.position.set(red.healers[i][0], red.healers[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
-
-            npc.battleGroup = 1;
-            npc.speed = 30;
-            npc.health = 10;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            // Give the NPC a healthbar
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(2, 1/2), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
-
-            npc.addAI(HealerBehavior);
-            npc.animation.play("IDLE");
-            this.battlers.push(npc);
-        } */
 
         for (let i = 0; i < red.enemies.length; i++) {
             console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
             npc.scale.set(0.25, 0.25);
 
             // Give the NPC a healthbar
@@ -622,72 +689,19 @@ export default class MainSMScene extends SMScene {
             console.log("spawned dumpster");
             let treasure = this.add.sprite("DumpsterSprite", "primary");
             treasure.position.set(dumpster.dumpsters[i][0], dumpster.dumpsters[i][1]);
-            //treasure.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
             treasure.scale.set(1, 1);
-            
-            //treasure.health = 1;
 
+            this.treasure.push({sprite: treasure, stillCookin: true});
 
-            //npc.addAI(GuardBehavior, {target: player, range: 100});
-
-            // Play the NPCs "IDLE" animation 
-            //npc.animation.play("IDLE");
-            
-            // Add the NPC to the battlers array
-            //this.battlers.push(treasure);
         }
-        this.spawnBoss();
+        //this.spawnBoss();
 
     }
 
-    /**
-     * Initialize the items in the scene (healthpacks and laser guns)
-     */
     protected initializeItems(): void {
-        /*let equippables = this.load.getObject("equippables"); This wouldnt work with my map json, not totally sure why
-        let sprite;
-        let newOb;
-        for (let equippable of equippables.objects) {
-            switch(equippable.gid) {
-                case 101:
-                    sprite = this.add.sprite("Shield", "equippables");
-                    newOb = new Shield(newOb);
-                    break;
-                case 102:
-                    sprite = this.add.sprite("RedHat", "equippables");
-                    newOb = new RedHat(newOb);
-                    break;
-                case 103:
-                    sprite = this.add.sprite("RaccoonTail", "equippables");
-                    newOb = new RaccoonTail(newOb);
-                    break;
-                case 104:
-                    sprite = this.add.sprite("JetPack", "equippables");
-                    newOb = new JetPack(newOb);
-                    break;
-                case 105:
-                    sprite = this.add.sprite("healthpack", "equippables");
-                    newOb = new Healthpack(newOb);
-                    break;
-                case 106:
-                    sprite = this.add.sprite("Gum", "equippables");
-                    newOb = new Gum(newOb);
-                    break;
-                case 107:
-                    sprite = this.add.sprite("DaNeedle", "equippables");
-                    newOb = new DaNeedle(newOb);
-                    break;
-                case 108:
-                    sprite = this.add.sprite("Antennas", "equippables");
-                    newOb = new Antennas(newOb);
-                    break;
-                default:
-                    continue;
-            }
+    }
 
-            newOb.position.set(equippable.x, equippable.y);
-            this.sceneEquippables.push(newOb);
-        }*/
+    public cheatGiveItems(): void{
         let playerAt = new Vec2(-1500, 1000);
 
         let shieldSprite = this.add.sprite("Shield", "primary");
@@ -729,7 +743,6 @@ export default class MainSMScene extends SMScene {
         let antennas = new Antennas(antennaSprite);
         antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
         this.sceneEquippables.push(antennas);
-
     }
 
     public spawnTrash(position: Vec2, direction: Vec2) {
@@ -803,17 +816,64 @@ export default class MainSMScene extends SMScene {
         }
 
         // Set this graph as a navigable entity
-        let navmesh = new Navmesh(graph);
+        this.navmesh = new Navmesh(graph);
         
         // Add different strategies to use for this navmesh
-        navmesh.registerStrategy("direct", new DirectStrategy(navmesh));
-        navmesh.registerStrategy("astar", new AstarStrategy(navmesh));
+        this.navmesh.registerStrategy("direct", new DirectStrategy(this.navmesh));
+        this.navmesh.registerStrategy("astar", new AstarStrategy(this.navmesh));
 
         // TODO set the strategy to use A* pathfinding
-        navmesh.setStrategy("astar");
+        this.navmesh.setStrategy("astar");
 
         // Add this navmesh to the navigation manager
-        this.navManager.addNavigableEntity("navmesh", navmesh);
+        this.navManager.addNavigableEntity("navmesh", this.navmesh);
+    }
+
+    public getRandomNodePosition() {
+        let angle = Math.PI * 2 * Math.random();
+        let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
+        let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
+        let node = this.navmesh.graph.snap(new Vec2(spawnPosX, spawnPosY));
+        return this.navmesh.graph.getNodePosition(node);
+    }
+
+    public startWave(waveNum) {
+        this.totSpawned = 0;
+        if (waveNum == 0) {
+            console.log("Wave 1 starting");
+            this.curWave = 1;
+            //Play tween wave overlay
+            this.leftInCurWave = 5;
+            this.curDelay = 1000;
+
+            this.spawnDelayTimer.start(this.curDelay)
+        }
+        else if (waveNum == 1) {
+            console.log("Wave 2 starting");
+            this.curWave = 2;
+            //Play tween wave overlay
+            this.leftInCurWave = 10;
+            this.curDelay = 700;
+            this.spawnDelayTimer.start(this.curDelay);
+        }
+        else if (waveNum == 2) {
+            console.log("Wave 3 starting");
+            this.curWave = 3;
+            //Play tween wave overlay
+            this.leftInCurWave = 30;
+            this.curDelay = 300;
+            this.spawnDelayTimer.start(this.curDelay);
+        }
+        //Boss wave
+        else if (waveNum == 3) {
+            console.log("Final wave starting");
+            this.curWave = 4;
+            //Play tween wave overlay
+            this.leftInCurWave = 1000;
+            this.curDelay = 1000;
+            this.spawnDelayTimer.start(this.curDelay);
+            this.spawnBoss();
+        }
     }
 
     public spawnBoss() {     
@@ -834,7 +894,7 @@ export default class MainSMScene extends SMScene {
         boss.navkey = "navmesh";
 
 
-        boss.addAI(RacconBehavior, {target: this.player, range: 750});
+        boss.addAI(RaccoonBehavior, {target: this.player, range: 750});
 
         // Play the NPCs "IDLE" animation 
         boss.animation.play("IDLE");
@@ -845,57 +905,59 @@ export default class MainSMScene extends SMScene {
         this.battlers.push(boss);
       
     }
+
     public spawnEnemies() {
-        let angle = Math.PI * 2 * Math.random();
-        let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
-        let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
+        let spawnPos = this.getRandomNodePosition();
 
-        if (this.totKilled == this.totEnemies) {
-            this.spawnBoss()
-        }
-        else if (this.totKilled > this.totEnemies) {
-            return;
-        }
-        else {   
-            console.log("spawned mouse");
-            let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
-            npc.position.set(spawnPosX, spawnPosY);
-            console.log("spawned mouse at x:", spawnPosX, "y:", spawnPosY)
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
-            npc.scale.set(0.25, 0.25);
+        console.log("spawned mouse");
+        let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
+        npc.position.set(spawnPos.x, spawnPos.y);
+        console.log("spawned mouse at x:", spawnPos.x, "y:", spawnPos.y)
+        npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+        npc.scale.set(0.25, 0.25);
 
-            // Give the NPC a healthbar
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
-            
-            // Set the NPCs stats
-            npc.battleGroup = 1
-            npc.speed = 50;
-            npc.health = 10;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
+        // Give the NPC a healthbar
+        let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
+        this.healthbars.set(npc.id, healthbar);
+        
+        // Set the NPCs stats
+        npc.battleGroup = 1
+        npc.speed = 50;
+        npc.health = 10;
+        npc.maxHealth = 10;
+        npc.navkey = "navmesh";
 
-            npc.addAI(GuardBehavior, {target: this.player, range: 100});
+        npc.addAI(GuardBehavior, {target: this.player, range: 100});
 
-            // Play the NPCs "IDLE" animation 
-            npc.animation.play("IDLE");
-            
-            // Add the NPC to the battlers array
-            this.battlers.push(npc);
-        }
+        // Play the NPCs "IDLE" animation 
+        npc.animation.play("IDLE");
+        
+        // Add the NPC to the battlers array
+        this.battlers.push(npc);
 
     }
 
     public getBattlers(): Battler[] { return this.battlers; }
 
-    //LOOKAT
     public getPlayer(): PlayerActor { return this.player}
 
     public getWalls(): IsometricTilemap { return this.walls; }
 
-    public getHealthpacks(): Healthpack[] { return this.healthpacks; }
+    public getNavmesh(): Navmesh {return this.navmesh;}
 
-    public getLaserGuns(): LaserGun[] { return this.laserguns; }
+    public toggleCheatPow(): void {this.CHEATPOWGUN = !this.CHEATPOWGUN};
+    public toggleCheatInvincible(): void {this.CHEATINVINCIBLE = !this.CHEATINVINCIBLE};
+
+    //Really just for debug
+    public battlerAmt(): number {
+        let tot = 0;
+        this.battlers.forEach((battler) => {
+            if (battler instanceof NPCActor) {
+                tot += 1;
+            }
+        });
+        return tot;
+    }
 
     /**
      * Checks if the given target position is visible from the given position.
@@ -927,8 +989,8 @@ export default class MainSMScene extends SMScene {
             for (let row = minIndex.y; row <= maxIndex.y; row++) {
                 if (walls.isTileCollidable(col, row)) {
                     // Get the position of this tile
-                    let tilePos = new Vec2(col * tileSize.x + tileSize.x / 2, row * tileSize.y + tileSize.y / 2);
-
+                    //let tilePos = new Vec2(col * tileSize.x + tileSize.x / 2, row * tileSize.y + tileSize.y / 2);
+                    let tilePos = walls.getWorldPosition(col, row);
                     // Create a collider for this tile
                     let collider = new AABB(tilePos, tileSize.scaled(1 / 2));
 

@@ -21,7 +21,7 @@ import MainSMScene from "../../../Scenes/MainSMScene";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import { BattlerEvent } from "../../../Events";
 
-export default class RacconBehavior extends NPCBehavior {
+export default class RaccoonBehavior extends NPCBehavior {
 
     /** The target the guard should guard */
     protected target: TargetableEntity;
