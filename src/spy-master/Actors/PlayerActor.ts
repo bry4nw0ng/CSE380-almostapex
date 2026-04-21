@@ -11,6 +11,7 @@ import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import SMScene from "../Scenes/SMScene";
 import Item from "../GameSystems/ItemSystem/Item";
 import Timer from "../../Wolfie2D/Timing/Timer";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -32,6 +33,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
 
+    protected _hasNeedle: boolean;
+
     public equippables: Inventory = new Inventory(10);
     public abilities: Inventory = new Inventory(4);
 
@@ -47,11 +50,11 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._damageReduction = 1;
         this._luck = 1;
         this._invincible = false;
-        //this._canSearch = false;
         this._isCoolingDown = false;
         this._isWeaponTired = false;
         this.iTimer = new Timer(750, () => this.toggleInvincible(false), false);
 
+        this._hasNeedle = false;
     }
 
     get battlerActive(): boolean {
@@ -136,10 +139,17 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         return this._isWeaponTired;
     }
 
+    get hasNeedle() {
+        return this._hasNeedle;
+    }
+
     public equip(equippable: Item): void{
         console.log("isAbility:", equippable.isAbility);
         console.log("Equipped:", equippable);
         this.equippables.add(equippable);
+        if (equippable instanceof DaNeedle) {
+            this._hasNeedle = true;
+        }
         if (equippable.isAbility) {
             console.log("Added ability");
             this.abilities.add(equippable);

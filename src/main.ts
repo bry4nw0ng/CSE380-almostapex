@@ -30,7 +30,8 @@ import { AbilityEvent } from "./spy-master/Events";
             {name: AAControls.CHEAT_TOP_LEVEL, keys: ["t"]},
             {name: AAControls.CHEAT_INVINCIBLE, keys: ["i"]},
             {name: AAControls.CHEAT_POW_CANNON, keys: ["p"]},
-            {name: AAControls.CHEAT_GIVE_ITEMS, keys: ["u"]}
+            {name: AAControls.CHEAT_GIVE_ITEMS, keys: ["u"]},
+            {name: AAControls.CHEAT_SPAWN_BOSS, keys: ["y"]}
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want

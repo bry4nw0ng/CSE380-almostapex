@@ -225,8 +225,10 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.emitter.fireEvent(CheatEvent.CHEAT_GIVE_ITEMS);
             return;
         }
-        
-
+        if (Input.isJustPressed(AAControls.CHEAT_SPAWN_BOSS)) {
+            this.emitter.fireEvent(CheatEvent.CHEAT_SPAWN_BOSS);
+            return;
+        }
     }
 
     public makeDaNeedleSpin(needle: DaNeedle, roc: number) {
