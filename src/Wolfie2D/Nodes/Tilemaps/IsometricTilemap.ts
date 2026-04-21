@@ -82,10 +82,10 @@ export default class IsometricTilemap extends Tilemap {
         let hWidth = this.scale.x * this.tileSize.x / 2;
         let hHeight = this.scale.y * this.tileSize.y / 2;
 
-        let centerX = hWidth * (col - row) + hWidth / 2;
-        let centerY = hHeight * (col + row) + hHeight / 2;
-
-        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth / 2, hHeight / 2));
+        let centerX = hWidth * (col - row) + hWidth;
+        let centerY = hHeight * (col + row);
+        
+        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight));
     }
 
  

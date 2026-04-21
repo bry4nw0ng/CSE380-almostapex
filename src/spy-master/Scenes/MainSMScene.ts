@@ -90,10 +90,15 @@ export default class MainSMScene extends SMScene {
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
+    //Non collidable walls, have to add to navmesh so that enemies dont spawn there, but not collidable
+    private wallsNC: IsometricTilemap;
+    private bothWalls: IsometricTilemap[];
 
     // The position graph for the navmesh
     private graph: PositionGraph;
     private navmesh: Navmesh;
+
+    private spawnableNodes: number[];
 
 
     //Spawn Logic
@@ -119,11 +124,11 @@ export default class MainSMScene extends SMScene {
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
+        this.spawnableNodes = [];
 
         this.battlers = new Array<Battler & Actor>();
         this.healthbars = new Map<Battler & Actor, HealthbarHUD>();
-        this.treasure = [];
-
+        this.treasure = [];       
         this.sceneEquippables = new Array<Item>();
 
         this.curDelay = 0;
@@ -217,11 +222,14 @@ export default class MainSMScene extends SMScene {
         tilemapLayers[3].setDepth(6); // Transparent, player at 3, so should be above
 
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
+        this.wallsNC = <IsometricTilemap>tilemapLayers[2].getItems()[0];
+
+        this.bothWalls = [this.walls, this.wallsNC];
+
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
         let midRow = Math.floor(this.walls.getDimensions().y / 2);
-        let midMap = new Vec2(midCol, midRow);
+
         let centerMap = this.walls.getWorldPosition(midCol, midRow);
-        //this.viewport.setCenter(centerMap!.x, centerMap!.y);
 
         this.viewport.setBounds(
             -this.walls.size.x,
@@ -234,7 +242,7 @@ export default class MainSMScene extends SMScene {
 
         this.initLayers();
         
-        this.initializeNavmesh(new PositionGraph(), this.walls);
+        this.initializeNavmesh(new PositionGraph(), [this.walls, this.wallsNC]);
 
         // Create the Player/NPCS
         this.initializeNPCs(this.initializePlayer());
@@ -638,6 +646,7 @@ export default class MainSMScene extends SMScene {
         this.getLayer("slots").setHidden(true);
         this.getLayer("items").setHidden(true);
         this.addUILayer("hud");
+        this.addLayer("debug", 10);
     }
 
 
@@ -835,42 +844,43 @@ export default class MainSMScene extends SMScene {
      * go for it.
      * 
      */
-    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
-        let dim: Vec2 = walls.getDimensions();
+    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap[]): void {
+        let dim: Vec2 = walls[0].getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
-                let collider = walls.getTileCollider(j, i);
+                let collider = walls[0].getTileCollider(j, i);
                 graph.addPositionedNode(collider.center);
             }
         }
 
+
         let rc: Vec2;
         for (let i = 0; i < graph.numVertices; i++) {
-            rc = walls.getTileColRow(i);
-            if (!walls.isTileCollidable(rc.x, rc.y) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
-                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
+            rc = walls[0].getTileColRow(i);
+            if (!this.isWall(rc.x, rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
 
             ) {
                 // Create edge to the left
-                rc = walls.getTileColRow(i + 1);
-                if ((i + 1) % dim.x !== 0 && !walls.isTileCollidable(rc.x, rc.y)) {
+                rc = walls[0].getTileColRow(i + 1);
+                if ((i + 1) % dim.x !== 0 && !this.isWall(rc.x, rc.y)) {
                     graph.addEdge(i, i + 1);
                     //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
                 }
                 // Create edge below
-                rc = walls.getTileColRow(i + dim.x);
-                if (i + dim.x < graph.numVertices && !walls.isTileCollidable(rc.x, rc.y)) {
+                rc = walls[0].getTileColRow(i + dim.x);
+                if (i + dim.x < graph.numVertices && !this.isWall(rc.x, rc.y)) {
                     graph.addEdge(i, i + dim.x);
                     //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
                 }
-
+                this.spawnableNodes.push(i);
             }
         }
 
@@ -888,12 +898,37 @@ export default class MainSMScene extends SMScene {
         this.navManager.addNavigableEntity("navmesh", this.navmesh);
     }
 
+    protected isWall(col: number, row: number) {
+        let isReallyWall = false;
+        this.bothWalls.forEach((walltype) => {
+            if (walltype.getTile(col, row) !== 0) {
+                isReallyWall = true
+            }
+        });
+        return isReallyWall;
+    }
+    
     public getRandomNodePosition() {
         let angle = Math.PI * 2 * Math.random();
         let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
         let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
-        let node = this.navmesh.graph.snap(new Vec2(spawnPosX, spawnPosY));
-        return this.navmesh.graph.getNodePosition(node);
+        let spawnPos = new Vec2(spawnPosX, spawnPosY);
+
+        let spawnOptions = this.spawnableNodes.filter((node) => {
+            return this.navmesh.graph.getNodePosition(node).distanceTo(spawnPos) < 200;
+        });
+
+        let lenOpts = spawnOptions.length;
+        let choice;
+        if (lenOpts > 0) {
+            choice = spawnOptions[Math.floor(Math.random() * lenOpts)];
+        }
+        else {
+            choice = this.spawnableNodes[Math.floor(Math.random() * this.spawnableNodes.length)];
+        }
+
+        return this.navmesh.graph.getNodePosition(choice);
+
     }
 
     public startWave(waveNum) {
@@ -1042,7 +1077,7 @@ export default class MainSMScene extends SMScene {
 
         for (let col = minIndex.x; col <= maxIndex.x; col++) {
             for (let row = minIndex.y; row <= maxIndex.y; row++) {
-                if (walls.isTileCollidable(col, row)) {
+                if (this.isWall(col, row)) {
                     // Get the position of this tile
                     //let tilePos = new Vec2(col * tileSize.x + tileSize.x / 2, row * tileSize.y + tileSize.y / 2);
                     let tilePos = walls.getWorldPosition(col, row);
