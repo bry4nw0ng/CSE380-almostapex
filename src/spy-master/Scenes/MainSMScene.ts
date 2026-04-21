@@ -322,18 +322,19 @@ export default class MainSMScene extends SMScene {
         this.updateSpitballs(deltaT);
         this.updateContactDamage(deltaT);
 
-        if (this.leftInCurWave < 4 && this.leftInCurWave > 0) {
-            if (this.closestEnemy && this.player.position.distanceTo(this.closestEnemy.position) > 300) {
-                this.arrow.update(deltaT, this.closestEnemy);
-            }
-            else {
-                this.arrow.visible = false;
-            }
+        if (this.closestEnemy && this.player.position.distanceTo(this.closestEnemy.position) > 300) {
+            this.arrow.update(deltaT, this.closestEnemy);
+        }
+        else {
+            this.arrow.visible = false;
+        }
+/*         if (this.leftInCurWave < 4 && this.leftInCurWave > 0) {
+
         } 
         else {
             this.arrow.visible = false;
         }
-
+ */
         if (this.player.hasNeedle && this.needle.isSpinning) {
             this.handleDaNeedleUsed(this.needle.position);
         }
