@@ -20,7 +20,7 @@ import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import { AAControls } from "../AAControls";
-import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent, CheatEvent } from "../Events";
+import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent, CheatEvent, HudEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -50,6 +50,8 @@ import MainMenu from "./MainMenu";
 import GameOver from "./GameOver";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Input from "../../Wolfie2D/Input/Input";
+import Arrow from "../GameSystems/HUD/LastEnemyArrow";
+import WaveAlerts from "../GameSystems/HUD/WaveAlerts";
 
 const BattlerGroups = {
     RED: 1,
@@ -63,10 +65,15 @@ export default class MainSMScene extends SMScene {
     private relicTray: RelicTrayHUD;
     private actionSlots: ActionSlotsHUD;
 
+    private arrow: Arrow;
+
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor)[];
     /** Healthbars for the battlers */
-    private healthbars: Map<number, HealthbarHUD>;
+    //Changed to map to battler instead (dont want to have to find every time)
+    private healthbars: Map<Battler & Actor, HealthbarHUD>;
+
+
 
     //bullets trash/player
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
@@ -84,10 +91,15 @@ export default class MainSMScene extends SMScene {
 
     // The wall layer of the tilemap
     private walls: IsometricTilemap;
+    //Non collidable walls, have to add to navmesh so that enemies dont spawn there, but not collidable
+    private wallsNC: IsometricTilemap;
+    private bothWalls: IsometricTilemap[];
 
     // The position graph for the navmesh
     private graph: PositionGraph;
     private navmesh: Navmesh;
+
+    private spawnableNodes: number[];
 
 
     //Spawn Logic
@@ -95,10 +107,12 @@ export default class MainSMScene extends SMScene {
     private curWave: number;
     private leftInCurWave: number;
     private totSpawned: number;
+    private totInCurWave: number;
     private curDelay: number;
 
     private spawnDelayTimer: Timer;
     private waveDelayTimer: Timer;
+    private waveTweenTimer: Timer;
 
     private bossDead: boolean;
 
@@ -106,41 +120,61 @@ export default class MainSMScene extends SMScene {
 
     private needle: DaNeedle | null;
 
+    private waveAlerts: WaveAlerts;
+
     //Cheats
     private CHEATINVINCIBLE = false;
     private CHEATPOWGUN = false;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
+        this.spawnableNodes = [];
 
         this.battlers = new Array<Battler & Actor>();
-        this.healthbars = new Map<number, HealthbarHUD>();
-        this.treasure = [];
-
+        this.healthbars = new Map<Battler & Actor, HealthbarHUD>();
+        this.treasure = [];       
         this.sceneEquippables = new Array<Item>();
 
         this.curDelay = 0;
         this.totSpawned = 0;
         this.curWave = 0;
         this.leftInCurWave = 0;
-        this.waveDelayTimer = new Timer(5000, () => this.startWave(this.curWave), false);
+        this.totInCurWave = 0;
+        this.waveTweenTimer = new Timer(3000, () => this.startWave(this.curWave), false);
+        this.waveDelayTimer = new Timer(4000, () => {
+            if (this.curWave == 0) {
+                this.waveAlerts.playWave1Incoming();
+            }
+            else if (this.curWave == 1) {
+                this.waveAlerts.playWave2Incoming();
+            }
+            else if (this.curWave == 2) {
+                this.waveAlerts.playWave3Incoming();
+            }
+            else if (this.curWave == 3) {
+                this.waveAlerts.playBossIncoming();
+            }
+            this.waveTweenTimer.start()
+        }, false);
 
         this.spawnDelayTimer = new Timer(this.curDelay, () => {
-            if (!this.bossDead && this.totSpawned < this.leftInCurWave) {
+            if (!this.bossDead && this.totSpawned < this.totInCurWave) {
                 this.spawnEnemies();
                 this.totSpawned += 1;
                 console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.leftInCurWave);
             }
-            else if (this.totSpawned == this.leftInCurWave) {
-                console.log("All enemies spawned ", this.curWave);
+            else if (this.totSpawned == this.totInCurWave) {
                 this.spawnDelayTimer.pause()
+                console.log("All enemies spawned ", this.curWave);
             }
             else if (this.bossDead) {
-                console.log("You beat the boss!")
                 this.spawnDelayTimer.pause()
+                this.waveAlerts.playBossDefeated();
+                console.log("You beat the boss!")
             }
         }, true);
 
+        this.closestEnemy = null;
         this.bossDead = false;
     }
 
@@ -158,7 +192,11 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
         this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");  
 
+        //Wave Alerts
+        this.load.spritesheet("wave_alerts", "game_assets/spritesheets/wave-alerts.json");
+
         this.load.image("DumpsterSprite", "game_assets/spritesheets/dumpster.png");
+        this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png")
 
         // Load the tilemap
         this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
@@ -207,11 +245,14 @@ export default class MainSMScene extends SMScene {
         tilemapLayers[3].setDepth(6); // Transparent, player at 3, so should be above
 
         this.walls = <IsometricTilemap>tilemapLayers[1].getItems()[0];
+        this.wallsNC = <IsometricTilemap>tilemapLayers[2].getItems()[0];
+
+        this.bothWalls = [this.walls, this.wallsNC];
+
         let midCol = Math.floor(this.walls.getDimensions().x / 2);
         let midRow = Math.floor(this.walls.getDimensions().y / 2);
-        let midMap = new Vec2(midCol, midRow);
+
         let centerMap = this.walls.getWorldPosition(midCol, midRow);
-        //this.viewport.setCenter(centerMap!.x, centerMap!.y);
 
         this.viewport.setBounds(
             -this.walls.size.x,
@@ -224,7 +265,9 @@ export default class MainSMScene extends SMScene {
 
         this.initLayers();
         
-        this.initializeNavmesh(new PositionGraph(), this.walls);
+        this.initTweenGraphics();
+
+        this.initializeNavmesh(new PositionGraph(), [this.walls, this.wallsNC]);
 
         // Create the Player/NPCS
         this.initializeNPCs(this.initializePlayer());
@@ -263,12 +306,22 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(CheatEvent.CHEAT_OCEAN);
         this.receiver.subscribe(CheatEvent.CHEAT_TOP_LEVEL);
 
+        this.receiver.subscribe(HudEvent.WAVE_IN_CENTER);
+        this.receiver.subscribe(HudEvent.WAVE_DONE);
+
 
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
 
         this.waveDelayTimer.start();
     }
+
+    initTweenGraphics() {
+        let alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
+        let size = this.viewport.getHalfSize().scaled(2);
+        this.waveAlerts = new WaveAlerts(alertSprite, size);
+    }
+
     /**
      * @see Scene.updateScene
      * UPDATER +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -278,20 +331,44 @@ export default class MainSMScene extends SMScene {
             this.handleEvent(this.receiver.getNextEvent());
         }
 
-        this.inventoryHud.update(deltaT);
-        this.relicTray.update(deltaT);
-        this.actionSlots.update(deltaT);
-        this.healthbars.forEach(healthbar => healthbar.update(deltaT));
+    this.inventoryHud.update(deltaT);
+    this.relicTray.update(deltaT);
+    this.actionSlots.update(deltaT);
+
+    //Rendering the heathbars was getting expensive, needed to change to only update if needed (Now doesnt show if max health)
+    this.healthbars.forEach((healthbar, battler) => {
+        if (battler instanceof PlayerActor) {
+            healthbar.update(deltaT);
+            return;
+        }
+
+        if (battler.position.distanceTo(this.player.position) < 300 && battler.health < battler.maxHealth) {
+            healthbar.visible = true;
+        }
+        if (healthbar.visible) {
+            healthbar.update(deltaT);
+        }
+        else {
+            healthbar.followNPC();
+        }
+    });
 
         this.updateTrash(deltaT);
         this.updateSpitballs(deltaT);
         this.updateContactDamage(deltaT);
-        
+
+        if (this.closestEnemy && this.player.position.distanceTo(this.closestEnemy.position) > 300) {
+            this.arrow.update(deltaT, this.closestEnemy);
+        }
+        else {
+            this.arrow.visible = false;
+        }
 
         if (this.player.hasNeedle && this.needle.isSpinning) {
             this.handleDaNeedleUsed(this.needle.position);
         }
     }
+
 
     public updateTrash(deltaT) {           
         if (!this.CHEATINVINCIBLE) {
@@ -318,6 +395,7 @@ export default class MainSMScene extends SMScene {
                         }
 
                     }
+                    //Check if 2000 necessary
                     else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
@@ -344,7 +422,7 @@ export default class MainSMScene extends SMScene {
                         }
                         else {
                             battler.health = battler.health - 1;  
-                            battler.animation.playIfNotAlready("HURT", false);                      
+                            battler.animation.playIfNotAlready("HURT", false);                     
                         }
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
@@ -354,10 +432,10 @@ export default class MainSMScene extends SMScene {
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
                     }
-                    shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+                    })
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));                    
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
 
-                    shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
-                })
             }
             else {
                 shot.sprite.destroy();
@@ -368,31 +446,42 @@ export default class MainSMScene extends SMScene {
     }
 
     public updateContactDamage(deltaT) {
-        if (!this.CHEATINVINCIBLE) {
-            this.battlers.forEach((battler) => {
-                if (this.player.health > 0 && !(this.player.invincible) && battler instanceof NPCActor && battler.position.distanceTo(this.player.position) < 20) {
-                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
-                    if (antennas) {
-                        this.player.equippables.remove(antennas.id);
-                        antennas.visible = false;
+        this.closestEnemy = null;
+        this.battlers.forEach((battler) => {
+            if (!(battler instanceof NPCActor)) {
+                return;
+            }
+            let distToPlayer = battler.position.distanceTo(this.player.position);
+            if (!this.closestEnemy || this.player.position.distanceTo(this.closestEnemy.position) > this.player.position.distanceTo(battler.position)) {
+                this.closestEnemy = battler;
+            }
+
+            if (this.CHEATINVINCIBLE) {
+                return;
+            }
+
+            if (this.player.health > 0 && !(this.player.invincible) && distToPlayer < 20) {
+                let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
+                if (antennas) {
+                    this.player.equippables.remove(antennas.id);
+                    antennas.visible = false;
+                    this.player.startIFrames();
+                }
+                else {
+                    let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
+                    let dr = 1;
+                    if (shield) {
+                        dr = 0.8
+                    }
+                    if (battler.health > 0) {
+                        this.player.health = this.player.health - 3 * dr;
+                        console.log(this.player.health);
+                        this.player.animation.playIfNotAlready("DAMAGE", false);
                         this.player.startIFrames();
                     }
-                    else {
-                        let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                        let dr = 1;
-                        if (shield) {
-                            dr = 0.8
-                        }
-                        if (battler.health > 0) {
-                            this.player.health = this.player.health - 3 * dr;
-                            console.log(this.player.health);
-                            this.player.animation.playIfNotAlready("DAMAGE", false);
-                            this.player.startIFrames();
-                        }
-                    }
                 }
-            })
-        }
+            }
+        })
     }
 
     /**
@@ -439,6 +528,13 @@ export default class MainSMScene extends SMScene {
             }
             case CheatEvent.CHEAT_SPAWN_BOSS: {
                 this.spawnBoss();
+                break;
+            }
+            case HudEvent.WAVE_IN_CENTER: {
+                this.waveAlerts.alertLeave();
+                break;
+            }
+            case HudEvent.WAVE_DONE: {
                 break;
             }
             default: {
@@ -515,15 +611,17 @@ export default class MainSMScene extends SMScene {
             }
             else {
                 this.leftInCurWave -= 1;
+                console.log("Enemy Killed: ", this.leftInCurWave, " of ", this.totSpawned, " spawned enemies left")
                 battler.battlerActive = false;
-                this.healthbars.get(id).visible = false;
+                this.healthbars.get(battler).visible = false;
+                this.healthbars.delete(battler);
                 this.battlers = this.battlers.filter(b => b.id !== id);
-                console.log("luck", this.player.luck)
                 if (Math.random() * this.player.luck >= 0.85) {
                     this.dropItem(deathSpot);
+                    console.log("Item dropped!")
                 }
-                if (this.leftInCurWave < 1) {
-                    //Wave finished tween
+                if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave) {
+                    this.waveAlerts.playWaveDefeated();
                     this.waveDelayTimer.start();
                 }
 
@@ -585,6 +683,7 @@ export default class MainSMScene extends SMScene {
         this.getLayer("slots").setHidden(true);
         this.getLayer("items").setHidden(true);
         this.addUILayer("hud");
+        this.addLayer("debug", 10);
     }
 
 
@@ -614,7 +713,7 @@ export default class MainSMScene extends SMScene {
 
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
-        this.healthbars.set(player.id, healthbar);
+        this.healthbars.set(player, healthbar);
 
         // passive relic tray (below hp bar)
         this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
@@ -634,6 +733,7 @@ export default class MainSMScene extends SMScene {
             abilityGap: -35
         });
 
+
         // Give the player PlayerAI
         player.addAI(PlayerController);
 
@@ -645,6 +745,10 @@ export default class MainSMScene extends SMScene {
 
         this.player = player;
 
+        let arrowSprite = this.add.sprite("arrowSprite", "primary");
+        this.arrow = new Arrow(arrowSprite, this.player);
+
+
         return player;
     }
     /**
@@ -653,9 +757,9 @@ export default class MainSMScene extends SMScene {
     protected initializeNPCs(player): void {
 
         // Get the object data for the red enemies
-        let red = this.load.getObject("red");
-
-
+        //let red = this.load.getObject("red");
+        //For debug
+/* 
         for (let i = 0; i < red.enemies.length; i++) {
             console.log("spawned mouse");
             let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
@@ -665,7 +769,8 @@ export default class MainSMScene extends SMScene {
 
             // Give the NPC a healthbar
             let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc.id, healthbar);
+            this.healthbars.set(npc, healthbar);
+            healthbar.visible = false;
             
             // Set the NPCs stats
             npc.battleGroup = 1
@@ -682,7 +787,7 @@ export default class MainSMScene extends SMScene {
             // Add the NPC to the battlers array
             this.battlers.push(npc);
         }
-        
+         */
         let dumpster = this.load.getObject("dumpster");
 
         for (let i = 0; i < dumpster.dumpsters.length; i++) {
@@ -766,52 +871,53 @@ export default class MainSMScene extends SMScene {
         let spitball = this.add.sprite("spitball", "primary");
         spitball.position.set(position.x, position.y);
         spitball.scale.set(1, 1);
-        this.spitballs.push({sprite: spitball, velocity: direction.scaled(30), stillCookin: true})
+        this.spitballs.push({sprite: spitball, velocity: direction.scaled(120), stillCookin: true})
 
     }
+
     /**
      * Initializes the navmesh graph used by the NPCs in the SMScene. This method is a little buggy, and
      * and it skips over some of the positions on the tilemap. If you can fix my navmesh generation algorithm,
      * go for it.
      * 
      */
-    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap): void {
-        let dim: Vec2 = walls.getDimensions();
+    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap[]): void {
+        let dim: Vec2 = walls[0].getDimensions();
         for (let i = 0; i < dim.y; i++) {
             for (let j = 0; j < dim.x; j++) {
-                let pos: Vec2 = walls.getWorldPosition(j, i);
-                graph.addPositionedNode(pos);
+                let collider = walls[0].getTileCollider(j, i);
+                graph.addPositionedNode(collider.center);
             }
         }
 
+
         let rc: Vec2;
         for (let i = 0; i < graph.numVertices; i++) {
-            rc = walls.getTileColRow(i);
-            if (!walls.isTileCollidable(rc.x, rc.y) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
-                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
-                !walls.isTileCollidable(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
+            rc = walls[0].getTileColRow(i);
+            if (!this.isWall(rc.x, rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
 
             ) {
                 // Create edge to the left
-                rc = walls.getTileColRow(i + 1);
-                if ((i + 1) % dim.x !== 0 && !walls.isTileCollidable(rc.x, rc.y)) {
+                rc = walls[0].getTileColRow(i + 1);
+                if ((i + 1) % dim.x !== 0 && !this.isWall(rc.x, rc.y)) {
                     graph.addEdge(i, i + 1);
-                    // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
+                    //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + 1)})
                 }
                 // Create edge below
-                rc = walls.getTileColRow(i + dim.x);
-                if (i + dim.x < graph.numVertices && !walls.isTileCollidable(rc.x, rc.y)) {
+                rc = walls[0].getTileColRow(i + dim.x);
+                if (i + dim.x < graph.numVertices && !this.isWall(rc.x, rc.y)) {
                     graph.addEdge(i, i + dim.x);
-                    // this.add.graphic(GraphicType.LINE, "graph", {start: this.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
+                    //this.add.graphic(GraphicType.LINE, "graph", {start: this.navmesh.graph.getNodePosition(i), end: this.graph.getNodePosition(i + dim.x)})
                 }
-
-
+                this.spawnableNodes.push(i);
             }
         }
 
@@ -829,21 +935,48 @@ export default class MainSMScene extends SMScene {
         this.navManager.addNavigableEntity("navmesh", this.navmesh);
     }
 
+    protected isWall(col: number, row: number) {
+        let isReallyWall = false;
+        this.bothWalls.forEach((walltype) => {
+            if (walltype.getTile(col, row) !== 0) {
+                isReallyWall = true
+            }
+        });
+        return isReallyWall;
+    }
+    
     public getRandomNodePosition() {
         let angle = Math.PI * 2 * Math.random();
         let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
         let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
-        let node = this.navmesh.graph.snap(new Vec2(spawnPosX, spawnPosY));
-        return this.navmesh.graph.getNodePosition(node);
+        let spawnPos = new Vec2(spawnPosX, spawnPosY);
+
+        let spawnOptions = this.spawnableNodes.filter((node) => {
+            return this.navmesh.graph.getNodePosition(node).distanceTo(spawnPos) < 200;
+        });
+
+        let lenOpts = spawnOptions.length;
+        let choice;
+        if (lenOpts > 0) {
+            choice = spawnOptions[Math.floor(Math.random() * lenOpts)];
+        }
+        else {
+            choice = this.spawnableNodes[Math.floor(Math.random() * this.spawnableNodes.length)];
+        }
+
+        return this.navmesh.graph.getNodePosition(choice);
+
     }
 
     public startWave(waveNum) {
         this.totSpawned = 0;
+        this.totInCurWave = 0;
         if (waveNum == 0) {
             console.log("Wave 1 starting");
+
             this.curWave = 1;
-            //Play tween wave overlay
             this.leftInCurWave = 5;
+            this.totInCurWave = 5;
             this.curDelay = 1000;
 
             this.spawnDelayTimer.start(this.curDelay)
@@ -851,16 +984,16 @@ export default class MainSMScene extends SMScene {
         else if (waveNum == 1) {
             console.log("Wave 2 starting");
             this.curWave = 2;
-            //Play tween wave overlay
             this.leftInCurWave = 10;
+            this.totInCurWave = 10;
             this.curDelay = 700;
             this.spawnDelayTimer.start(this.curDelay);
         }
         else if (waveNum == 2) {
             console.log("Wave 3 starting");
             this.curWave = 3;
-            //Play tween wave overlay
             this.leftInCurWave = 30;
+            this.totInCurWave = 30;
             this.curDelay = 300;
             this.spawnDelayTimer.start(this.curDelay);
         }
@@ -868,8 +1001,8 @@ export default class MainSMScene extends SMScene {
         else if (waveNum == 3) {
             console.log("Final wave starting");
             this.curWave = 4;
-            //Play tween wave overlay
             this.leftInCurWave = 1000;
+            this.totInCurWave = 1000;
             this.curDelay = 1000;
             this.spawnDelayTimer.start(this.curDelay);
             this.spawnBoss();
@@ -884,7 +1017,8 @@ export default class MainSMScene extends SMScene {
 
         // Give the NPC a healthbar
         let healthbar = new HealthbarHUD(this, boss, "primary", {size: boss.size.clone().scaled(1, 1/4), offset: boss.size.clone().scaled(0, -1/2)});
-        this.healthbars.set(boss.id, healthbar);
+        this.healthbars.set(boss, healthbar);
+        healthbar.visible = false;
         
         // Set the NPCs stats
         boss.battleGroup = 1
@@ -913,12 +1047,13 @@ export default class MainSMScene extends SMScene {
         let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
         npc.position.set(spawnPos.x, spawnPos.y);
         console.log("spawned mouse at x:", spawnPos.x, "y:", spawnPos.y)
-        npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(6, 6)), null, false);
+        npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(3, 3)), null, false);
         npc.scale.set(0.25, 0.25);
 
         // Give the NPC a healthbar
         let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-        this.healthbars.set(npc.id, healthbar);
+        this.healthbars.set(npc, healthbar);
+        healthbar.visible = false;
         
         // Set the NPCs stats
         npc.battleGroup = 1
@@ -948,17 +1083,6 @@ export default class MainSMScene extends SMScene {
     public toggleCheatPow(): void {this.CHEATPOWGUN = !this.CHEATPOWGUN};
     public toggleCheatInvincible(): void {this.CHEATINVINCIBLE = !this.CHEATINVINCIBLE};
 
-    //Really just for debug
-    public battlerAmt(): number {
-        let tot = 0;
-        this.battlers.forEach((battler) => {
-            if (battler instanceof NPCActor) {
-                tot += 1;
-            }
-        });
-        return tot;
-    }
-
     /**
      * Checks if the given target position is visible from the given position.
      * @param position 
@@ -987,7 +1111,7 @@ export default class MainSMScene extends SMScene {
 
         for (let col = minIndex.x; col <= maxIndex.x; col++) {
             for (let row = minIndex.y; row <= maxIndex.y; row++) {
-                if (walls.isTileCollidable(col, row)) {
+                if (this.isWall(col, row)) {
                     // Get the position of this tile
                     //let tilePos = new Vec2(col * tileSize.x + tileSize.x / 2, row * tileSize.y + tileSize.y / 2);
                     let tilePos = walls.getWorldPosition(col, row);

@@ -85,15 +85,25 @@ export default class HealthbarHUD implements Updateable {
             this.healthBarBg.position.copy(this.owner.position).add(this.offset);
 
             let scale = this.scene.getViewScale();
-            this.healthBar.scale.scale(scale);
-            this.healthBarBg.scale.scale(scale);
+/*             this.healthBar.scale.scale(scale);
+            this.healthBarBg.scale.scale(scale); */
+            //IMPORTANT if something odd is happening check this, i suppose i just dont understand why it was the way it was
+            this.healthBar.scale.set(scale, scale);
+            this.healthBarBg.scale.set(scale, scale);
 
             let unit = this.healthBarBg.size.x / this.owner.maxHealth;
             this.healthBar.size.set(Math.max(0, this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health)), this.healthBarBg.size.y);
             this.healthBar.position.set(this.healthBarBg.position.x - (unit / scale / 2) * (this.owner.maxHealth - this.owner.health), this.healthBarBg.position.y);
         }
-
 		this.healthBar.backgroundColor = this.owner.health < this.owner.maxHealth * 1/4 ? Color.RED : this.owner.health < this.owner.maxHealth * 3/4 ? Color.YELLOW : Color.GREEN;
+    }
+
+    //With my new check healthbars werent following NPC's
+    public followNPC() {
+        if (!this.isStatic) {
+            this.healthBar.position.copy(this.owner.position).add(this.offset);
+            this.healthBarBg.position.copy(this.owner.position).add(this.offset);
+        }
     }
 
     get ownerId(): number { return this.owner.id; }
@@ -101,6 +111,10 @@ export default class HealthbarHUD implements Updateable {
     set visible(visible: boolean) {
         this.healthBar.visible = visible;
         this.healthBarBg.visible = visible;
+    }
+
+    get visible(): boolean {
+        return this.healthBar.visible;
     }
     
 
