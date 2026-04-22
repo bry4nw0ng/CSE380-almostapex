@@ -19,7 +19,9 @@ export enum ItemEvent {
 }
 
 export enum HudEvent {
-    HEALTH_CHANGE = "HEALTH_CHANGE"
+    HEALTH_CHANGE = "HEALTH_CHANGE",
+    WAVE_IN_CENTER = "WaveAlertInCenter",
+    WAVE_DONE = "WaveAlertDone",
 }
 
 export enum PlayerEvent {

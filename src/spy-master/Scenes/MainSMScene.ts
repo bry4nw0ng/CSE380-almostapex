@@ -20,7 +20,7 @@ import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
 import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
 import { AAControls } from "../AAControls";
-import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent, CheatEvent } from "../Events";
+import { ItemEvent, PlayerEvent, BattlerEvent, AbilityEvent, CheatEvent, HudEvent } from "../Events";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import BattlerBase from "../GameSystems/BattleSystem/BattlerBase";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -51,6 +51,7 @@ import GameOver from "./GameOver";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Input from "../../Wolfie2D/Input/Input";
 import Arrow from "../GameSystems/HUD/LastEnemyArrow";
+import WaveAlerts from "../GameSystems/HUD/WaveAlerts";
 
 const BattlerGroups = {
     RED: 1,
@@ -111,12 +112,15 @@ export default class MainSMScene extends SMScene {
 
     private spawnDelayTimer: Timer;
     private waveDelayTimer: Timer;
+    private waveTweenTimer: Timer;
 
     private bossDead: boolean;
 
     private closestEnemy: NPCActor | null;
 
     private needle: DaNeedle | null;
+
+    private waveAlerts: WaveAlerts;
 
     //Cheats
     private CHEATINVINCIBLE = false;
@@ -136,7 +140,22 @@ export default class MainSMScene extends SMScene {
         this.curWave = 0;
         this.leftInCurWave = 0;
         this.totInCurWave = 0;
-        this.waveDelayTimer = new Timer(5000, () => this.startWave(this.curWave), false);
+        this.waveTweenTimer = new Timer(3000, () => this.startWave(this.curWave), false);
+        this.waveDelayTimer = new Timer(4000, () => {
+            if (this.curWave == 0) {
+                this.waveAlerts.playWave1Incoming();
+            }
+            else if (this.curWave == 1) {
+                this.waveAlerts.playWave2Incoming();
+            }
+            else if (this.curWave == 2) {
+                this.waveAlerts.playWave3Incoming();
+            }
+            else if (this.curWave == 3) {
+                this.waveAlerts.playBossIncoming();
+            }
+            this.waveTweenTimer.start()
+        }, false);
 
         this.spawnDelayTimer = new Timer(this.curDelay, () => {
             if (!this.bossDead && this.totSpawned < this.totInCurWave) {
@@ -150,6 +169,7 @@ export default class MainSMScene extends SMScene {
             }
             else if (this.bossDead) {
                 this.spawnDelayTimer.pause()
+                this.waveAlerts.playBossDefeated();
                 console.log("You beat the boss!")
             }
         }, true);
@@ -171,6 +191,9 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
         this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
         this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");  
+
+        //Wave Alerts
+        this.load.spritesheet("wave_alerts", "game_assets/spritesheets/wave-alerts.json");
 
         this.load.image("DumpsterSprite", "game_assets/spritesheets/dumpster.png");
         this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png")
@@ -242,6 +265,8 @@ export default class MainSMScene extends SMScene {
 
         this.initLayers();
         
+        this.initTweenGraphics();
+
         this.initializeNavmesh(new PositionGraph(), [this.walls, this.wallsNC]);
 
         // Create the Player/NPCS
@@ -281,12 +306,22 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(CheatEvent.CHEAT_OCEAN);
         this.receiver.subscribe(CheatEvent.CHEAT_TOP_LEVEL);
 
+        this.receiver.subscribe(HudEvent.WAVE_IN_CENTER);
+        this.receiver.subscribe(HudEvent.WAVE_DONE);
+
 
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
 
         this.waveDelayTimer.start();
     }
+
+    initTweenGraphics() {
+        let alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
+        let size = this.viewport.getHalfSize().scaled(2);
+        this.waveAlerts = new WaveAlerts(alertSprite, size);
+    }
+
     /**
      * @see Scene.updateScene
      * UPDATER +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -328,13 +363,7 @@ export default class MainSMScene extends SMScene {
         else {
             this.arrow.visible = false;
         }
-/*         if (this.leftInCurWave < 4 && this.leftInCurWave > 0) {
 
-        } 
-        else {
-            this.arrow.visible = false;
-        }
- */
         if (this.player.hasNeedle && this.needle.isSpinning) {
             this.handleDaNeedleUsed(this.needle.position);
         }
@@ -501,6 +530,13 @@ export default class MainSMScene extends SMScene {
                 this.spawnBoss();
                 break;
             }
+            case HudEvent.WAVE_IN_CENTER: {
+                this.waveAlerts.alertLeave();
+                break;
+            }
+            case HudEvent.WAVE_DONE: {
+                break;
+            }
             default: {
                 throw new Error(`Unhandled event type "${event.type}" caught in SMScene event handler`);
             }
@@ -585,7 +621,7 @@ export default class MainSMScene extends SMScene {
                     console.log("Item dropped!")
                 }
                 if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave) {
-                    //Wave finished tween
+                    this.waveAlerts.playWaveDefeated();
                     this.waveDelayTimer.start();
                 }
 
@@ -937,8 +973,8 @@ export default class MainSMScene extends SMScene {
         this.totInCurWave = 0;
         if (waveNum == 0) {
             console.log("Wave 1 starting");
+
             this.curWave = 1;
-            //Play tween wave overlay
             this.leftInCurWave = 5;
             this.totInCurWave = 5;
             this.curDelay = 1000;
@@ -948,7 +984,6 @@ export default class MainSMScene extends SMScene {
         else if (waveNum == 1) {
             console.log("Wave 2 starting");
             this.curWave = 2;
-            //Play tween wave overlay
             this.leftInCurWave = 10;
             this.totInCurWave = 10;
             this.curDelay = 700;
@@ -957,7 +992,6 @@ export default class MainSMScene extends SMScene {
         else if (waveNum == 2) {
             console.log("Wave 3 starting");
             this.curWave = 3;
-            //Play tween wave overlay
             this.leftInCurWave = 30;
             this.totInCurWave = 30;
             this.curDelay = 300;
@@ -967,7 +1001,6 @@ export default class MainSMScene extends SMScene {
         else if (waveNum == 3) {
             console.log("Final wave starting");
             this.curWave = 4;
-            //Play tween wave overlay
             this.leftInCurWave = 1000;
             this.totInCurWave = 1000;
             this.curDelay = 1000;
