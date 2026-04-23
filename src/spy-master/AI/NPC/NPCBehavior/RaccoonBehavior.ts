@@ -40,6 +40,7 @@ export default class RaccoonBehavior extends NPCBehavior {
         this.range = options.range;
 
         this.switchTimer = new Timer(1500, () => this.attack(), false);
+
         // Initialize guard statuses
         this.initializeStatuses();
         // Initialize guard actions
@@ -88,6 +89,9 @@ export default class RaccoonBehavior extends NPCBehavior {
     }
 
     public attack() {
+        let dist = this.owner.position.distanceTo(this.target.position);
+        console.log("Raccoon attack() fired, dist to player:", dist);
+        
         let scene = this.owner.getScene() as MainSMScene;
         if (this.owner.position.distanceTo(this.target.position) > 1000) {
             this.switchTimer.start();
