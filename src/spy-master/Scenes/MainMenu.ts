@@ -67,18 +67,17 @@ export default class MainMenu extends SMScene {
     private popupClose: Sprite;
 
     private helpOpen: boolean = false;
-    private helpPage: number = 0;       // 0 = about, 1 = help, 2 = controls
+    private helpPage: number = 0;
     private helpDim: Graphic;
-    private helpPages: Sprite[] = [];   // [about-page, help-page, controls-page]
+    private helpPages: Sprite[] = [];   // [about1, about2, about3, help, controls, cheats]
     private helpClose: Sprite;
     private helpNext: Sprite;
     private helpPrev: Sprite;
 
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
-    private readonly CLOSE_HIT = 30;               // click radius in px
+    private readonly CLOSE_HIT = 40;               // click radius in px
 
     private readonly CITY_POS = new Vec2(285, 695);
-    private readonly CITY_HIT = 30;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -89,13 +88,14 @@ export default class MainMenu extends SMScene {
         this.load.spritesheet("home-animated", "game_assets/spritesheets/home-animated.json");
         this.load.image("mainmenu",      "game_assets/ui/menu/mainmenu.png");
         this.load.image("map",           "game_assets/ui/menu/map.png");
-        // TODO: replace temp images with final versions
-        // this.load.image("about-page",    "game_assets/ui/menu/about-page.png");
-        // this.load.image("help-page",     "game_assets/ui/menu/help-page.png");
-        // this.load.image("controls-page", "game_assets/ui/menu/controls-page.png");
-        this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
-        this.load.image("help-page",     "game_assets/ui/menu/temp/temphelp.png");
-        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png");
+
+        this.load.image("about1",    "game_assets/ui/book/about1.png");
+        this.load.image("about2",    "game_assets/ui/book/about2.png");
+        this.load.image("about3",    "game_assets/ui/book/about3.png");
+        this.load.image("help",     "game_assets/ui/book/help.png");
+        this.load.image("controls", "game_assets/ui/book/controls.png");
+        this.load.image("cheats", "game_assets/ui/book/cheats.png");
+
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
     }
 
@@ -205,12 +205,19 @@ export default class MainMenu extends SMScene {
         this.helpDim.visible = false;
 
         this.helpPages = [
-            this.add.sprite("about-page",    "popupOverlay"),
+/*             this.add.sprite("about-page",    "popupOverlay"),
             this.add.sprite("help-page",     "popupOverlay"),
-            this.add.sprite("controls-page", "popupOverlay"),
+            this.add.sprite("controls-page", "popupOverlay"), */
+            this.add.sprite("about1", "popupOverlay"),
+            this.add.sprite("about2", "popupOverlay"),
+            this.add.sprite("about3", "popupOverlay"),
+            this.add.sprite("help", "popupOverlay"),
+            this.add.sprite("controls", "popupOverlay"),
+            this.add.sprite("cheats", "popupOverlay")
         ];
         for (const page of this.helpPages) {
             page.position.set(center.x, center.y);
+            page.scale.set(4, 4);
             page.visible = false;
         }
 
@@ -253,8 +260,8 @@ export default class MainMenu extends SMScene {
                     Math.abs(mouse.y - this.popupClose.position.y) <= this.CLOSE_HIT) {
                     this.closePopup();
                 }
-                if (Math.abs(mouse.x - this.CITY_POS.x) <= this.CITY_HIT &&
-                    Math.abs(mouse.y - this.CITY_POS.y) <= this.CITY_HIT) {
+                if (Math.abs(mouse.x - this.CITY_POS.x) <= this.CLOSE_HIT &&
+                    Math.abs(mouse.y - this.CITY_POS.y) <= this.CLOSE_HIT) {
                     this.sceneManager.changeToScene(MainSMScene);
                 }
             }
