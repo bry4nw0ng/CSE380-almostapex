@@ -69,6 +69,13 @@ export default class Timer implements Updateable {
         this.state = TimerState.PAUSED;
     }
 
+    //This has to be in the real wolfie2d 
+    unpause():void {
+        if (this.state == TimerState.PAUSED) {
+            this.state = TimerState.ACTIVE;
+        }
+    }
+
     update(deltaT: number){
         if(this.state === TimerState.ACTIVE){
             this.timeLeft -= deltaT*1000;

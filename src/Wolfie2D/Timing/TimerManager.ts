@@ -5,8 +5,12 @@ export default class TimerManager implements Updateable {
 
     protected timers: Array<Timer>;
 
+    protected paused: boolean;
+
     constructor(){
         this.timers = new Array();
+
+        this.paused = false;
     }
 
     protected static instance: TimerManager;
@@ -19,6 +23,14 @@ export default class TimerManager implements Updateable {
         return this.instance;
     }
 
+    pauseAllTimers(): void {
+        this.paused = true;
+    }
+
+    unpauseAllTimers(): void {
+        this.paused = false;
+    }
+
     addTimer(timer: Timer){
         this.timers.push(timer);
     }
@@ -28,6 +40,9 @@ export default class TimerManager implements Updateable {
     }
 
     update(deltaT: number): void {
+        if (this.paused) {
+            return;
+        }
         this.timers.forEach(timer => timer.update(deltaT));
     }
 }

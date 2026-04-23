@@ -55,6 +55,7 @@ import WaveAlerts from "../GameSystems/HUD/WaveAlerts";
 import { UIElementType } from "../../Wolfie2D/Nodes/UIElements/UIElementTypes";
 import Button from "../../Wolfie2D/Nodes/UIElements/Button";
 import Graphic from "../../Wolfie2D/Nodes/Graphic";
+import TimerManager from "../../Wolfie2D/Timing/TimerManager";
 
 const BattlerGroups = {
     RED: 1,
@@ -71,10 +72,10 @@ export default class MainSMScene extends SMScene {
     private arrow: Arrow;
 
     /** All the battlers in the SMScene (including the player) */
-    private battlers: (Battler & Actor)[];
+    private battlers: (Battler & Actor & GameNode)[];
     /** Healthbars for the battlers */
     //Changed to map to battler instead (dont want to have to find every time)
-    private healthbars: Map<Battler & Actor, HealthbarHUD>;
+    private healthbars: Map<Battler & Actor & GameNode, HealthbarHUD>;
 
 
 
@@ -124,6 +125,7 @@ export default class MainSMScene extends SMScene {
     private needle: DaNeedle | null;
 
     private waveAlerts: WaveAlerts;
+    private finalAlertPlayed: boolean;
 
     //Cheats
     private CHEATINVINCIBLE = false;
@@ -145,11 +147,12 @@ export default class MainSMScene extends SMScene {
         super(viewport, sceneManager, renderingManager, options);
         this.spawnableNodes = [];
 
-        this.battlers = new Array<Battler & Actor>();
-        this.healthbars = new Map<Battler & Actor, HealthbarHUD>();
+        this.battlers = new Array<Battler & Actor & GameNode>();
+        this.healthbars = new Map<Battler & Actor & GameNode, HealthbarHUD>();
         this.treasure = [];       
         this.sceneEquippables = new Array<Item>();
 
+        this.finalAlertPlayed = false;
         this.curDelay = 0;
         this.totSpawned = 0;
         this.curWave = 0;
@@ -184,8 +187,10 @@ export default class MainSMScene extends SMScene {
             }
             else if (this.bossDead) {
                 this.spawnDelayTimer.pause()
-                this.waveAlerts.playBossDefeated();
-                console.log("You beat the boss!")
+                if (!this.finalAlertPlayed) {
+                    this.waveAlerts.playBossDefeated();
+                    console.log("You beat the boss!")
+                }
             }
         }, true);
 
@@ -847,11 +852,15 @@ export default class MainSMScene extends SMScene {
     /** pause menu */
     protected pauseGame(): void {
         this.paused = true;
+
+        //Found that if I could just access the TimerManager itself and stop its changes, it would just pause all progression
+        TimerManager.getInstance().pauseAllTimers();
         this.getLayer("primary").setPaused(true);
         this.getLayer("equippables").setPaused(true);
 
         // Freeze all AI (AIManager updates independently of layer pause)
         for (const battler of this.battlers) {
+            battler.freeze();
             battler.aiActive = false;
         }
 
@@ -863,11 +872,14 @@ export default class MainSMScene extends SMScene {
     /** resume the game and hides all pause UI */
     protected resumeGame(): void {
         this.paused = false;
+        TimerManager.getInstance().unpauseAllTimers();
+
         this.getLayer("primary").setPaused(false);
         this.getLayer("equippables").setPaused(false);
 
         // reenable all AI
         for (const battler of this.battlers) {
+            battler.unfreeze();
             battler.aiActive = true;
         }
 

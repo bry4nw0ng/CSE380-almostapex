@@ -1,7 +1,6 @@
 import Game from "./Wolfie2D/Loop/Game";
 import SplashScreen from "./spy-master/Scenes/SplashScreen";
 import { AAControls } from "./spy-master/AAControls";
-import { AbilityEvent } from "./spy-master/Events";
 
 // The main function is your entrypoint into Wolfie2D. Specify your first scene and any options here.
 (function main(){
