@@ -683,7 +683,7 @@ export default class MainSMScene extends SMScene {
         this.getLayer("slots").setHidden(true);
         this.getLayer("items").setHidden(true);
         this.addUILayer("hud");
-        this.addLayer("debug", 10);
+        this.addLayer("arrowLayer", 8)
     }
 
 
@@ -745,7 +745,7 @@ export default class MainSMScene extends SMScene {
 
         this.player = player;
 
-        let arrowSprite = this.add.sprite("arrowSprite", "primary");
+        let arrowSprite = this.add.sprite("arrowSprite", "arrowLayer");
         this.arrow = new Arrow(arrowSprite, this.player);
 
 
@@ -792,7 +792,7 @@ export default class MainSMScene extends SMScene {
 
         for (let i = 0; i < dumpster.dumpsters.length; i++) {
             console.log("spawned dumpster");
-            let treasure = this.add.sprite("DumpsterSprite", "primary");
+            let treasure = this.add.sprite("DumpsterSprite", "arrowLayer");
             treasure.position.set(dumpster.dumpsters[i][0], dumpster.dumpsters[i][1]);
             treasure.scale.set(1, 1);
 
