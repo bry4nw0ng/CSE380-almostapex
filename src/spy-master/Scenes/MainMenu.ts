@@ -35,11 +35,11 @@ const IMG_SCALE = 5;
 
 // floor bounds 
 const FLOOR_POLYGON: Vec2[] = [
-    new Vec2(390, 520), new Vec2(540, 520),
-    new Vec2(540, 530), new Vec2(570, 530),
-    new Vec2(570, 540), new Vec2(600, 540),
-    new Vec2(600, 550), new Vec2(685, 550),
-    new Vec2(685, 570), new Vec2(725, 570),
+    new Vec2(390, 500), new Vec2(540, 500),
+    new Vec2(540, 510), new Vec2(570, 510),
+    new Vec2(570, 520), new Vec2(600, 520),
+    new Vec2(600, 530), new Vec2(685, 530),
+    new Vec2(685, 580), new Vec2(725, 580),
     new Vec2(725, 750), new Vec2(300, 750),
     new Vec2(300, 600), new Vec2(350, 600), 
     new Vec2(350, 570), new Vec2(375, 570), 
@@ -127,13 +127,13 @@ export default class MainMenu extends SMScene {
         bg.animation.play("Idle");
 
         // DEBUG — floor polygon vertices
-        // for (const v of FLOOR_POLYGON) {
-        //     const dot = this.add.graphic(GraphicType.RECT, "debug", {
-        //         position: v.clone(),
-        //         size: new Vec2(6, 6)
-        //     });
-        //     dot.color = Color.RED;
-        // }
+        for (const v of FLOOR_POLYGON) {
+            const dot = this.add.graphic(GraphicType.RECT, "debug", {
+                position: v.clone(),
+                size: new Vec2(6, 6)
+            });
+            dot.color = Color.RED;
+        }
 
         // Interaction zones
         this.zones = [
