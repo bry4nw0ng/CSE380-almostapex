@@ -7,6 +7,7 @@ import GameNode from "../../../Wolfie2D/Nodes/GameNode";
 import Vec2 from "../../../Wolfie2D/DataTypes/Vec2";
 import Positioned from "../../../Wolfie2D/DataTypes/Interfaces/Positioned";
 import Unique from "../../../Wolfie2D/DataTypes/Interfaces/Unique";
+import AnimatedSprite from "../../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 
 interface Health {
     get health(): number;
@@ -40,6 +41,8 @@ export default class HealthbarHUD implements Updateable {
     protected isStatic: boolean;
     protected staticPosition: Vec2;
 
+    protected playerHealthBar: AnimatedSprite | null;
+
     /** The actual healthbar (the part with color) */
     protected healthBar: Label;
     /** The healthbars background (the part with the border) */
@@ -49,6 +52,8 @@ export default class HealthbarHUD implements Updateable {
         this.scene = scene;
         this.layer = layer;
         this.owner = owner;
+
+        this.playerHealthBar = null;
 
         this.size = options.size;
         this.offset = options.offset;
@@ -68,11 +73,31 @@ export default class HealthbarHUD implements Updateable {
         this.healthBarBg.size.copy(this.size);
     }
 
+    public switchToAnimatedHB(sprite: AnimatedSprite) {
+        this.playerHealthBar = sprite;
+
+        this.healthBar.visible = false;
+        this.healthBarBg.visible = false;
+
+        this.playerHealthBar.position.set(this.staticPosition.x, this.staticPosition.y);
+        this.playerHealthBar.animation.playIfNotAlready("PCT_100");
+    }
     /**
      * Updates the healthbars position according to the position of it's owner
      * @param deltaT 
      */
     public update(deltaT: number): void {
+        if (this.playerHealthBar) {
+            let pctHealthLeft = Math.ceil(this.owner.health) * 10;
+            if (this.owner.health == 0)  {
+                this.playerHealthBar.animation.playIfNotAlready("PCT_10");
+            } 
+            else if (this.owner.health > 0) {
+                this.playerHealthBar.animation.playIfNotAlready(`PCT_${pctHealthLeft}`);
+            }
+            return;
+        }
+
         if (this.isStatic) {
             this.healthBarBg.position.copy(this.staticPosition);
 
@@ -109,11 +134,17 @@ export default class HealthbarHUD implements Updateable {
     get ownerId(): number { return this.owner.id; }
 
     set visible(visible: boolean) {
+        if(this.playerHealthBar) {
+            this.playerHealthBar.visible = visible;
+        }
         this.healthBar.visible = visible;
         this.healthBarBg.visible = visible;
     }
 
     get visible(): boolean {
+        if(this.playerHealthBar) {
+            return this.playerHealthBar.visible;
+        }
         return this.healthBar.visible;
     }
     

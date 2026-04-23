@@ -141,6 +141,10 @@ export default class MainSMScene extends SMScene {
     private pauseHelpOpen: boolean = false;
     private pauseHelpPages: Sprite[] = [];
     private pauseHelpClose: Sprite;
+    private aboutPrev: Sprite;
+    private aboutNext: Sprite;
+    private curAboutPage: number;
+
     private readonly PAUSE_CLOSE_HIT = 25;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
@@ -151,6 +155,8 @@ export default class MainSMScene extends SMScene {
         this.healthbars = new Map<Battler & Actor & GameNode, HealthbarHUD>();
         this.treasure = [];       
         this.sceneEquippables = new Array<Item>();
+
+        this.curAboutPage = 0;
 
         this.finalAlertPlayed = false;
         this.curDelay = 0;
@@ -253,9 +259,21 @@ export default class MainSMScene extends SMScene {
         this.load.image("spitball", "game_assets/sprites/spitball.png")
 
         // TODO: replace temp pages with final about/help/controls page assets when designed
-        this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
+/*         this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
         this.load.image("help-page",     "game_assets/ui/menu/temp/temphelp.png");
-        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png");
+        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png"); */
+        this.load.image("about1",    "game_assets/ui/book/about1.png");
+        this.load.image("about2",    "game_assets/ui/book/about2.png");
+        this.load.image("about3",    "game_assets/ui/book/about3.png");
+        this.load.image("help",     "game_assets/ui/book/help.png");
+        this.load.image("controls", "game_assets/ui/book/controls.png");
+        this.load.image("cheats", "game_assets/ui/book/cheats.png");
+
+        this.load.image("back-button", "game_assets/ui/menu/back-button.png");
+
+        //New hud changes
+        this.load.spritesheet("healthbar", "game_assets/ui/hud/healthbar.json");
+
     }
     /**
      * @see Scene.startScene
@@ -380,7 +398,26 @@ export default class MainSMScene extends SMScene {
                     this.closePauseHelp();
                     return;
                 }
+
+                const next = this.aboutNext.position;
+                if (this.aboutNext.visible &&
+                    Math.abs(mouse.x - next.x) <= this.PAUSE_CLOSE_HIT &&
+                    Math.abs(mouse.y - next.y) <= this.PAUSE_CLOSE_HIT) {
+                    this.curAboutPage += 1;
+                    this.openPauseHelp(this.curAboutPage);
+                    return;
+                }
+
+                const prev = this.aboutPrev.position;
+                if (this.aboutPrev.visible &&
+                    Math.abs(mouse.x - prev.x) <= this.PAUSE_CLOSE_HIT &&
+                    Math.abs(mouse.y - prev.y) <= this.PAUSE_CLOSE_HIT) {
+                    this.curAboutPage -= 1;
+                    this.openPauseHelp(this.curAboutPage);
+                    return;
+                }
             }
+    
             return; // skip all gameplay updates while paused
         }
 
@@ -603,15 +640,30 @@ export default class MainSMScene extends SMScene {
                 break;
             }
             case "pause_controls": {
-                this.openPauseHelp(2);
+                this.openPauseHelp(4);
                 break;
             }
             case "pause_about": {
-                this.openPauseHelp(0);
+                this.curAboutPage = 0;
+                this.openPauseHelp(this.curAboutPage);
                 break;
             }
+/*             case "about_prev": {
+                this.curAboutPage -= 1;
+                this.openPauseHelp(this.curAboutPage);
+                break;
+            }
+            case "about_next": {
+                this.curAboutPage += 1;
+                this.openPauseHelp(this.curAboutPage);
+                break;
+            } */
             case "pause_help": {
-                this.openPauseHelp(1);
+                this.openPauseHelp(3);
+                break;
+            }
+            case "pause_cheats": {
+                this.openPauseHelp(5);
                 break;
             }
             default: {
@@ -801,6 +853,7 @@ export default class MainSMScene extends SMScene {
             ["Controls",        "pause_controls"],
             ["About",           "pause_about"],
             ["Help",            "pause_help"],
+            ["Cheats",            "pause_cheats"],
         ];
 
         const startY = cy - 50;
@@ -829,24 +882,41 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe("pause_controls");
         this.receiver.subscribe("pause_about");
         this.receiver.subscribe("pause_help");
+        this.receiver.subscribe("pause_cheats");
 
         // TODO: replace temp pages with final about/help/controls page sprites when designed
         this.pauseHelpPages = [
-            this.add.sprite("about-page",    "pauseOverlay"),
+/*             this.add.sprite("about-page",    "pauseOverlay"),
             this.add.sprite("help-page",     "pauseOverlay"),
-            this.add.sprite("controls-page", "pauseOverlay"),
+            this.add.sprite("controls-page", "pauseOverlay"), */
+            this.add.sprite("about1",    "pauseOverlay"),
+            this.add.sprite("about2",    "pauseOverlay"),
+            this.add.sprite("about3",    "pauseOverlay"),
+            this.add.sprite("help",     "pauseOverlay"),
+            this.add.sprite("controls", "pauseOverlay"),
+            this.add.sprite("cheats",    "pauseOverlay")
         ];
         for (const page of this.pauseHelpPages) {
             page.position.set(cx, cy);
-            page.scale.set(0.4, 0.4);
+            page.scale.set(1.5, 1.5);
             page.visible = false;
         }
 
-        // TODO: replace "healthpack" with a proper close button sprite when designed
-        this.pauseHelpClose = this.add.sprite("healthpack", "pauseOverlay");
+        this.pauseHelpClose = this.add.sprite("back-button", "pauseOverlay");
         this.pauseHelpClose.position.set(50, 50);
-        this.pauseHelpClose.scale.set(0.7, 0.7);
+        this.pauseHelpClose.scale.set(3, 3);
         this.pauseHelpClose.visible = false;
+
+        this.aboutNext = this.add.sprite("back-button", "pauseOverlay");
+        this.aboutNext.invertX = true;
+        this.aboutNext.position.set(cx + 200, cy);
+        this.aboutNext.scale.set(2, 2);
+        this.aboutNext.visible = false;
+
+        this.aboutPrev = this.add.sprite("back-button", "pauseOverlay");
+        this.aboutPrev.position.set(cx - 200, cy);
+        this.aboutPrev.scale.set(2, 2);
+        this.aboutPrev.visible = false;
     }
 
     /** pause menu */
@@ -885,6 +955,8 @@ export default class MainSMScene extends SMScene {
 
         this.pauseDim.visible = false;
         this.pauseTitle.visible = false;
+        this.aboutNext.visible = false;
+        this.aboutPrev.visible = false;
         for (const btn of this.pauseButtons) btn.visible = false;
 
         // close help overlay if open
@@ -906,6 +978,21 @@ export default class MainSMScene extends SMScene {
             this.pauseHelpPages[i].visible = i === page;
         }
         this.pauseHelpClose.visible = true;
+
+        if (page < 3 && page >= 0) {
+            if (this.curAboutPage > 0) {
+                this.aboutPrev.visible = true;
+            }
+            else {
+                this.aboutPrev.visible = false;
+            }
+            if (this.curAboutPage < 2) {
+                this.aboutNext.visible = true;
+            }
+            else {
+                this.aboutNext.visible = false;
+            }
+        }
     }
 
     /** close help overlay and return to pause buttons */
@@ -915,6 +1002,8 @@ export default class MainSMScene extends SMScene {
         this.pauseHelpClose.visible = false;
         // Show pause buttons again
         this.pauseTitle.visible = true;
+        this.aboutNext.visible = false;
+        this.aboutPrev.visible = false;
         for (const btn of this.pauseButtons) btn.visible = true;
     }
 
@@ -946,6 +1035,10 @@ export default class MainSMScene extends SMScene {
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
         this.healthbars.set(player, healthbar);
+
+        let healthbarSprite = this.add.animatedSprite(AnimatedSprite, "healthbar", "hud");
+        healthbarSprite.scale.set(1.8, 1.2);
+        healthbar.switchToAnimatedHB(healthbarSprite);
 
         // passive relic tray (below hp bar)
         this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
