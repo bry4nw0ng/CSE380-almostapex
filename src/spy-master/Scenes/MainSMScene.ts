@@ -271,6 +271,9 @@ export default class MainSMScene extends SMScene {
 
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
 
+        //New hud changes
+        this.load.spritesheet("healthbar", "game_assets/ui/hud/healthbar.json");
+
     }
     /**
      * @see Scene.startScene
@@ -1032,6 +1035,10 @@ export default class MainSMScene extends SMScene {
         // player hp bar
         let healthbar = new HealthbarHUD(this, player, "hud", {size: new Vec2(400, 25), offset: Vec2.ZERO, static: true, staticPosition: new Vec2(115, 25)});
         this.healthbars.set(player, healthbar);
+
+        let healthbarSprite = this.add.animatedSprite(AnimatedSprite, "healthbar", "hud");
+        healthbarSprite.scale.set(1.8, 1.2);
+        healthbar.switchToAnimatedHB(healthbarSprite);
 
         // passive relic tray (below hp bar)
         this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {

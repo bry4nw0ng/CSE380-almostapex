@@ -76,8 +76,8 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.speed = 800;
         this.velocity = Vec2.ZERO;
         this.playerFacingDir = 1;
-        this.health = 5
-        this.maxHealth = 5;
+        this.health = 10
+        this.maxHealth = 10;
 
         this.scene = this.owner.getScene();
 
