@@ -48,7 +48,8 @@ export enum AAEvents {
     PARTICLE_HIT_DESTRUCTIBLE = "PARTICLE_HIT_DESTRUCTIBLE",
 
     // The event sent when the player dies. Gets sent after the player's death animation
-    PLAYER_DEAD = "PLAYER_DEAD"
+    PLAYER_DEAD = "PLAYER_DEAD",
+    WAVE_CHANGE = "WAVE_CHANGE"
     
 }
 

@@ -79,7 +79,7 @@ export default class HealthbarHUD implements Updateable {
         this.healthBar.visible = false;
         this.healthBarBg.visible = false;
 
-        this.playerHealthBar.position.set(this.staticPosition.x, this.staticPosition.y);
+        this.playerHealthBar.position.set(this.staticPosition.x + 10, this.staticPosition.y + 50);
         this.playerHealthBar.animation.playIfNotAlready("PCT_100");
     }
     /**

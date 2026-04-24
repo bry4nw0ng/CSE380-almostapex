@@ -23,6 +23,9 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected targetable: TargetableEntity;
 
     protected heldItem: SMItem;
+
+    protected _crystals: number;
+
     //Buffs
     protected _damageReduction: number;
     protected _luck: number;
@@ -42,6 +45,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         super(sheet);
         this.battler = new BasicBattler(this);
         this.targetable = new BasicTargetable(this);
+
+        this._crystals = 0;
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
         this.receiver.subscribe(AbilityEvent.USED_JETPACK)
@@ -93,6 +98,16 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
             this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.id});
         }
     }
+
+    get crystals(): number {
+        return this._crystals;
+    }
+
+    set crystals(tot: number) {
+        this._crystals = tot;
+        console.log("Crystals: ", this._crystals);
+    }
+
     get speed(): number {
         return this.battler.speed;
     }

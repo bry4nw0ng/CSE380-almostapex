@@ -109,9 +109,8 @@ export default class PlayerController extends StateMachineAI implements AI{
     } 
 
     public handleJetPackTriggered() {
-        let prevSpeed = this.speed;
         this.speed = this.speed * 2;
-        let activeTimer = new Timer(5000, () => this.speed = prevSpeed, false);
+        let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
         activeTimer.start();
     }
     /** 

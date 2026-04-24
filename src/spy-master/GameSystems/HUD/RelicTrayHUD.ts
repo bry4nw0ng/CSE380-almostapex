@@ -44,6 +44,8 @@ export default class RelicTrayHUD implements Updateable {
     /** Maps item id to its hover zone label */
     private hoverZones: Map<number, Label>;
 
+    private tray: Sprite;
+
     public constructor(scene: Scene, inventory: Inventory, layer: string, options: RelicTrayOptions) {
         this.scene = scene;
         this.layer = layer;
@@ -75,6 +77,12 @@ export default class RelicTrayHUD implements Updateable {
         this.tooltip.font = "Arial";
         this.tooltip.size.set(280, 36);
         this.tooltip.visible = false;
+
+        this.tray = this.scene.add.sprite("tray_long", layer);
+        this.tray.position.set(this.position.x + 252, this.position.y + 30);
+        this.tray.scale.set(2, 1);
+
+        this.background.visible = false;
     }
 
     public update(deltaT: number): void {
@@ -99,8 +107,12 @@ export default class RelicTrayHUD implements Updateable {
         }
 
         // place icons for current passives
-        let startX = this.padding * 2 + this.iconSize;
-        let centerY = this.position.y;
+/*         let startX = this.padding * 2 + this.iconSize;
+        let centerY = this.position.y; */
+
+        let startX = this.position.x + 140 + this.padding;
+        let centerY = this.position.y + 30;
+
 
         let tooltipVisible = false;
         let tooltipText = "";
@@ -139,7 +151,8 @@ export default class RelicTrayHUD implements Updateable {
             // check hover for tooltip
             if (zone["isEntered"]) {
                 tooltipText = item.description || this.relicNames.get(item.id);
-                tooltipPos = new Vec2(this.position.x, this.position.y + this.size.y / 2 + 5);
+                //tooltipPos = new Vec2(this.position.x, this.position.y + this.size.y / 2 + 5);
+                tooltipPos = new Vec2(iconX, centerY + this.size.y / 2 + 5);
                 tooltipVisible = true;
             }
         }
