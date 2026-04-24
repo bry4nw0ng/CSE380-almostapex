@@ -7,7 +7,7 @@ export default class Crystal extends Item {
 
     public constructor(sprite: Sprite) {
         super(sprite);
-        this._description = "";
+        this._description = "Maybe there is someone who values these highly...";
         this._value = Math.floor(Math.random()* 32);
     }
 
