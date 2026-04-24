@@ -7,6 +7,7 @@ import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
 import Updateable from "../../../Wolfie2D/DataTypes/Interfaces/Updateable";
 import Inventory from "../ItemSystem/Inventory";
 import Item from "../ItemSystem/Item";
+import PlayerActor from "../../Actors/PlayerActor";
 
 interface ActionSlotsOptions {
     /** X position of the first box's left edge */
@@ -33,6 +34,8 @@ export default class ActionSlotsHUD implements Updateable {
     private scene: Scene;
     private layer: string;
 
+    private player: PlayerActor;
+
     /** The 4 box backgrounds: index 0 = weapon, 1-3 = abilities */
     private boxes: Label[];
     /** Center positions of each box */
@@ -55,20 +58,27 @@ export default class ActionSlotsHUD implements Updateable {
     /** Tooltip label shown on hover */
     private tooltip: Label;
 
-    public constructor(scene: Scene, layer: string, equippables: Inventory, abilities: Inventory, options: ActionSlotsOptions) {
+    private boxSprites: Sprite[];
+    private countdownLabels: Label[];
+
+    public constructor(scene: Scene, layer: string, equippables: Inventory, abilities: Inventory, options: ActionSlotsOptions, player:PlayerActor) {
         this.scene = scene;
         this.layer = layer;
+        this.player = player;
         this.equippables = equippables;
         this.abilities = abilities;
-        this.boxes = [];
+        this.boxSprites = [];
         this.boxPositions = [];
         this.boxColors = [];
         this.boxSize = options.boxWidth;
         this.slotIcons = [null, null, null, null];
         this.slotItemIds = [null, null, null, null];
 
-        let weaponColor = new Color(140, 60, 60, 200);
-        let abilityColor = new Color(60, 60, 140, 200);
+        //let weaponColor = new Color(140, 60, 60, 200);
+        //let abilityColor = new Color(60, 60, 140, 200);
+        
+        this.boxSprites = [];
+        this.countdownLabels = [];
 
         for (let i = 0; i < 4; i++) {
             let offsetX = 0;
@@ -82,7 +92,7 @@ export default class ActionSlotsHUD implements Updateable {
             let centerX = options.startX + options.boxWidth / 2 + offsetX;
             let centerY = options.topY + options.height / 2;
 
-            let box = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
+/*             let box = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
             box.size.set(options.boxWidth, options.height);
             box.backgroundColor = i === 0 ? weaponColor : abilityColor;
             box.borderColor = Color.WHITE;
@@ -91,9 +101,34 @@ export default class ActionSlotsHUD implements Updateable {
             box.fontSize = 20;
             box.font = "Arial";
 
-            this.boxes.push(box);
+            this.boxSprites.push(box);
             this.boxPositions.push(new Vec2(centerX, centerY));
-            this.boxColors.push(i === 0 ? weaponColor : abilityColor);
+            this.boxColors.push(i === 0 ? weaponColor : abilityColor); */
+
+            let box;
+            if (i == 0) {
+                box = this.scene.add.sprite("tray_red", layer);
+                box.position.set(centerX + 18, centerY - 10);
+                this.boxPositions.push(new Vec2(centerX + 18, centerY - 10));
+            }
+            else {
+                box = this.scene.add.sprite("tray_blue", layer);
+                box.position.set(centerX, centerY - 10)
+                this.boxPositions.push(new Vec2(centerX, centerY - 10));
+            }
+
+            box.scale.set(1.5 ,1.5);
+            this.boxSprites.push(box);
+
+            let label = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
+            //label.size.set(options.boxWidth, options.height);
+            label.size.set(32, 32);
+            label.backgroundColor = Color.TRANSPARENT;
+            label.borderColor = Color.TRANSPARENT;
+            label.borderWidth = 0;
+            label.textColor = Color.WHITE;
+            label.fontSize = 20;
+            this.countdownLabels.push(label);
         }
 
         // Tooltip (hidden by default)
@@ -158,22 +193,26 @@ export default class ActionSlotsHUD implements Updateable {
 
                 if (item && item.isCoolingDown) {
                     this.slotIcons[i].alpha = 0.3;
-                    this.boxes[i].backgroundColor = this.cooldownColor;
+                    this.boxSprites[i].alpha = 0.5;
+                    //this.countdownLabels[i].backgroundColor = this.cooldownColor;
                     let secondsLeft = Math.ceil(item.cooldownProgress * item.cooldownDuration / 1000);
-                    this.boxes[i].text = secondsLeft + "s";
+                    this.countdownLabels[i].text = secondsLeft + "s";
                 } else {
                     this.slotIcons[i].alpha = 1;
-                    this.boxes[i].backgroundColor = this.boxColors[i];
-                    this.boxes[i].text = "";
+                    this.boxSprites[i].alpha = 1;
+                    //this.countdownLabels[i].backgroundColor = this.boxColors[i];
+                    this.countdownLabels[i].text = "";
                 }
             } else {
-                this.boxes[i].backgroundColor = this.boxColors[i];
+                this.boxSprites[i].alpha = 1;
+                //this.countdownLabels[i].backgroundColor = this.boxColors[i];
             }
 
             // Check hover for tooltip
-            if (this.boxes[i]["isEntered"] && item) {
+            if (this.countdownLabels[i]["isEntered"] && item) {
                 tooltipText = item.description || item.getSprite().imageId;
-                tooltipPos = new Vec2(pos.x, pos.y + this.boxSize / 2 + 5);
+                //tooltipPos = new Vec2(pos.x, pos.y + this.boxSize / 2 + 5);
+                tooltipPos = new Vec2(pos.x, pos.y + this.boxSize / 2 + 30);
                 tooltipVisible = true;
             }
         }
