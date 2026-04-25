@@ -16,15 +16,16 @@ export default class Shield extends Item {
         this._damageReduction = 0.8;
         this.value = 300;
         this.equippableOffset = new Vec2(12, 7);
+        this._maxStack = 10;
     }
 
     public get luckBoost(): number { return this._damageReduction; }
     public set luckBoost(boost: number) { this._damageReduction = boost; }
 
     public override applyBuff(player: PlayerActor) {
-        player.damageReduction = this._damageReduction;
+        player.damageReduction *= this._damageReduction;
     }
     public override removeBuff(player: PlayerActor) {
-        player.damageReduction = 1;
+        player.damageReduction /= this._damageReduction;
     }
 }

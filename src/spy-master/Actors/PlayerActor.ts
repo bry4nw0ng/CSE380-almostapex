@@ -51,7 +51,6 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
         this.receiver.subscribe(AbilityEvent.USED_JETPACK)
         
-        this.jPMultiplier
         this._damageReduction = 1;
         this._luck = 1;
         this._invincible = false;

@@ -34,6 +34,9 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _isCoolingDown: boolean = false;
     protected _cooldownStartTime: number = 0;
 
+    protected _maxStack: number;
+    protected _curStack: number;
+
     protected _value;
     protected constructor(sprite: Sprite){
         this.sprite = sprite;
@@ -47,6 +50,9 @@ export default abstract class Item implements Unique, TargetableEntity {
         this._isWeapon = false;
         this._isPassive = false;
         this._value = 0;
+
+        this._curStack = 1;
+        this._maxStack = 1;
     }
 
     getTargeting(): TargetingEntity[] { 
@@ -120,6 +126,18 @@ export default abstract class Item implements Unique, TargetableEntity {
         this._value = val;
     }
 
+    public get maxStack(): number {
+        return this._maxStack;
+    }
+
+    public get curStack(): number {
+        return this._curStack;
+    }
+
+    public set curStack(val: number) {
+        this._curStack = val;
+    }
+
     /** Returns 1.0 when cooldown just started, 0.0 when done */
     public get cooldownProgress(): number {
         if (!this._isCoolingDown || this._cooldownDuration <= 0) return 0;
@@ -136,4 +154,5 @@ export default abstract class Item implements Unique, TargetableEntity {
             timer.start();
         }
     }
+
 }

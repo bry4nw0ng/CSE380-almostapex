@@ -13,12 +13,7 @@ export default class Antennas extends Item {
         this._description = "Grants invincibility (lost on hit)";
         this._equippableOffset = new Vec2(5,-6);
         this.value = 300;
+        this._maxStack = 5;
     }
 
-    public override applyBuff(player: PlayerActor) {
-        //player.toggleInvincible(true);
-    }
-    public override removeBuff(player: PlayerActor) {
-        //player.toggleInvincible(false);
-    }
 }

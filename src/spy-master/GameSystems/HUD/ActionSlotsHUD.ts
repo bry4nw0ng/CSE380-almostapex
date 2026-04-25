@@ -102,19 +102,6 @@ export default class ActionSlotsHUD implements Updateable {
                 centerY = 480
             }
 
-/*             let box = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
-            box.size.set(options.boxWidth, options.height);
-            box.backgroundColor = i === 0 ? weaponColor : abilityColor;
-            box.borderColor = Color.WHITE;
-            box.borderWidth = 1;
-            box.textColor = Color.WHITE;
-            box.fontSize = 20;
-            box.font = "Arial";
-
-            this.boxSprites.push(box);
-            this.boxPositions.push(new Vec2(centerX, centerY));
-            this.boxColors.push(i === 0 ? weaponColor : abilityColor); */
-
             let box;
             if (i == 0) {
                 box = this.scene.add.sprite("tray_red", layer);
@@ -156,7 +143,7 @@ export default class ActionSlotsHUD implements Updateable {
             label.borderColor = Color.TRANSPARENT;
             label.borderWidth = 0;
             label.textColor = Color.WHITE;
-            label.fontSize = 20;
+            label.fontSize =20;
             this.countdownLabels.push(label);
         }
 
@@ -167,7 +154,6 @@ export default class ActionSlotsHUD implements Updateable {
         this.tooltip.borderWidth = 1;
         this.tooltip.textColor = Color.WHITE;
         this.tooltip.fontSize = 18;
-        this.tooltip.font = "Arial";
         this.tooltip.size.set(280, 36);
         this.tooltip.visible = false;
     }

@@ -534,8 +534,6 @@ export default class MainSMScene extends SMScene {
             }
         });
 
-
-
         this.updateTrash(deltaT);
         this.updateSpitballs(deltaT);
         this.updateContactDamage();
@@ -558,19 +556,19 @@ export default class MainSMScene extends SMScene {
             this.trash.forEach((shot) => {
                 if (shot.stillCookin) {
                     if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
-                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                         if (antennas) {
-                            this.player.equippables.remove(antennas.id);
-                            antennas.visible = false;
+                            if (antennas.curStack > 1) {
+                                antennas.curStack -= 1;
+                            }
+                            else {
+                                this.player.equippables.remove(antennas.id);
+                                antennas.visible = false;
+                            }
                             this.player.startIFrames();
                         }
                         else {
-                            let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                            let dr = 1;
-                            if (shield) {
-                                dr = 0.8
-                            }
-                            this.player.health = this.player.health - 3 * dr;
+                            this.player.health = this.player.health - 3 * this.player.damageReduction;
                             shot.sprite.visible = false;
                             shot.stillCookin = false;
                             this.player.animation.playIfNotAlready("DAMAGE", false);
@@ -634,6 +632,7 @@ export default class MainSMScene extends SMScene {
             if (!(battler instanceof NPCActor)) {
                 return;
             }
+
             let distToPlayer = battler.position.distanceTo(this.player.position);
             if (!this.closestEnemy || this.player.position.distanceTo(this.closestEnemy.position) > this.player.position.distanceTo(battler.position)) {
                 this.closestEnemy = battler;
@@ -646,18 +645,18 @@ export default class MainSMScene extends SMScene {
             if (this.player.health > 0 && !(this.player.invincible) && distToPlayer < 20) {
                 let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                 if (antennas) {
-                    this.player.equippables.remove(antennas.id);
-                    antennas.visible = false;
+                    if (antennas.curStack > 1) {
+                        antennas.curStack -= 1;
+                    }
+                    else {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
                     this.player.startIFrames();
                 }
                 else {
-                    let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                    let dr = 1;
-                    if (shield) {
-                        dr = 0.8
-                    }
                     if (battler.health > 0) {
-                        this.player.health = this.player.health - 3 * dr;
+                        this.player.health = this.player.health - 3 * this.player.damageReduction;
                         console.log(this.player.health);
                         this.player.animation.playIfNotAlready("DAMAGE", false);
                         this.player.startIFrames();
@@ -810,13 +809,58 @@ export default class MainSMScene extends SMScene {
 
     protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
         console.log("Total equippables:", this.sceneEquippables.length);
+        //changed so i only really consider the items i need to, otherwise you cant pickup items in the same spot as max stacked
         let items: Item[] = this.sceneEquippables.filter((item: Item) => {
-            return item.inventory === null && item.position.distanceTo(player.position) <= 100;
+            //Couldnt figure out how else to do this other than just twice
+            let alreadyHas = player.equippables.find((equippable) => equippable.constructor === item.constructor);
+            if (item.inventory !== null || item.position.distanceTo(player.position) > 100 ||
+                (alreadyHas && alreadyHas.curStack >= alreadyHas.maxStack)) {
+                return false;
+            }
+
+            if (item instanceof Healthpack) {
+                return true;
+            }
+
+            return true;
         });
         if (items.length > 0) {
-            player.equip(items.reduce(ClosestPositioned(player)));
-            //Checking if has needle at equip so that we dont have to run back through a loop every update to check for it
-            this.needle = this.player.equippables.find((equippable) => equippable instanceof DaNeedle) as DaNeedle ?? null;
+            let closestItem = items.reduce(ClosestPositioned(player));
+            if (closestItem instanceof Healthpack) {
+                let newHealth;
+                if (player.maxHealth < player.health + 5) {
+                    newHealth = player.maxHealth;
+                }
+                else {
+                    newHealth = player.health + 5;
+                }
+                player.health = newHealth;
+                closestItem.visible = false;
+                this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                return;
+            }
+
+            //If has item, then constructor will be same (implementing stack system), i think this actually needs ===?
+            let alreadyHas = player.equippables.find((equippable) => equippable.constructor === closestItem.constructor);
+
+            if (alreadyHas) {
+                if (alreadyHas.maxStack <= alreadyHas.curStack) {
+                    //probably should add some sorta noise so it isnt frustrating
+                    return;
+                }
+                else {
+                    alreadyHas.curStack += 1;
+                    closestItem.visible = false;
+                    this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                    alreadyHas.applyBuff(this.player);
+                    return;
+                }
+            }
+            //OTHERWISE JUST EQUIP AS NORMAL
+            player.equip(closestItem);
+            if (closestItem instanceof DaNeedle) {
+                this.needle = closestItem as DaNeedle;
+            }
         }
     } 
 
@@ -1260,7 +1304,7 @@ export default class MainSMScene extends SMScene {
             let equippable = this.forSale[i];
             let tray;
             if (equippable) {
-                this.buyButtons[i].text = `Buy    for ${equippable.value}`;
+                this.buyButtons[i].text = `Buy for ${equippable.value}`;
                 if (equippable instanceof DaNeedle) {
                     this.buyButtons[i].textColor = Color.RED;
                     tray = this.add.sprite("tray_red", "pauseOverlay");
@@ -1273,13 +1317,13 @@ export default class MainSMScene extends SMScene {
                     this.buyButtons[i].textColor = Color.WHITE;
                     tray = this.add.sprite("tray_gray", "pauseOverlay");
                 }
-                tray.position.set(cx - 125, startY + i * spacing);
+                tray.position.set(cx - 90, startY + i * spacing);
                 this.merchantSprites.push(tray);
 
                 //For adding little icon to the left so you know what you are selling
                 let sprite = equippable.getSprite().imageId;
                 let spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
-                spriteOverlay.position.set(cx - 125, startY + i * spacing);
+                spriteOverlay.position.set(cx - 90, startY + i * spacing);
                 this.merchantSprites.push(spriteOverlay);
             
             }
@@ -1344,13 +1388,13 @@ export default class MainSMScene extends SMScene {
             this.sellables.push(equippable);
             this.sellButtons.push(btn);
 
-            tray.position.set(cx - 125, startY + i * spacing);
+            tray.position.set(cx - 90, startY + i * spacing);
             this.merchantSprites.push(tray);
 
             //For adding little icon to the left so you know what you are selling
             let sprite = equippable.getSprite().imageId;
             let spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
-            spriteOverlay.position.set(cx - 125, startY + i * spacing);
+            spriteOverlay.position.set(cx - 90, startY + i * spacing);
             this.merchantSprites.push(spriteOverlay);
         
             i++;
@@ -1364,8 +1408,14 @@ export default class MainSMScene extends SMScene {
             this.needle = null;
             this.player.hasNeedle = false;
         }
-        this.player.unEquip(equippable);
-        equippable.visible = false;
+        if (equippable.curStack > 1) {
+            equippable.curStack -= 1;
+            equippable.removeBuff(this.player);
+        }
+        else {
+            this.player.unEquip(equippable);
+            equippable.visible = false;
+        }
         this.openSellMenu();
     }
 

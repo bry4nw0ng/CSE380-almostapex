@@ -9,6 +9,7 @@ export default class Crystal extends Item {
         super(sprite);
         this._description = "Maybe there is someone who values these highly...";
         this._value = Math.floor(Math.random()* 32);
+        this._maxStack = Infinity;
     }
 
     public get value(): number { return this._value; }

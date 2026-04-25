@@ -44,6 +44,9 @@ export default class RelicTrayHUD implements Updateable {
     /** Maps item id to its hover zone label */
     private hoverZones: Map<number, Label>;
 
+    //Adding labels so you know what your stack is 
+    private stackLabels: Map<number, Label>;
+
     private tray: Sprite;
 
     public constructor(scene: Scene, inventory: Inventory, layer: string, options: RelicTrayOptions) {
@@ -59,6 +62,7 @@ export default class RelicTrayHUD implements Updateable {
         this.relicIcons = new Map();
         this.relicNames = new Map();
         this.hoverZones = new Map();
+        this.stackLabels = new Map();
 
         // background rectangle
         this.background = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: this.position.clone(), text: ""});
@@ -74,7 +78,6 @@ export default class RelicTrayHUD implements Updateable {
         this.tooltip.borderWidth = 1;
         this.tooltip.textColor = Color.WHITE;
         this.tooltip.fontSize = 18;
-        this.tooltip.font = "Arial";
         this.tooltip.size.set(280, 36);
         this.tooltip.visible = false;
 
@@ -100,9 +103,12 @@ export default class RelicTrayHUD implements Updateable {
                 icon.visible = false;
                 let zone = this.hoverZones.get(id);
                 if (zone) zone.visible = false;
+                let hasLabel = this.stackLabels.get(id);
+                if (hasLabel) hasLabel.visible = false;
                 this.relicIcons.delete(id);
                 this.relicNames.delete(id);
                 this.hoverZones.delete(id);
+                this.stackLabels.delete(id);
             }
         }
 
@@ -142,6 +148,33 @@ export default class RelicTrayHUD implements Updateable {
             let icon = this.relicIcons.get(item.id);
             icon.position.set(iconX, centerY);
             icon.visible = true;
+
+            //If doesnt have stack label then initialize new one (only show this is called and already exists because gt 1 then)
+            let label = this.stackLabels.get(item.id);
+            if (!label) {
+                let stackLabel = <Label>this.scene.add.uiElement(UIElementType.LABEL, this.layer, {
+                    position: new Vec2(iconX + 8, centerY + 10),
+                    text: ""
+                });
+                stackLabel.backgroundColor = Color.TRANSPARENT;
+                stackLabel.textColor = Color.WHITE;
+                stackLabel.fontSize = 24;
+                stackLabel.visible = false;
+                this.stackLabels.set(item.id, stackLabel);
+
+                label = stackLabel;
+            }
+
+            label.position.set(iconX + 8, centerY + 10);
+
+            let stack = item.curStack
+            if (stack > 1) {
+                label.text = `x${stack}`
+                label.visible = true;
+            }
+            else {
+                label.visible = false;
+            }
 
             // position the hover zone
             let zone = this.hoverZones.get(item.id);

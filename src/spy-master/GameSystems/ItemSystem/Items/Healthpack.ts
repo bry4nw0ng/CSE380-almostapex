@@ -12,6 +12,7 @@ export default class Healthpack extends Item {
         this._description = "Restores 5 HP";
         this.hp = 5;
         this.value = 500;
+        this._maxStack = 10;
     }
 
     public get health(): number { return this.hp; }
