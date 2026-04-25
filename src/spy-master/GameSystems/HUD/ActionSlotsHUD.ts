@@ -128,7 +128,7 @@ export default class ActionSlotsHUD implements Updateable {
             }
             this.boxSprites.push(box);
 
-            if (i < 3) {
+            if (i < 4) {
                 tip = this.scene.add.sprite(this.keyTipSpriteKeys[i], layer);
                 tip.position.set(this.boxPositions[i].x, this.boxPositions[i].y + 22);
                 tip.visible = true;
