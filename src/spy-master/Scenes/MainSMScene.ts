@@ -371,7 +371,9 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(CheatEvent.CHEAT_POW_CANNON);
         this.receiver.subscribe(CheatEvent.CHEAT_INVINCIBLE);
         this.receiver.subscribe(CheatEvent.CHEAT_GIVE_ITEMS);
+        this.receiver.subscribe(CheatEvent.CHEAT_GIVE_CRYSTALS);
         this.receiver.subscribe(CheatEvent.CHEAT_SPAWN_BOSS);
+        this.receiver.subscribe(CheatEvent.CHEAT_TELEPORT_TO_MERCHANT);
 
         this.receiver.subscribe(CheatEvent.CHEAT_CITY);
         this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
@@ -718,6 +720,14 @@ export default class MainSMScene extends SMScene {
                 this.cheatGiveItems();
                 break;
             }
+            case CheatEvent.CHEAT_GIVE_CRYSTALS: {
+                this.player.crystals += 10000;
+                break;
+            }
+            case CheatEvent.CHEAT_TELEPORT_TO_MERCHANT: {
+                this.player.position.copy(this.MERCHANT_LOCATION);
+                break;
+            }
             case CheatEvent.CHEAT_SPAWN_BOSS: {
                 this.spawnBoss();
                 break;
@@ -1013,7 +1023,7 @@ export default class MainSMScene extends SMScene {
             position: new Vec2(cx, cy - 90),
             text: "PAUSED"
         });
-        this.pauseTitle.size.set(200, 30);
+        this.pauseTitle.size.set(300, 40);
         this.pauseTitle.borderWidth = 0;
         this.pauseTitle.backgroundColor = new Color(0, 0, 0, 0);
         this.pauseTitle.textColor = Color.WHITE;
@@ -1039,7 +1049,7 @@ export default class MainSMScene extends SMScene {
                 position: new Vec2(cx, startY + i * spacing),
                 text: label
             });
-            btn.size.set(200, 28);
+            btn.size.set(300, 35);
             btn.borderWidth = 2;
             btn.borderColor = Color.WHITE;
             btn.backgroundColor = new Color(60, 60, 60, 200);
@@ -1219,6 +1229,7 @@ export default class MainSMScene extends SMScene {
         this.shopTitle.textColor = Color.WHITE;
         this.shopTitle.fontSize = 24;
         this.shopTitle.visible = false;
+        this.shopTitle.position.set(256, 100);
 
         // Button definitions: [label, eventId]
         const shhButtons: [string, string][] = [
@@ -1262,7 +1273,7 @@ export default class MainSMScene extends SMScene {
                 position: new Vec2(cx, startY + i * spacing),
                 text: label
             });
-            btn.size.set(200, 28);
+            btn.size.set(200, 40);
             btn.borderWidth = 2;
             btn.borderColor = Color.WHITE;
             btn.backgroundColor = new Color(60, 60, 60, 200);
@@ -1273,6 +1284,7 @@ export default class MainSMScene extends SMScene {
             this.buyButtons.push(btn);
         }
 
+        this.buyButtons[3].size.set(500, 40);
         // subscribe to pause button events
         this.receiver.subscribe("buy");
         this.receiver.subscribe("sell");
@@ -1355,8 +1367,6 @@ export default class MainSMScene extends SMScene {
         const startY = 130;
         const spacing = 35;
 
-        this.shopTitle.position.set(256, 100);
-
         let i = 0;
 
         //Gotta add support to just iterate over inventories 
@@ -1438,7 +1448,7 @@ export default class MainSMScene extends SMScene {
     protected initializePlayer(): PlayerActor {
         let player = this.add.animatedSprite(PlayerActor, "player1", "primary");
         let spawnPos = new Vec2(-1500, 1000);
-        player.position.copy(this.MERCHANT_LOCATION);
+        player.position.copy(spawnPos);
         player.battleGroup = 2;
 
         player.health = 10;
@@ -1549,7 +1559,7 @@ export default class MainSMScene extends SMScene {
 
         console.log("spawned merchant");
         let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
-        merchant.position.set(this.MERCHANT_LOCATION.x, this.MERCHANT_LOCATION.y);
+        merchant.position.copy(this.MERCHANT_LOCATION);
         merchant.scale.set(0.25, 0.25);
         merchant.animation.playIfNotAlready("Idle", true);
 

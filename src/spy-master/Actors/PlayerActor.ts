@@ -46,7 +46,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.battler = new BasicBattler(this);
         this.targetable = new BasicTargetable(this);
 
-        this._crystals = 10000;
+        this._crystals = 500;
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
         this.receiver.subscribe(AbilityEvent.USED_JETPACK)

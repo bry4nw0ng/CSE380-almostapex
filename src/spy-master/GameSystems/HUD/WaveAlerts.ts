@@ -16,7 +16,8 @@ export default class WaveAlerts {
 
         this.viewportSize = size;
 
-        this.wavealerts.position.set(this.viewportSize.x/2 + 10, this.viewportSize.y + 100)
+        this.wavealerts.position.set(this.viewportSize.x/2, this.viewportSize.y + 100);
+        this.wavealerts.scale.set(0.9, 0.9);
 
         this.wavealerts.tweens.add("toCenter", {
             startDelay: 0,
@@ -47,7 +48,7 @@ export default class WaveAlerts {
     }
 
     public alertToCenter() {
-        this.wavealerts.position.set(this.viewportSize.x/2 + 20, this.viewportSize.y + 100);
+        this.wavealerts.position.set(this.viewportSize.x/2, this.viewportSize.y + 100);
         this.wavealerts.tweens.play("toCenter");
     }
 

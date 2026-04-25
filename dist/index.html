@@ -41,8 +41,8 @@
       }
 
       @font-face {
-        font-family: 'NoPixel';
-        src: url('game_assets/fonts/NoPixel.ttf');
+        font-family: 'Pixel';
+        src: url('game_assets/data/fonts/PressStart2P-Regular.ttf');
       }
     </style>
   </head>
@@ -66,6 +66,13 @@
         <div id="stats-display"></div>
       </div>
     </div>
-    <script src="bundle.js"></script>
+    <!-- Found this online, tried adding a font and it said that it might be loading after, this fixed -->
+    <script>
+      document.fonts.ready.then(function() {
+        var s = document.createElement('script');
+        s.src = 'bundle.js';
+        document.body.appendChild(s);
+      });
+    </script>
   </body>
 </html>
