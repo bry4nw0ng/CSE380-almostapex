@@ -302,6 +302,11 @@ export default class MainSMScene extends SMScene {
         this.load.image("tray_blue", "game_assets/ui/hud/tray-blue.png");
         this.load.image("tray_gray", "game_assets/ui/hud/tray-gray.png");
         this.load.image("tray_long", "game_assets/ui/hud/tray-long.png");
+        this.load.image("spacebar", "game_assets/ui/hud/spacebar.png");
+        this.load.image("key-one", "game_assets/ui/hud/key-one.png");
+         this.load.image("key-two", "game_assets/ui/hud/key-two.png");
+          this.load.image("key-three", "game_assets/ui/hud/key-three.png");
+
         this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
 
         this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
@@ -1373,10 +1378,10 @@ export default class MainSMScene extends SMScene {
         let equippables = [...this.player.equippables.items()];
         equippables.forEach((equippable) => {
             const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
-                position: new Vec2(cx, startY + i * spacing),
+                position: new Vec2(cx + 50, startY + i * spacing),
                 text: `Sell for ${Math.floor(equippable.value / 2)} crystals?`
             });
-            btn.size.set(200, 28);
+            btn.size.set(400, 28);
             btn.borderWidth = 2;
             btn.borderColor = Color.WHITE;
             btn.backgroundColor = new Color(60, 60, 60, 200);
