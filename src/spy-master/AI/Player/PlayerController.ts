@@ -61,6 +61,7 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected weaponTiredTimer: Timer;
     protected weaponTiredGunTimer: Timer;
 
+    protected cheats: string[];
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
         this.owner = owner;
@@ -93,6 +94,19 @@ export default class PlayerController extends StateMachineAI implements AI{
         
         // Start the player in the Idle state
         this.initialize(AAPlayerStates.IDLE);
+
+        this.cheats = [
+            "CHEAT_CITY",
+            "CHEAT_MOUNTAIN",
+            "CHEAT_OCEAN",
+            "CHEAT_TOP_LEVEL",
+            "CHEAT_INVINCIBLE",
+            "CHEAT_POW_CANNON",
+            "CHEAT_GIVE_ITEMS",
+            "CHEAT_SPAWN_BOSS",
+            "CHEAT_TELEPORT_TO_MERCHANT",
+            "CHEAT_GIVE_CRYSTALS"
+        ];
     }
     
     public handleEvent(event: GameEvent): void {
@@ -196,37 +210,11 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             };
         
-        if (Input.isJustPressed(AAControls.CHEAT_INVINCIBLE)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_INVINCIBLE);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_POW_CANNON)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_POW_CANNON);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_CITY)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_CITY);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_MOUNTAIN)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_MOUNTAIN);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_OCEAN)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_OCEAN);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_TOP_LEVEL)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_TOP_LEVEL);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_GIVE_ITEMS)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_GIVE_ITEMS);
-            return;
-        }
-        if (Input.isJustPressed(AAControls.CHEAT_SPAWN_BOSS)) {
-            this.emitter.fireEvent(CheatEvent.CHEAT_SPAWN_BOSS);
-            return;
+        for (const cheat of this.cheats) {
+            if (Input.isJustPressed(AAControls[cheat])) {
+                this.emitter.fireEvent(CheatEvent[cheat]);
+                return;
+            }
         }
     }
 

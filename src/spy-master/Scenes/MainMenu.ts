@@ -167,7 +167,7 @@ export default class MainMenu extends SMScene {
         //     text: "x: 0, y: 0"
         // });
         // this.coordLabel.textColor = Color.YELLOW;
-        // this.coordLabel.fontSize = 20;
+        // this.coordLabel.fontSize =20;
 
         // zone interaction label above player
         this.zoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "ui", {

@@ -51,6 +51,7 @@ export default class DaNeedle extends Item {
             ],
             onEnd: "Needle spun"
         }); */
+        this.value = 1500;
     }
 
     public static create(sprite: Sprite, needle: Item): DaNeedle {

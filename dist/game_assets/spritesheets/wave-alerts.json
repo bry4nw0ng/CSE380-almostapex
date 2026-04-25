@@ -1,6 +1,6 @@
 {"name":"wave-alerts",
 "spriteSheetImage":"wave-alerts-final.png",
-"spriteWidth":512,"spriteHeight":64,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":1,"rows":6,
+"spriteWidth":512,"spriteHeight":65,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":1,"rows":6,
 "durationType": "time",
 "animations":[
     {"name":"WAVE_DEFEATED","repeat":true,"frames":[{"index":0,"duration":5}]},

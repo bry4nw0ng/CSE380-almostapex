@@ -57,6 +57,7 @@ import Button from "../../Wolfie2D/Nodes/UIElements/Button";
 import Graphic from "../../Wolfie2D/Nodes/Graphic";
 import TimerManager from "../../Wolfie2D/Timing/TimerManager";
 import Crystal from "../GameSystems/ItemSystem/Items/Crystal";
+import Label from "../../Wolfie2D/Nodes/UIElements/Label";
 
 const BattlerGroups = {
     RED: 1,
@@ -150,6 +151,18 @@ export default class MainSMScene extends SMScene {
 
     private readonly PAUSE_CLOSE_HIT = 25;
 
+    private readonly MERCHANT_LOCATION = new Vec2(1920, 1000);
+    private bmZoneLabel: Label;
+    private shopOpen: boolean = false;
+    private shopState: string;
+    private shopTitle: Button;
+    private mainButtons: Button[] = [];
+    private sellButtons: Button[] = [];
+    private buyButtons: Button[] = [];
+    private merchantSprites: Sprite[] = [];
+    private sellables: Item[] = [];
+    private forSale: Item[] = [];
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
         this.spawnableNodes = [];
@@ -211,6 +224,8 @@ export default class MainSMScene extends SMScene {
 
         this.closestEnemy = null;
         this.bossDead = false;
+
+        this.shopState = "main";
     }
 
     /**
@@ -285,8 +300,11 @@ export default class MainSMScene extends SMScene {
         this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png");
         this.load.image("tray_red", "game_assets/ui/hud/tray-red.png");
         this.load.image("tray_blue", "game_assets/ui/hud/tray-blue.png");
+        this.load.image("tray_gray", "game_assets/ui/hud/tray-gray.png");
         this.load.image("tray_long", "game_assets/ui/hud/tray-long.png");
         this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
+
+        this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
     }
     /**
      * @see Scene.startScene
@@ -327,8 +345,6 @@ export default class MainSMScene extends SMScene {
 
         // Create the Player/NPCS
         this.initializeNPCs(this.initializePlayer());
-        // Create the player
-        this.initializeItems();
 
         // Subscribe to relevant events
         this.receiver.subscribe("enemyDied");
@@ -355,7 +371,9 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(CheatEvent.CHEAT_POW_CANNON);
         this.receiver.subscribe(CheatEvent.CHEAT_INVINCIBLE);
         this.receiver.subscribe(CheatEvent.CHEAT_GIVE_ITEMS);
+        this.receiver.subscribe(CheatEvent.CHEAT_GIVE_CRYSTALS);
         this.receiver.subscribe(CheatEvent.CHEAT_SPAWN_BOSS);
+        this.receiver.subscribe(CheatEvent.CHEAT_TELEPORT_TO_MERCHANT);
 
         this.receiver.subscribe(CheatEvent.CHEAT_CITY);
         this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
@@ -367,19 +385,25 @@ export default class MainSMScene extends SMScene {
 
         this.receiver.subscribe(AAEvents.WAVE_CHANGE);
 
+
         this.viewport.setCenter(centerMap!.x, centerMap!.y);
         this.viewport.setFocus(new Vec2(centerMap!.x, centerMap!.y));
 
         this.waveDelayTimer.start();
         // init pause menu UI
         this.initPauseMenu();
+        this.initShopMenu();
+
+        this.bmZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
+            position: new Vec2(256, 275),
+            text: "[E] To Speak"
+        });
+        this.bmZoneLabel.textColor = Color.WHITE;
+        this.bmZoneLabel.fontSize = 24;
+        this.bmZoneLabel.visible = false;
     }
 
-    initTweenGraphics() {
-        let alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
-        let size = this.viewport.getHalfSize().scaled(2);
-        this.waveAlerts = new WaveAlerts(alertSprite, size);
-    }
+
 
     /**
      * @see Scene.updateScene
@@ -402,11 +426,11 @@ export default class MainSMScene extends SMScene {
             while (this.receiver.hasNextEvent()) {
                 this.handleEvent(this.receiver.getNextEvent());
             }
+            const mouse = Input.getMousePressPosition();
+            const close = this.pauseHelpClose.position;
 
             // mouse click for help page close button
             if (this.pauseHelpOpen && Input.isMouseJustPressed()) {
-                const mouse = Input.getMousePressPosition();
-                const close = this.pauseHelpClose.position;
                 if (Math.abs(mouse.x - close.x) <= this.PAUSE_CLOSE_HIT &&
                     Math.abs(mouse.y - close.y) <= this.PAUSE_CLOSE_HIT) {
                     this.closePauseHelp();
@@ -431,7 +455,46 @@ export default class MainSMScene extends SMScene {
                     return;
                 }
             }
-    
+
+            if (this.shopOpen && Input.isMouseJustPressed()) {
+                    if (Math.abs(mouse.x - close.x) <= this.PAUSE_CLOSE_HIT &&
+                        Math.abs(mouse.y - close.y) <= this.PAUSE_CLOSE_HIT) {
+                        for (const btn of this.sellButtons) btn.destroy();
+                        for (const btn of this.buyButtons) btn.visible = false;
+                        for (const sprite of this.merchantSprites) sprite.visible = false;
+                        for (const btn of this.mainButtons) btn.visible = true;
+                        this.pauseHelpClose.visible = false;
+                        this.shopTitle.text = "Shhh...";
+                        this.shopState = "main";
+                        this.sellButtons = [];
+                        this.sellables = [];
+                        this.merchantSprites = [];
+                        return;
+                    }
+                //Doom and despair, gotta be a better way to do all of this
+                if (this.shopState == "sell") {
+                    let i = 0;
+                    this.sellButtons.forEach((btn) => {
+                        //So if hovering over the button[i] when clicked, should send to that instance?? Hopefully???
+                        if (Math.abs(mouse.x - btn.position.x) <= btn.size.x / 2 &&
+                            Math.abs(mouse.y - btn.position.y) <= btn.size.y / 2) {
+                            this.sellEquippable(this.sellables[i].id);
+                        }
+                        i++;
+                    })
+                }
+                else if (this.shopState == "buy") {
+                    let i = 0;
+                    this.buyButtons.forEach((btn) => {
+                        //So if hovering over the button[i] when clicked, should send to that instance?? Hopefully???
+                        if (Math.abs(mouse.x - btn.position.x) <= btn.size.x / 2 &&
+                            Math.abs(mouse.y - btn.position.y) <= btn.size.y / 2) {
+                            this.buyEquippable(this.forSale[i], i);
+                        }
+                        i++;
+                    })
+                }
+            }
             return; // skip all gameplay updates while paused
         }
 
@@ -439,32 +502,43 @@ export default class MainSMScene extends SMScene {
             this.handleEvent(this.receiver.getNextEvent());
         }
 
-    this.inventoryHud.update(deltaT);
-    this.relicTray.update(deltaT);
-    this.actionSlots.update(deltaT);
 
-    //Rendering the heathbars was getting expensive, needed to change to only update if needed (Now doesnt show if max health)
-    this.healthbars.forEach((healthbar, battler) => {
-        if (battler instanceof PlayerActor) {
-            healthbar.update(deltaT);
-            return;
-        }
-        if (battler.position.distanceTo(this.player.position) < 300 && battler.health < battler.maxHealth) {
-            healthbar.visible = true;
-        }
-        if (healthbar.visible) {
-            healthbar.update(deltaT);
+        this.inventoryHud.update(deltaT);
+        this.relicTray.update(deltaT);
+        this.actionSlots.update(deltaT);
+
+        
+        if (this.player.position.distanceTo(this.MERCHANT_LOCATION) < 30) {
+            this.bmZoneLabel.visible = true;
+            if (Input.isJustPressed(AAControls.INTERACT) && this.shopOpen == false) {
+                this.shopOpen = true;
+                this.pauseGame();
+            }
         }
         else {
-            healthbar.followNPC();
+            this.bmZoneLabel.visible = false;
         }
-    });
 
-
+        //Rendering the heathbars was getting expensive, needed to change to only update if needed (Now doesnt show if max health)
+        this.healthbars.forEach((healthbar, battler) => {
+            if (battler instanceof PlayerActor) {
+                healthbar.update(deltaT);
+                return;
+            }
+            if (battler.position.distanceTo(this.player.position) < 300 && battler.health < battler.maxHealth) {
+                healthbar.visible = true;
+            }
+            if (healthbar.visible) {
+                healthbar.update(deltaT);
+            }
+            else {
+                healthbar.followNPC();
+            }
+        });
 
         this.updateTrash(deltaT);
         this.updateSpitballs(deltaT);
-        this.updateContactDamage(deltaT);
+        this.updateContactDamage();
         this.updateCrystals();
 
         if (this.closestEnemy && this.player.position.distanceTo(this.closestEnemy.position) > 300) {
@@ -484,19 +558,19 @@ export default class MainSMScene extends SMScene {
             this.trash.forEach((shot) => {
                 if (shot.stillCookin) {
                     if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
-                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                         if (antennas) {
-                            this.player.equippables.remove(antennas.id);
-                            antennas.visible = false;
+                            if (antennas.curStack > 1) {
+                                antennas.curStack -= 1;
+                            }
+                            else {
+                                this.player.equippables.remove(antennas.id);
+                                antennas.visible = false;
+                            }
                             this.player.startIFrames();
                         }
                         else {
-                            let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                            let dr = 1;
-                            if (shield) {
-                                dr = 0.8
-                            }
-                            this.player.health = this.player.health - 3 * dr;
+                            this.player.health = this.player.health - 3 * this.player.damageReduction;
                             shot.sprite.visible = false;
                             shot.stillCookin = false;
                             this.player.animation.playIfNotAlready("DAMAGE", false);
@@ -554,12 +628,13 @@ export default class MainSMScene extends SMScene {
         this.spitballs = this.spitballs.filter((shot) => shot.stillCookin == true);
     }
 
-    public updateContactDamage(deltaT) {
+    public updateContactDamage() {
         this.closestEnemy = null;
         this.battlers.forEach((battler) => {
             if (!(battler instanceof NPCActor)) {
                 return;
             }
+
             let distToPlayer = battler.position.distanceTo(this.player.position);
             if (!this.closestEnemy || this.player.position.distanceTo(this.closestEnemy.position) > this.player.position.distanceTo(battler.position)) {
                 this.closestEnemy = battler;
@@ -572,18 +647,18 @@ export default class MainSMScene extends SMScene {
             if (this.player.health > 0 && !(this.player.invincible) && distToPlayer < 20) {
                 let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
                 if (antennas) {
-                    this.player.equippables.remove(antennas.id);
-                    antennas.visible = false;
+                    if (antennas.curStack > 1) {
+                        antennas.curStack -= 1;
+                    }
+                    else {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
                     this.player.startIFrames();
                 }
                 else {
-                    let shield = this.player.equippables.find((equippable) => equippable instanceof Shield);
-                    let dr = 1;
-                    if (shield) {
-                        dr = 0.8
-                    }
                     if (battler.health > 0) {
-                        this.player.health = this.player.health - 3 * dr;
+                        this.player.health = this.player.health - 3 * this.player.damageReduction;
                         console.log(this.player.health);
                         this.player.animation.playIfNotAlready("DAMAGE", false);
                         this.player.startIFrames();
@@ -645,6 +720,14 @@ export default class MainSMScene extends SMScene {
                 this.cheatGiveItems();
                 break;
             }
+            case CheatEvent.CHEAT_GIVE_CRYSTALS: {
+                this.player.crystals += 10000;
+                break;
+            }
+            case CheatEvent.CHEAT_TELEPORT_TO_MERCHANT: {
+                this.player.position.copy(this.MERCHANT_LOCATION);
+                break;
+            }
             case CheatEvent.CHEAT_SPAWN_BOSS: {
                 this.spawnBoss();
                 break;
@@ -656,8 +739,25 @@ export default class MainSMScene extends SMScene {
             case HudEvent.WAVE_DONE: {
                 break;
             }
-            case "pause_resume": {
+            case "resume": {
                 this.resumeGame();
+                break;
+            }
+            case "buy": {
+                this.openBuyMenu();
+                break;
+            }
+            case "sell": {
+                this.openSellMenu();
+                break;
+            }
+            case "reset_shop": {
+                if (this.player.crystals >= 100) {
+                    this.player.crystals -= 100;
+                    this.setBuyItems();
+                    this.openBuyMenu();
+                }
+
                 break;
             }
             case "pause_mainmenu": {
@@ -673,16 +773,6 @@ export default class MainSMScene extends SMScene {
                 this.openPauseHelp(this.curAboutPage);
                 break;
             }
-/*             case "about_prev": {
-                this.curAboutPage -= 1;
-                this.openPauseHelp(this.curAboutPage);
-                break;
-            }
-            case "about_next": {
-                this.curAboutPage += 1;
-                this.openPauseHelp(this.curAboutPage);
-                break;
-            } */
             case "pause_help": {
                 this.openPauseHelp(3);
                 break;
@@ -721,7 +811,7 @@ export default class MainSMScene extends SMScene {
     protected handleUsedRaccoonTail() {
         this.treasure.forEach(cache => {
             if (cache.sprite.position.distanceTo(this.player.position) < 100) {
-                this.dropItem(cache.sprite.position);
+                this.dropOrChooseItem(cache.sprite.position, 999);
                 cache.sprite.destroy();
             }
         })
@@ -729,13 +819,58 @@ export default class MainSMScene extends SMScene {
 
     protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
         console.log("Total equippables:", this.sceneEquippables.length);
+        //changed so i only really consider the items i need to, otherwise you cant pickup items in the same spot as max stacked
         let items: Item[] = this.sceneEquippables.filter((item: Item) => {
-            return item.inventory === null && item.position.distanceTo(player.position) <= 100;
+            //Couldnt figure out how else to do this other than just twice
+            let alreadyHas = player.equippables.find((equippable) => equippable.constructor === item.constructor);
+            if (item.inventory !== null || item.position.distanceTo(player.position) > 100 ||
+                (alreadyHas && alreadyHas.curStack >= alreadyHas.maxStack)) {
+                return false;
+            }
+
+            if (item instanceof Healthpack) {
+                return true;
+            }
+
+            return true;
         });
         if (items.length > 0) {
-            player.equip(items.reduce(ClosestPositioned(player)));
-            //Checking if has needle at equip so that we dont have to run back through a loop every update to check for it
-            this.needle = this.player.equippables.find((equippable) => equippable instanceof DaNeedle) as DaNeedle ?? null;
+            let closestItem = items.reduce(ClosestPositioned(player));
+            if (closestItem instanceof Healthpack) {
+                let newHealth;
+                if (player.maxHealth < player.health + 5) {
+                    newHealth = player.maxHealth;
+                }
+                else {
+                    newHealth = player.health + 5;
+                }
+                player.health = newHealth;
+                closestItem.visible = false;
+                this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                return;
+            }
+
+            //If has item, then constructor will be same (implementing stack system), i think this actually needs ===?
+            let alreadyHas = player.equippables.find((equippable) => equippable.constructor === closestItem.constructor);
+
+            if (alreadyHas) {
+                if (alreadyHas.maxStack <= alreadyHas.curStack) {
+                    //probably should add some sorta noise so it isnt frustrating
+                    return;
+                }
+                else {
+                    alreadyHas.curStack += 1;
+                    closestItem.visible = false;
+                    this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                    alreadyHas.applyBuff(this.player);
+                    return;
+                }
+            }
+            //OTHERWISE JUST EQUIP AS NORMAL
+            player.equip(closestItem);
+            if (closestItem instanceof DaNeedle) {
+                this.needle = closestItem as DaNeedle;
+            }
         }
     } 
 
@@ -782,7 +917,7 @@ export default class MainSMScene extends SMScene {
                 this.healthbars.delete(battler);
                 this.battlers = this.battlers.filter(b => b.id !== id);
                 if (Math.random() * this.player.luck >= 0.85) {
-                    this.dropItem(deathSpot);
+                    this.dropOrChooseItem(deathSpot, 999);
                     console.log("Item dropped!")
                 }
 
@@ -802,7 +937,7 @@ export default class MainSMScene extends SMScene {
  
     }
 
-    protected dropItem(position: Vec2) {
+    protected dropOrChooseItem(position: Vec2, i: number) {
         let choice = Math.floor(Math.random() * 7);
 
         let sprite;
@@ -839,9 +974,15 @@ export default class MainSMScene extends SMScene {
             default:
                 break;
         }
-
+        if (i == 999) {
             newOb.position.set(position.x, position.y);
             this.sceneEquippables.push(newOb);
+        }
+        else {
+            sprite.visible = false;
+            newOb.position.set(0, -500)
+            this.forSale[i] = newOb;
+        }
     }
 
     /** Initializes the layers in the scene */
@@ -882,7 +1023,7 @@ export default class MainSMScene extends SMScene {
             position: new Vec2(cx, cy - 90),
             text: "PAUSED"
         });
-        this.pauseTitle.size.set(200, 30);
+        this.pauseTitle.size.set(300, 40);
         this.pauseTitle.borderWidth = 0;
         this.pauseTitle.backgroundColor = new Color(0, 0, 0, 0);
         this.pauseTitle.textColor = Color.WHITE;
@@ -891,7 +1032,7 @@ export default class MainSMScene extends SMScene {
 
         // Button definitions: [label, eventId]
         const buttonDefs: [string, string][] = [
-            ["Resume",          "pause_resume"],
+            ["Resume",          "resume"],
             ["Return to Menu",  "pause_mainmenu"],
             ["Controls",        "pause_controls"],
             ["About",           "pause_about"],
@@ -908,7 +1049,7 @@ export default class MainSMScene extends SMScene {
                 position: new Vec2(cx, startY + i * spacing),
                 text: label
             });
-            btn.size.set(200, 28);
+            btn.size.set(300, 35);
             btn.borderWidth = 2;
             btn.borderColor = Color.WHITE;
             btn.backgroundColor = new Color(60, 60, 60, 200);
@@ -920,7 +1061,7 @@ export default class MainSMScene extends SMScene {
         }
 
         // subscribe to pause button events
-        this.receiver.subscribe("pause_resume");
+        this.receiver.subscribe("resume");
         this.receiver.subscribe("pause_mainmenu");
         this.receiver.subscribe("pause_controls");
         this.receiver.subscribe("pause_about");
@@ -978,8 +1119,15 @@ export default class MainSMScene extends SMScene {
         }
 
         this.pauseDim.visible = true;
-        this.pauseTitle.visible = true;
-        for (const btn of this.pauseButtons) btn.visible = true;
+        if (this.shopOpen) {
+            this.shopTitle.visible = true;
+            for (const btn of this.mainButtons) btn.visible = true;   
+        }
+        else {
+            this.pauseTitle.visible = true;
+            for (const btn of this.pauseButtons) btn.visible = true;   
+        }
+
     }
 
     /** resume the game and hides all pause UI */
@@ -996,11 +1144,26 @@ export default class MainSMScene extends SMScene {
             battler.aiActive = true;
         }
 
-        this.pauseDim.visible = false;
-        this.pauseTitle.visible = false;
+        this.pauseDim.visible = false; 
         this.aboutNext.visible = false;
         this.aboutPrev.visible = false;
-        for (const btn of this.pauseButtons) btn.visible = false;
+
+        if (this.shopOpen) {
+             this.shopOpen = false;
+            this.shopTitle.visible = false;
+            for (const btn of this.mainButtons) btn.visible = false;
+            for (const btn of this.sellButtons) btn.destroy();  
+            for (const btn of this.buyButtons) btn.visible = false;
+            this.pauseHelpClose.visible = false;
+            this.shopState = "main";
+            this.sellButtons = [];
+            this.sellables = [];
+            this.merchantSprites = [];
+        }
+        else {
+            this.pauseTitle.visible = false;
+            for (const btn of this.pauseButtons) btn.visible = false;
+        }
 
         // close help overlay if open
         if (this.pauseHelpOpen) {
@@ -1050,6 +1213,234 @@ export default class MainSMScene extends SMScene {
         for (const btn of this.pauseButtons) btn.visible = true;
     }
 
+        /**  merchant menu init - mostly copied from pauseinit */
+    protected initShopMenu(): void {
+        const cx = 256;
+        const cy = 256;
+
+        //Title label
+        this.shopTitle = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+            position: new Vec2(cx, cy - 90),
+            text: "Shhh..."
+        });
+        this.shopTitle.size.set(200, 30);
+        this.shopTitle.borderWidth = 0;
+        this.shopTitle.backgroundColor = new Color(0, 0, 0, 0);
+        this.shopTitle.textColor = Color.WHITE;
+        this.shopTitle.fontSize = 24;
+        this.shopTitle.visible = false;
+        this.shopTitle.position.set(256, 100);
+
+        // Button definitions: [label, eventId]
+        const shhButtons: [string, string][] = [
+            ["Buy", "buy"],
+            ["Sell", "sell"],
+            ["Resume", "resume"],
+        ];
+
+        const buyerButtons: [string, string][] = [
+            ["", null],
+            ["", null],
+            ["", null],
+            ["Reset Shop for 100 crystals", "reset_shop"],
+        ];
+
+        const startY = cy - 126;
+        const spacing = 35;
+
+        for (let i = 0; i < shhButtons.length; i++) {
+            const [label, eventId] = shhButtons[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label
+            });
+            btn.size.set(200, 28);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            if (eventId) {
+                btn.onClickEventId = eventId;
+            }
+            btn.visible = false;
+            this.mainButtons.push(btn);
+        }
+
+        for (let i = 0; i < buyerButtons.length; i++) {
+            const [label, eventId] = buyerButtons[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label
+            });
+            btn.size.set(200, 40);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            btn.onClickEventId = eventId;
+            btn.visible = false;
+            this.buyButtons.push(btn);
+        }
+
+        this.buyButtons[3].size.set(500, 40);
+        // subscribe to pause button events
+        this.receiver.subscribe("buy");
+        this.receiver.subscribe("sell");
+        this.receiver.subscribe("reset_shop");         
+
+        this.pauseHelpClose = this.add.sprite("back-button", "pauseOverlay");
+        this.pauseHelpClose.position.set(50, 50);
+        this.pauseHelpClose.scale.set(3, 3);
+        this.pauseHelpClose.visible = false;
+
+        //Populated the buy itemsfor merchant
+        this.setBuyItems();
+    }
+    
+    public openBuyMenu() {
+        this.shopState = "buy";
+
+        //Hide mainbuttons
+        for (const btn of this.mainButtons) btn.visible = false;
+
+        //Buy buttons/back button/change title
+        this.shopTitle.text = "Buy"
+
+        const cx = 256
+        const startY = 130;
+        const spacing = 35;
+        
+        for (let i = 0; i < 3; i++) {
+            let equippable = this.forSale[i];
+            let tray;
+            if (equippable) {
+                this.buyButtons[i].text = `Buy for ${equippable.value}`;
+                if (equippable instanceof DaNeedle) {
+                    this.buyButtons[i].textColor = Color.RED;
+                    tray = this.add.sprite("tray_red", "pauseOverlay");
+                }
+                else if (equippable.isAbility) {
+                    this.buyButtons[i].textColor = Color.BLUE;
+                    tray = this.add.sprite("tray_blue", "pauseOverlay");
+                }
+                else {
+                    this.buyButtons[i].textColor = Color.WHITE;
+                    tray = this.add.sprite("tray_gray", "pauseOverlay");
+                }
+                tray.position.set(cx - 90, startY + i * spacing);
+                this.merchantSprites.push(tray);
+
+                //For adding little icon to the left so you know what you are selling
+                let sprite = equippable.getSprite().imageId;
+                let spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
+                spriteOverlay.position.set(cx - 90, startY + i * spacing);
+                this.merchantSprites.push(spriteOverlay);
+            
+            }
+            else {
+                this.buyButtons[i].text = "GONE...SOLD";
+            }
+        }
+        for (const btn of this.buyButtons) btn.visible = true;
+        this.pauseHelpClose.visible = true;
+    }
+
+    //absolute shit show
+    public openSellMenu() {
+        this.shopState = "sell";
+
+        //Hide mainbuttons/last merchant sprites
+        for (const btn of this.mainButtons) btn.visible = false;
+        for (const btn of this.sellButtons) btn.destroy();
+        this.sellButtons = [];
+        for (const sprite of this.merchantSprites) sprite.destroy();
+        this.merchantSprites = [];
+        this.sellables = [];
+        //back button/change title
+        
+        this.shopTitle.text = "Sell"
+        this.pauseHelpClose.visible = true;
+
+        const cx = 256
+        const startY = 130;
+        const spacing = 35;
+
+        let i = 0;
+
+        //Gotta add support to just iterate over inventories 
+        let equippables = [...this.player.equippables.items()];
+        equippables.forEach((equippable) => {
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: `Sell for ${Math.floor(equippable.value / 2)} crystals?`
+            });
+            btn.size.set(200, 28);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            let tray;
+            if (equippable instanceof DaNeedle) {
+                btn.textColor = Color.RED;
+                tray = this.add.sprite("tray_red", "pauseOverlay");
+            }
+            else if (equippable.isAbility) {
+                btn.textColor = Color.BLUE;
+                tray = this.add.sprite("tray_blue", "pauseOverlay");
+            }
+            else {
+                btn.textColor = Color.WHITE;
+                tray = this.add.sprite("tray_gray", "pauseOverlay");
+            }
+            btn.fontSize = 16;
+            btn.visible = true;
+            this.sellables.push(equippable);
+            this.sellButtons.push(btn);
+
+            tray.position.set(cx - 90, startY + i * spacing);
+            this.merchantSprites.push(tray);
+
+            //For adding little icon to the left so you know what you are selling
+            let sprite = equippable.getSprite().imageId;
+            let spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
+            spriteOverlay.position.set(cx - 90, startY + i * spacing);
+            this.merchantSprites.push(spriteOverlay);
+        
+            i++;
+        });
+    }
+
+    public sellEquippable(id) {
+        let equippable = this.player.equippables.find(b => b.id === id);
+        this.player.crystals += Math.floor(equippable.value / 2);
+        if (equippable instanceof DaNeedle) {
+            this.needle = null;
+            this.player.hasNeedle = false;
+        }
+        if (equippable.curStack > 1) {
+            equippable.curStack -= 1;
+            equippable.removeBuff(this.player);
+        }
+        else {
+            this.player.unEquip(equippable);
+            equippable.visible = false;
+        }
+        this.openSellMenu();
+    }
+
+    public buyEquippable(equippable: Item, i: number) {
+        if (!equippable || this.player.crystals < equippable.value) {
+            return;
+        }
+        this.player.crystals -= equippable.value;
+        equippable.position.set(this.player.position.x, this.player.position.y);
+        equippable.visible = true;
+        this.sceneEquippables.push(equippable);
+
+        this.forSale[i] = null;
+        this.buyButtons[i].text = "GONE...SOLD";
+    }
 
     /**
      * Initializes the player in the scene
@@ -1165,6 +1556,13 @@ export default class MainSMScene extends SMScene {
             this.battlers.push(npc);
         }
          */
+
+        console.log("spawned merchant");
+        let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
+        merchant.position.copy(this.MERCHANT_LOCATION);
+        merchant.scale.set(0.25, 0.25);
+        merchant.animation.playIfNotAlready("Idle", true);
+
         let dumpster = this.load.getObject("dumpster");
 
         for (let i = 0; i < dumpster.dumpsters.length; i++) {
@@ -1179,9 +1577,20 @@ export default class MainSMScene extends SMScene {
         //this.spawnBoss();
 
     }
-
-    protected initializeItems(): void {
+    protected initTweenGraphics() {
+        let alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
+        let size = this.viewport.getHalfSize().scaled(2);
+        this.waveAlerts = new WaveAlerts(alertSprite, size);
+        alertSprite.animation.playIfNotAlready("WAVE_1");
     }
+
+    protected setBuyItems() {
+        for (let i = 0; i < 3; i++) {
+            this.dropOrChooseItem(new Vec2(0,0), i);
+        }
+    }
+    
+
 
     public cheatGiveItems(): void{
         let playerAt = new Vec2(-1500, 1000);

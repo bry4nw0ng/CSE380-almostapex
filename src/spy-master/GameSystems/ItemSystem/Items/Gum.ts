@@ -16,6 +16,8 @@ export default class Gum extends Item {
         this._isAbility = true;
         this._description = "Slow all enemies 50% for 5s";
         this._cooldownDuration = 15000;
+        this.value = 1000;
+        this.equippableOffset = new Vec2(3, 4);
     }
 
     public override useAbility(player: PlayerActor): void {

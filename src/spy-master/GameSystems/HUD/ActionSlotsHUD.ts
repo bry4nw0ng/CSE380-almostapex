@@ -58,10 +58,12 @@ export default class ActionSlotsHUD implements Updateable {
     /** Tooltip label shown on hover */
     private tooltip: Label;
 
+    private crystalSprite: Sprite | null;
+
     private boxSprites: Sprite[];
     private countdownLabels: Label[];
 
-    public constructor(scene: Scene, layer: string, equippables: Inventory, abilities: Inventory, options: ActionSlotsOptions, player:PlayerActor) {
+    public constructor(scene: Scene, layer: string, equippables: Inventory, abilities: Inventory, options: ActionSlotsOptions, player: PlayerActor) {
         this.scene = scene;
         this.layer = layer;
         this.player = player;
@@ -74,36 +76,31 @@ export default class ActionSlotsHUD implements Updateable {
         this.slotIcons = [null, null, null, null];
         this.slotItemIds = [null, null, null, null];
 
+        this.crystalSprite = null;
+
         //let weaponColor = new Color(140, 60, 60, 200);
         //let abilityColor = new Color(60, 60, 140, 200);
         
         this.boxSprites = [];
         this.countdownLabels = [];
 
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 5; i++) {
             let offsetX = 0;
             if (i === 0) {
                 offsetX = 0;
             } else if (i === 1) {
                 offsetX = options.boxWidth + options.weaponAbilityGap;
-            } else {
+            } 
+            else if (i > 1 && i < 4) {
                 offsetX = options.boxWidth + options.weaponAbilityGap + (i - 1) * (options.boxWidth + options.abilityGap);
             }
+
             let centerX = options.startX + options.boxWidth / 2 + offsetX;
             let centerY = options.topY + options.height / 2;
-
-/*             let box = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
-            box.size.set(options.boxWidth, options.height);
-            box.backgroundColor = i === 0 ? weaponColor : abilityColor;
-            box.borderColor = Color.WHITE;
-            box.borderWidth = 1;
-            box.textColor = Color.WHITE;
-            box.fontSize = 20;
-            box.font = "Arial";
-
-            this.boxSprites.push(box);
-            this.boxPositions.push(new Vec2(centerX, centerY));
-            this.boxColors.push(i === 0 ? weaponColor : abilityColor); */
+            if (i == 4) {
+                centerX = 30;
+                centerY = 480
+            }
 
             let box;
             if (i == 0) {
@@ -111,23 +108,42 @@ export default class ActionSlotsHUD implements Updateable {
                 box.position.set(centerX + 18, centerY - 10);
                 this.boxPositions.push(new Vec2(centerX + 18, centerY - 10));
             }
-            else {
+            else if (i > 0 && i < 4) {
                 box = this.scene.add.sprite("tray_blue", layer);
                 box.position.set(centerX, centerY - 10)
                 this.boxPositions.push(new Vec2(centerX, centerY - 10));
             }
+            else {
+                //I decided to just keep it without the tray sprite, looked better
+                box = null;
+                this.boxPositions.push(new Vec2(centerX, centerY ));
+            }
 
-            box.scale.set(1.5 ,1.5);
+            if (box) {
+                box.scale.set(1.5 ,1.5);
+            }
             this.boxSprites.push(box);
 
-            let label = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(centerX, centerY), text: ""});
+
+            if (i == 4) {
+                centerX = 30;
+                centerY = 480;
+                this.crystalSprite = this.scene.add.sprite("Crystal", layer);
+                this.crystalSprite.scale.set(2, 2);
+                this.crystalSprite.position.set(centerX - 8, centerY);
+            }
+            
+
+            let labelX = i == 4 ? centerX + 8 : centerX;
+            let labelY = i == 4 ? centerY + 8 : centerY;
+            let label = <Label>this.scene.add.uiElement(UIElementType.LABEL, layer, {position: new Vec2(labelX, labelY), text: ""});
             //label.size.set(options.boxWidth, options.height);
             label.size.set(32, 32);
             label.backgroundColor = Color.TRANSPARENT;
             label.borderColor = Color.TRANSPARENT;
             label.borderWidth = 0;
             label.textColor = Color.WHITE;
-            label.fontSize = 20;
+            label.fontSize =20;
             this.countdownLabels.push(label);
         }
 
@@ -138,7 +154,6 @@ export default class ActionSlotsHUD implements Updateable {
         this.tooltip.borderWidth = 1;
         this.tooltip.textColor = Color.WHITE;
         this.tooltip.fontSize = 18;
-        this.tooltip.font = "Arial";
         this.tooltip.size.set(280, 36);
         this.tooltip.visible = false;
     }
@@ -193,18 +208,24 @@ export default class ActionSlotsHUD implements Updateable {
 
                 if (item && item.isCoolingDown) {
                     this.slotIcons[i].alpha = 0.3;
-                    this.boxSprites[i].alpha = 0.5;
+                    if (this.boxSprites[i]) {
+                        this.boxSprites[i].alpha = 0.5;
+                    }
                     //this.countdownLabels[i].backgroundColor = this.cooldownColor;
                     let secondsLeft = Math.ceil(item.cooldownProgress * item.cooldownDuration / 1000);
                     this.countdownLabels[i].text = secondsLeft + "s";
                 } else {
                     this.slotIcons[i].alpha = 1;
-                    this.boxSprites[i].alpha = 1;
+                    if (this.boxSprites[i]) {
+                        this.boxSprites[i].alpha = 1;
+                    }
                     //this.countdownLabels[i].backgroundColor = this.boxColors[i];
                     this.countdownLabels[i].text = "";
                 }
             } else {
-                this.boxSprites[i].alpha = 1;
+                if (this.boxSprites[i]) {
+                    this.boxSprites[i].alpha = 1;
+                }
                 //this.countdownLabels[i].backgroundColor = this.boxColors[i];
             }
 
@@ -215,13 +236,25 @@ export default class ActionSlotsHUD implements Updateable {
                 tooltipPos = new Vec2(pos.x, pos.y + this.boxSize / 2 + 30);
                 tooltipVisible = true;
             }
-        }
 
+        }
         // Update tooltip
         this.tooltip.visible = tooltipVisible;
         if (tooltipVisible) {
             this.tooltip.text = tooltipText;
             this.tooltip.position.copy(tooltipPos);
         }
+
+        this.countdownLabels[4].text = `x${this.player.crystals}`;
+        if (this.countdownLabels[4]["isEntered"]) {
+            this.tooltip.visible = true;
+            this.tooltip.text = "Maybe there is someone who values these highly...";
+            this.tooltip.size.set(400, 36);
+            this.tooltip.position.set(150, 480);
+        }
+        else if (!tooltipVisible) {
+            this.tooltip.visible = false;
+        }
+
     }
 }
