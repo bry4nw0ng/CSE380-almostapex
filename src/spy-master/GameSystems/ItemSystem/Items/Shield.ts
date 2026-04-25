@@ -14,6 +14,8 @@ export default class Shield extends Item {
         this._isPassive = true;
         this._description = "Reduces damage taken by 20%";
         this._damageReduction = 0.8;
+        this.value = 300;
+        this.equippableOffset = new Vec2(12, 7);
     }
 
     public get luckBoost(): number { return this._damageReduction; }

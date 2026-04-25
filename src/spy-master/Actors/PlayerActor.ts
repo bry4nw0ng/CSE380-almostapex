@@ -38,15 +38,15 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
     protected _hasNeedle: boolean;
 
-    public equippables: Inventory = new Inventory(10);
-    public abilities: Inventory = new Inventory(4);
+    public equippables: Inventory = new Inventory(20);
+    public abilities: Inventory = new Inventory(3);
 
     constructor(sheet: Spritesheet) {
         super(sheet);
         this.battler = new BasicBattler(this);
         this.targetable = new BasicTargetable(this);
 
-        this._crystals = 0;
+        this._crystals = 10000;
 
         this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
         this.receiver.subscribe(AbilityEvent.USED_JETPACK)
@@ -157,6 +157,9 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     get hasNeedle() {
         return this._hasNeedle;
     }
+    set hasNeedle(has: boolean) {
+        this._hasNeedle = has;
+    }
 
     public equip(equippable: Item): void{
         console.log("isAbility:", equippable.isAbility);
@@ -175,7 +178,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     public unEquip(equippable: Item): void {
         this.equippables.remove(equippable.id);
         if (equippable.isAbility) {
-            this.abilities.add(equippable);
+            this.abilities.remove(equippable.id);
         }
         equippable.removeBuff(this);
     }

@@ -14,6 +14,7 @@ export default class RedHat extends Item {
         this._isPassive = true;
         this._description = "Increases luck by 10%";
         this._luckBoost = 1.1;
+        this.value = 200;
     }
 
     public get luckBoost(): number { return this._luckBoost; }

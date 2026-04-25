@@ -34,6 +34,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _isCoolingDown: boolean = false;
     protected _cooldownStartTime: number = 0;
 
+    protected _value;
     protected constructor(sprite: Sprite){
         this.sprite = sprite;
         this.emitter = new Emitter();
@@ -45,6 +46,7 @@ export default abstract class Item implements Unique, TargetableEntity {
         this._isAbility = false;
         this._isWeapon = false;
         this._isPassive = false;
+        this._value = 0;
     }
 
     getTargeting(): TargetingEntity[] { 
@@ -108,6 +110,14 @@ export default abstract class Item implements Unique, TargetableEntity {
 
     public get isCoolingDown(): boolean {
         return this._isCoolingDown;
+    }
+
+    public get value(): number {
+        return this._value;
+    }
+
+    public set value(val: number) {
+        this._value = val;
     }
 
     /** Returns 1.0 when cooldown just started, 0.0 when done */

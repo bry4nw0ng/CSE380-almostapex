@@ -106,7 +106,7 @@ export default class RaccoonBehavior extends NPCBehavior {
         }
 
         this.switchTimer.start();
-        this.owner.animation.play("ATTACK", false);
+        this.owner.animation.playIfNotAlready("ATTACK", false);
 
         if (this.attackStrategy == "spray") {
             for (let i = 0; i <= 20; i++) {

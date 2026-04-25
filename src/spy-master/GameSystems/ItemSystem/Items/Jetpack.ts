@@ -16,7 +16,10 @@ export default class JetPack extends Item {
         this._isAbility = true;
         this._description = "Double speed for 5s";
         this._cooldownDuration = 10000;
+        this.value = 1000;
+        this.equippableOffset = new Vec2(-12, 6);
     }
+
 
     public get speedBoost(): number { return this._speedBoost; }
     public set speedBoost(boost: number) { this._speedBoost = boost; }

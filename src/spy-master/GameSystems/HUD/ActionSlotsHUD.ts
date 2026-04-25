@@ -263,7 +263,8 @@ export default class ActionSlotsHUD implements Updateable {
         if (this.countdownLabels[4]["isEntered"]) {
             this.tooltip.visible = true;
             this.tooltip.text = "Maybe there is someone who values these highly...";
-            this.tooltip.position.set(30, 365);
+            this.tooltip.size.set(400, 36);
+            this.tooltip.position.set(150, 480);
         }
         else if (!tooltipVisible) {
             this.tooltip.visible = false;
