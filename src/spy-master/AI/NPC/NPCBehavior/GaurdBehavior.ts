@@ -46,8 +46,8 @@ export default class GuardBehavior extends NPCBehavior {
         this.scene = this.owner.getScene();
 
         this.resetTime = false;
-        this.pathToPlayer = this.scene.getNavigationManager().getPath("navmesh", this.owner.position, this.target.position);
-        this.resetPathTimer = new Timer(100, () => this.resetPath(), false);
+        this.pathToPlayer = this.scene.getNavmesh().getNavigationPath(this.owner.position, this.target.position);
+        this.resetPathTimer = new Timer(800, () => this.resetPath(), false);
 
         // Initialize guard statuses
         this.initializeStatuses();
@@ -78,11 +78,15 @@ export default class GuardBehavior extends NPCBehavior {
             this.owner.animation.playIfNotAlready("WALK", true);
         }
         else {
-            if (!this.resetPathTimer.isStopped()) {
+            if (this.resetPathTimer.isStopped()) {
                 this.resetPathTimer.start();
             }
-            this.owner.moveOnPath(this.owner.speed, this.pathToPlayer);
-            this.owner.animation.playIfNotAlready("WALK", true);
+            console.log("path done?", this.pathToPlayer?.isDone(), "path null?", !this.pathToPlayer);
+            if (this.pathToPlayer && this.pathToPlayer.isDone) {
+                this.owner.moveOnPath(this.owner.speed, this.pathToPlayer);
+                this.pathToPlayer.handlePathProgress(this.owner);
+                this.owner.animation.playIfNotAlready("WALK", true);
+            }
         }
 
     }

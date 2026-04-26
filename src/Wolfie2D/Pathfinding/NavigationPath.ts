@@ -21,7 +21,10 @@ export default class NavigationPath implements Path<Vec2> {
 	constructor(path: Stack<Vec2>){
 		this.path = path;
 		this.currentMoveDirection = Vec2.ZERO;
-		this.distanceThreshold = 4;
+
+		//this.distanceThreshold = 4;
+		//I genuinely have no idea, sometimes makes the pathfinding better
+		this.distanceThreshold = 100;
 	}
 
 	/**

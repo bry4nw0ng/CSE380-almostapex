@@ -162,8 +162,8 @@ export default class ActionSlotsHUD implements Updateable {
         this.tooltip.borderColor = Color.WHITE;
         this.tooltip.borderWidth = 1;
         this.tooltip.textColor = Color.WHITE;
-        this.tooltip.fontSize = 18;
-        this.tooltip.size.set(280, 36);
+        this.tooltip.fontSize = 12;
+        this.tooltip.size.set(350, 36);
         this.tooltip.visible = false;
     }
 

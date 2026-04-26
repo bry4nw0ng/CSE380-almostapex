@@ -106,9 +106,10 @@ export default class RaccoonBehavior extends NPCBehavior {
         }
 
         this.switchTimer.start();
-        this.owner.animation.playIfNotAlready("ATTACK", false);
+        this.owner.animation.play("ATTACK", false);
 
         if (this.attackStrategy == "spray") {
+            console.log("Sprayed");
             for (let i = 0; i <= 20; i++) {
                 let angle = Math.random() * Math.PI * 2;
                 let aim = new Vec2(Math.cos(angle), Math.sin(angle));
@@ -116,6 +117,7 @@ export default class RaccoonBehavior extends NPCBehavior {
             }
         }
         else if (this.attackStrategy == "aim") {
+            console.log("Aimed");
             let aim = this.owner.position.dirTo(this.target.position);
             for (let i = 0; i <= 10; i++) {
                 let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 + Math.random() * 0.1))

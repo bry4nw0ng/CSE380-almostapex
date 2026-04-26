@@ -58,6 +58,7 @@ import Graphic from "../../Wolfie2D/Nodes/Graphic";
 import TimerManager from "../../Wolfie2D/Timing/TimerManager";
 import Crystal from "../GameSystems/ItemSystem/Items/Crystal";
 import Label from "../../Wolfie2D/Nodes/UIElements/Label";
+import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 
 const BattlerGroups = {
     RED: 1,
@@ -128,7 +129,7 @@ export default class MainSMScene extends SMScene {
     private needle: DaNeedle | null;
 
     private waveAlerts: WaveAlerts;
-    private finalAlertPlayed: boolean;
+    //private finalAlertPlayed: boolean;
     private waveCrestSprite: AnimatedSprite | null;
 
     //Cheats
@@ -176,7 +177,7 @@ export default class MainSMScene extends SMScene {
 
         this.waveCrestSprite = null;
 
-        this.finalAlertPlayed = false;
+        //this.finalAlertPlayed = false;
         this.curDelay = 0;
         this.totSpawned = 0;
         this.curWave = 0;
@@ -186,17 +187,21 @@ export default class MainSMScene extends SMScene {
         this.waveDelayTimer = new Timer(4000, () => {
             if (this.curWave == 0) {
                 this.waveAlerts.playWave1Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "WAVE_START", loop: false, holdReference: false});
             }
             else if (this.curWave == 1) {
                 this.waveAlerts.playWave2Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "WAVE_START", loop: false, holdReference: false});
                 this.waveCrestSprite.animation.playIfNotAlready("WAVE_2", true);
             }
             else if (this.curWave == 2) {
                 this.waveAlerts.playWave3Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "WAVE_START", loop: false, holdReference: false});
                 this.waveCrestSprite.animation.playIfNotAlready("WAVE_3", true);
             }
             else if (this.curWave == 3) {
                 this.waveAlerts.playBossIncoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "BOSS_SPAWNED", loop: false, holdReference: false});
                 this.waveCrestSprite.animation.playIfNotAlready("WAVE_4", true);
             }
             this.waveTweenTimer.start()
@@ -206,19 +211,14 @@ export default class MainSMScene extends SMScene {
             if (!this.bossDead && this.totSpawned < this.totInCurWave) {
                 this.spawnEnemies();
                 this.totSpawned += 1;
-                console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.leftInCurWave);
+                console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.totInCurWave);
             }
             else if (this.totSpawned == this.totInCurWave) {
                 this.spawnDelayTimer.pause()
                 console.log("All enemies spawned ", this.curWave);
             }
             else if (this.bossDead) {
-                this.spawnDelayTimer.pause()
-                if (!this.finalAlertPlayed) {
-                    this.waveAlerts.playBossDefeated();
-                    this.waveCrestSprite.animation.playIfNotAlready("WAVE_5", true);
-                    console.log("You beat the boss!")
-                }
+                this.spawnDelayTimer.pause();
             }
         }, true);
 
@@ -226,6 +226,7 @@ export default class MainSMScene extends SMScene {
         this.bossDead = false;
 
         this.shopState = "main";
+
     }
 
     /**
@@ -310,6 +311,32 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
 
         this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
+
+        //AUDIO STUFF
+        this.load.audio("TRANSACTION", "game_assets/sounds/buy-sell-item.wav");
+        this.load.audio("UNPICKUPPABLE", "game_assets/sounds/cant-pick-up.wav");
+        this.load.audio("PICKUP_COIN", "game_assets/sounds/coin-pickup.wav");
+        this.load.audio("PICKUP_ITEM", "game_assets/sounds/item-pickup.wav");
+
+        this.load.audio("DEATH", "game_assets/sounds/death.wav");
+        this.load.audio("ENEMY_DEATH", "game_assets/sounds/enemy-death.wav");
+        this.load.audio("HURT", "game_assets/sounds/hurt.wav");
+        this.load.audio("ENEMY_HURT", "game_assets/sounds/enemy-hit.wav");
+        
+        this.load.audio("SPITBALL", "game_assets/sounds/shoot.wav");
+        this.load.audio("HEAL", "game_assets/sounds/heal.wav");
+        this.load.audio("SWING", "game_assets/sounds/swing-sword.wav");
+        this.load.audio("GUM", "game_assets/sounds/gum.wav");
+        this.load.audio("COKEPACK", "game_assets/sounds/jetpack.wav");
+        this.load.audio("TREASURE", "game_assets/sounds/open-treasure.wav");
+
+        this.load.audio("WAVE_START", "game_assets/sounds/wave-beginning.wav");
+        this.load.audio("WAVE_DEFEATED", "game_assets/sounds/wave-defeated.wav");
+        this.load.audio("BOSS_SPAWNED", "game_assets/sounds/boss-spawning.wav");
+        this.load.audio("BOSS_DEFEATED", "game_assets/sounds/boss-defeat.wav");
+
+        this.load.audio("TP_NEW_LEVEL", "game_assets/sounds/teleport-to-new-level.wav");
+
     }
     /**
      * @see Scene.startScene
@@ -559,44 +586,43 @@ export default class MainSMScene extends SMScene {
     }
 
     public updateTrash(deltaT) {           
-        if (!this.CHEATINVINCIBLE) {
-            this.trash.forEach((shot) => {
-                if (shot.stillCookin) {
-                    if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 ) {
-                        let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
-                        if (antennas) {
-                            if (antennas.curStack > 1) {
-                                antennas.curStack -= 1;
-                            }
-                            else {
-                                this.player.equippables.remove(antennas.id);
-                                antennas.visible = false;
-                            }
-                            this.player.startIFrames();
+        this.trash.forEach((shot) => {
+            if (shot.stillCookin) {
+                if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 && !this.CHEATINVINCIBLE) {
+                    let antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas)
+                    if (antennas) {
+                        if (antennas.curStack > 1) {
+                            antennas.curStack -= 1;
                         }
                         else {
-                            this.player.health = this.player.health - 3 * this.player.damageReduction;
-                            shot.sprite.visible = false;
-                            shot.stillCookin = false;
-                            this.player.animation.playIfNotAlready("DAMAGE", false);
-                            this.player.startIFrames();
+                            this.player.equippables.remove(antennas.id);
+                            antennas.visible = false;
                         }
-
+                        this.player.startIFrames();
                     }
-                    //Check if 2000 necessary
-                    else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    else {
+                        this.player.health = this.player.health - 3 * this.player.damageReduction;
+                        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "HURT", loop: false, holdReference: false});
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
+                        this.player.animation.play("DAMAGE", false);
+                        this.player.startIFrames();
                     }
-                    shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
 
-                    shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
                 }
-                else {
-                    shot.sprite.destroy();
+                //Check if 2000 necessary
+                else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    shot.sprite.visible = false;
+                    shot.stillCookin = false;
                 }
-            })
-        }
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+            }
+            else {
+                shot.sprite.destroy();
+            }
+        })
         this.trash = this.trash.filter((shot) => shot.stillCookin == true);
     }
 
@@ -609,8 +635,9 @@ export default class MainSMScene extends SMScene {
                             battler.health = battler.health - 500;
                         }
                         else {
-                            battler.health = battler.health - 1;  
-                            battler.animation.playIfNotAlready("HURT", false);                     
+                            battler.health = battler.health - 1;
+                            this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "ENEMY_HURT", loop: false, holdReference: false});
+                            battler.animation.play("HURT", false, "WALK");                     
                         }
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
@@ -664,8 +691,8 @@ export default class MainSMScene extends SMScene {
                 else {
                     if (battler.health > 0) {
                         this.player.health = this.player.health - 3 * this.player.damageReduction;
-                        console.log(this.player.health);
-                        this.player.animation.playIfNotAlready("DAMAGE", false);
+                        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "HURT", loop: false, holdReference: false});
+                        this.player.animation.play("DAMAGE", false);
                         this.player.startIFrames();
                     }
                 }
@@ -676,6 +703,7 @@ export default class MainSMScene extends SMScene {
     public updateCrystals() {
         this.sceneCrystals.forEach((crystal) => {
             if (crystal.position.distanceTo(this.player.position) <= 30) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COIN_PICKUP", loop: false, holdReference: false});
                 this.player.crystals += crystal.value;
                 crystal.visible = false;
             }
@@ -797,7 +825,7 @@ export default class MainSMScene extends SMScene {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
                     battler.health = battler.health - 0.1;
-                    battler.animation.playIfNotAlready("HURT", false);
+                    battler.animation.play("HURT", false, "WALK");
                 }
             }
         });
@@ -808,6 +836,7 @@ export default class MainSMScene extends SMScene {
                 let prevSpeed = battler.speed;
                 battler.speed = battler.speed / 2;
                 let activeTimer = new Timer(5000, () => battler.speed = prevSpeed, false);
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "GUM", loop: false, holdReference: false});
                 activeTimer.start();
             }
         });
@@ -817,6 +846,7 @@ export default class MainSMScene extends SMScene {
         this.treasure.forEach(cache => {
             if (cache.sprite.position.distanceTo(this.player.position) < 100) {
                 this.dropOrChooseItem(cache.sprite.position, 999);
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TREASURE", loop: false, holdReference: false});
                 cache.sprite.destroy();
             }
         })
@@ -842,6 +872,9 @@ export default class MainSMScene extends SMScene {
         if (items.length > 0) {
             let closestItem = items.reduce(ClosestPositioned(player));
             if (closestItem instanceof Healthpack) {
+                if (player.maxHealth == player.health) {
+                    return;
+                }
                 let newHealth;
                 if (player.maxHealth < player.health + 5) {
                     newHealth = player.maxHealth;
@@ -850,6 +883,7 @@ export default class MainSMScene extends SMScene {
                     newHealth = player.health + 5;
                 }
                 player.health = newHealth;
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "HEAL", loop: false, holdReference: false});
                 closestItem.visible = false;
                 this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
                 return;
@@ -861,6 +895,7 @@ export default class MainSMScene extends SMScene {
             if (alreadyHas) {
                 if (alreadyHas.maxStack <= alreadyHas.curStack) {
                     //probably should add some sorta noise so it isnt frustrating
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "UNPICKUPPABLE", loop: false, holdReference: false});
                     return;
                 }
                 else {
@@ -868,9 +903,11 @@ export default class MainSMScene extends SMScene {
                     closestItem.visible = false;
                     this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
                     alreadyHas.applyBuff(this.player);
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "PICKUP_ITEM", loop: false, holdReference: false});
                     return;
                 }
             }
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "PICKUP_ITEM", loop: false, holdReference: false});
             //OTHERWISE JUST EQUIP AS NORMAL
             player.equip(closestItem);
             if (closestItem instanceof DaNeedle) {
@@ -890,7 +927,10 @@ export default class MainSMScene extends SMScene {
         if (battler) {
             let deathSpot = battler.position.clone();
             if (battler instanceof PlayerActor) {
-                if (this.playerDead) return; // already dying, ignore repeated events
+                if (this.playerDead) {
+                    return;
+                }
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "DEATH", loop: false, holdReference: false});
                 this.playerDead = true;
                 this.player.crystals = Math.floor(this.player.crystals / 2);
                 battler.animation.play("DYING", false, "DEAD");
@@ -913,8 +953,18 @@ export default class MainSMScene extends SMScene {
                     this.sceneCrystals.push(crystal);
                 }
                 this.bossDead = true;
+                battler.battlerActive = false;
+                this.healthbars.get(battler).visible = false;
+                this.healthbars.delete(battler);
+                this.battlers = this.battlers.filter(b => b.id !== id);
+                this.waveAlerts.playBossDefeated();
+                this.waveCrestSprite.animation.playIfNotAlready("WAVE_5", true);
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "BOSS_DEFEATED", loop: false, holdReference: false});
+                this.spawnDelayTimer.pause();
+                this.waveDelayTimer.pause();
             }
             else {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "ENEMY_DEATH", loop: false, holdReference: false});
                 this.leftInCurWave -= 1;
                 console.log("Enemy Killed: ", this.leftInCurWave, " of ", this.totSpawned, " spawned enemies left")
                 battler.battlerActive = false;
@@ -932,14 +982,14 @@ export default class MainSMScene extends SMScene {
                 crystal.position.copy(deathSpot.clone().add( new Vec2(Math.random() * 15, Math.random() * 15)));
                 this.sceneCrystals.push(crystal);
 
-                if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave) {
+                if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave && !this.bossDead) {
                     this.waveAlerts.playWaveDefeated();
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "WAVE_DEFEATED", loop: false, holdReference: false});
                     this.waveDelayTimer.start();
                 }
 
             }
         }
- 
     }
 
     protected dropOrChooseItem(position: Vec2, i: number) {
@@ -1662,6 +1712,7 @@ export default class MainSMScene extends SMScene {
         let spitball = this.add.sprite("spitball", "primary");
         spitball.position.set(position.x, position.y);
         spitball.scale.set(1, 1);
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "SPITBALL", loop: false, holdReference: false});
         this.spitballs.push({sprite: spitball, velocity: direction.scaled(120), stillCookin: true})
 
     }
@@ -1794,7 +1845,7 @@ export default class MainSMScene extends SMScene {
             this.curWave = 4;
             this.leftInCurWave = 1000;
             this.totInCurWave = 1000;
-            this.curDelay = 1000;
+            this.curDelay = 3000;
             this.spawnDelayTimer.start(this.curDelay);
             this.spawnBoss();
         }
@@ -1860,7 +1911,6 @@ export default class MainSMScene extends SMScene {
         
         // Add the NPC to the battlers array
         this.battlers.push(npc);
-
     }
 
     public getBattlers(): Battler[] { return this.battlers; }

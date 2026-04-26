@@ -33,6 +33,8 @@ import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 import MainSMScene from "../../Scenes/MainSMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
+import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
+
 /**
  * The controller that controls the player.
  */
@@ -123,10 +125,12 @@ export default class PlayerController extends StateMachineAI implements AI{
     } 
 
     public handleJetPackTriggered() {
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
         this.speed = this.speed * 2;
         let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
         activeTimer.start();
     }
+
     /** 
 	 * Get the inputs from the keyboard, or Vec2.Zero if nothing is being pressed
 	 */
@@ -164,6 +168,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         if (Input.isJustPressed(AAControls.MEELEE)) {
             let weapon = this.owner.equippables.find(item => item.isWeapon == true); //Might have to change if add more meelees
             if (weapon && !(this.owner.isWeaponTired)) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "SWING", loop: false, holdReference: false});
                 weapon.useWeapon(this.owner, this.playerFacingDir);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredTimer.start();
