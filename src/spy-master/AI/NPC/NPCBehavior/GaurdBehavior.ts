@@ -32,8 +32,6 @@ export default class GuardBehavior extends NPCBehavior {
     protected scene: SMScene;
 
     protected pathToPlayer: NavigationPath;
-    protected resetPathTimer: Timer;
-    protected resetTime: boolean;
 
     /** Initialize the NPC AI */
     public initializeAI(owner: NPCActor, options: GuardOptions): void {
@@ -45,9 +43,7 @@ export default class GuardBehavior extends NPCBehavior {
 
         this.scene = this.owner.getScene();
 
-        this.resetTime = false;
-        this.pathToPlayer = this.scene.getNavmesh().getNavigationPath(this.owner.position, this.target.position);
-        this.resetPathTimer = new Timer(800, () => this.resetPath(), false);
+        //this.pathToPlayer = this.scene.getNavmesh().getNavigationPath(this.owner.position, this.target.position);
 
         // Initialize guard statuses
         this.initializeStatuses();
@@ -71,32 +67,29 @@ export default class GuardBehavior extends NPCBehavior {
 
     public update(deltaT: number): void { //IMPORTANT
         super.update(deltaT);
-        
-        if (this.scene.isTargetVisible(this.owner.position, this.target.position)) {
+
+        //if (this.scene.isTargetVisible(this.owner.position, this.target.position)) {
+        if (this.owner.position.distanceTo(this.target.position) < 200) {
             let dir = this.owner.position.dirTo(this.target.position);
+            if (dir.x < 0) {
+                this.owner.invertX = true;
+            }
+            else {
+                this.owner.invertX = false;
+            }
             this.owner.move(dir.scaled(this.owner.speed * deltaT));
-            this.owner.animation.playIfNotAlready("WALK", true);
+            return;
         }
         else {
-            if (this.resetPathTimer.isStopped()) {
-                this.resetPathTimer.start();
+            if (!this.pathToPlayer || this.pathToPlayer.isDone()) {
+                this.pathToPlayer = this.scene.getNavmesh().getNavigationPath(this.owner.position, this.target.position);
             }
-            console.log("path done?", this.pathToPlayer?.isDone(), "path null?", !this.pathToPlayer);
-            if (this.pathToPlayer && this.pathToPlayer.isDone) {
-                this.owner.moveOnPath(this.owner.speed, this.pathToPlayer);
-                this.pathToPlayer.handlePathProgress(this.owner);
-                this.owner.animation.playIfNotAlready("WALK", true);
+            if (this.pathToPlayer && !this.pathToPlayer.isDone()) {
+                this.owner.moveOnPath(this.owner.speed * deltaT, this.pathToPlayer);
             }
         }
 
-    }
-    protected resetPath(): void {
-        let navmesh = this.scene.getNavmesh();
-        this.pathToPlayer = navmesh.getNavigationPath(this.owner.position, this.target.position);
-        if (!(this.scene.isTargetVisible(this.owner.position, this.target.position))) {
-            this.resetPathTimer.start();
-        }
-    }
+    } 
 
     protected initializeStatuses(): void {
         this.addStatus(GuardStatuses.GOAL, new FalseStatus());

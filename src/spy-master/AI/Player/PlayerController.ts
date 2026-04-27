@@ -34,6 +34,7 @@ import MainSMScene from "../../Scenes/MainSMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
+import MainMenu from "../../Scenes/MainMenu";
 
 /**
  * The controller that controls the player.
@@ -72,7 +73,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
         this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
         this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
-        this.weaponTiredGunTimer = new Timer(200, () => this.owner.isWeaponTired = false, false);
+        this.weaponTiredGunTimer = new Timer(400, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
@@ -174,7 +175,10 @@ export default class PlayerController extends StateMachineAI implements AI{
                 this.weaponTiredTimer.start();
             }
         }
-        if (Input.isJustPressed(AAControls.ATTACK)) {
+        if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
+            if (this.scene instanceof MainMenu) {
+                return;
+            }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
                 let scene = this.owner.getScene() as MainSMScene;

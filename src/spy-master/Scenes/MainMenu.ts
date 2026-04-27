@@ -23,6 +23,7 @@ import MainSMScene from "./MainSMScene";
 import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
+import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -97,6 +98,8 @@ export default class MainMenu extends SMScene {
         this.load.image("cheats", "game_assets/ui/book/cheats.png");
 
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
+
+        this.load.audio("MENU", "game_assets/sounds/songs/home-cleaned.mp3");
     }
 
     public startScene(): void {
@@ -240,6 +243,8 @@ export default class MainMenu extends SMScene {
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
+        this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "MENU", loop: true, holdReference: true});
+        
     }
 
     public updateScene(_deltaT: number): void {
@@ -247,10 +252,6 @@ export default class MainMenu extends SMScene {
             this.viewport.setZoomLevel(1);
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
-                return;
-            }
-            if (Input.isKeyJustPressed("1")) {
-                this.sceneManager.changeToScene(MainSMScene);
                 return;
             }
             if (Input.isMouseJustPressed()) {
@@ -262,6 +263,7 @@ export default class MainMenu extends SMScene {
                 }
                 if (Math.abs(mouse.x - this.CITY_POS.x) <= this.CLOSE_HIT &&
                     Math.abs(mouse.y - this.CITY_POS.y) <= this.CLOSE_HIT) {
+                    this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
                     this.sceneManager.changeToScene(MainSMScene);
                 }
             }

@@ -59,6 +59,8 @@ import TimerManager from "../../Wolfie2D/Timing/TimerManager";
 import Crystal from "../GameSystems/ItemSystem/Items/Crystal";
 import Label from "../../Wolfie2D/Nodes/UIElements/Label";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
+import AudioManager, { AudioChannelType } from "../../Wolfie2D/Sound/AudioManager";
+import SeedSlingerBehavior from "../AI/NPC/NPCBehavior/SeedSlingerBehavior";
 
 const BattlerGroups = {
     RED: 1,
@@ -117,6 +119,7 @@ export default class MainSMScene extends SMScene {
     private totSpawned: number;
     private totInCurWave: number;
     private curDelay: number;
+    private pigeonsThisWave: number;
 
     private spawnDelayTimer: Timer;
     private waveDelayTimer: Timer;
@@ -180,6 +183,7 @@ export default class MainSMScene extends SMScene {
         //this.finalAlertPlayed = false;
         this.curDelay = 0;
         this.totSpawned = 0;
+        this.pigeonsThisWave = 0;
         this.curWave = 0;
         this.leftInCurWave = 0;
         this.totInCurWave = 0;
@@ -209,7 +213,15 @@ export default class MainSMScene extends SMScene {
 
         this.spawnDelayTimer = new Timer(this.curDelay, () => {
             if (!this.bossDead && this.totSpawned < this.totInCurWave) {
-                this.spawnEnemies();
+                if(this.curWave == 2 && ((this.totInCurWave - this.totSpawned) < 4)) {
+                        this.spawnEnemies("pigeon");
+                }
+                else if(this.curWave == 3 && ((this.totInCurWave - this.totSpawned) < 7)) {
+                    this.spawnEnemies("pigeon");
+                }
+                else {
+                    this.spawnEnemies("rollermouse");
+                }
                 this.totSpawned += 1;
                 console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.totInCurWave);
             }
@@ -237,10 +249,8 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
 
         // Load in the enemy sprites
-        this.load.spritesheet("BlueEnemy", "game_assets/spritesheets/BlueEnemy.json");
-        this.load.spritesheet("RedEnemy", "game_assets/spritesheets/scabbers2.json");
-        this.load.spritesheet("BlueHealer", "game_assets/spritesheets/BlueHealer.json");
-        this.load.spritesheet("RedHealer", "game_assets/spritesheets/RedHealer.json");
+        this.load.spritesheet("rollermouse", "game_assets/spritesheets/scabbers2.json");
+        this.load.spritesheet("pigeon", "game_assets/spritesheets/pigeon.json");
         this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");  
 
         //Wave Alerts
@@ -280,6 +290,8 @@ export default class MainSMScene extends SMScene {
         this.load.image("trash-paper", "game_assets/sprites/trash-paper.png");
         this.load.image("trash-banana", "game_assets/sprites/trash-banana.png");
 
+        this.load.image("seed", "game_assets/sprites/seed.png");
+
         //your bullets
         this.load.image("spitball", "game_assets/sprites/spitball.png")
 
@@ -313,7 +325,7 @@ export default class MainSMScene extends SMScene {
         this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
 
         //MUSIC
-        this.load.audio("CITY_MUSIC", "game_assets/sounds/songs/city.mp3");
+        this.load.audio("CITY_MUSIC", "game_assets/sounds/songs/city-cleaned.mp3");
 
         //SOUND STUFF
         this.load.audio("TRANSACTION", "game_assets/sounds/buy-sell-item.wav");
@@ -369,6 +381,9 @@ export default class MainSMScene extends SMScene {
             this.walls.size.x * 2,
             this.walls.size.y * 2
         );
+
+        AudioManager.setVolume(AudioChannelType.SFX, 0.05);
+        AudioManager.setVolume(AudioChannelType.CUSTOM_1, 2)
 
         this.viewport.setZoomLevel(2);
 
@@ -436,7 +451,6 @@ export default class MainSMScene extends SMScene {
         this.bmZoneLabel.textColor = Color.WHITE;
         this.bmZoneLabel.fontSize = 24;
         this.bmZoneLabel.visible = false;
-
         this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "CITY_MUSIC", loop: true, holdReference: true});
     }
 
@@ -573,7 +587,7 @@ export default class MainSMScene extends SMScene {
             }
         });
 
-        this.updateTrash(deltaT);
+        this.updateEnemyShots(deltaT);
         this.updateSpitballs(deltaT);
         this.updateContactDamage();
         this.updateCrystals();
@@ -590,7 +604,7 @@ export default class MainSMScene extends SMScene {
         }
     }
 
-    public updateTrash(deltaT) {           
+    public updateEnemyShots(deltaT) {           
         this.trash.forEach((shot) => {
             if (shot.stillCookin) {
                 if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 && !this.CHEATINVINCIBLE) {
@@ -607,7 +621,7 @@ export default class MainSMScene extends SMScene {
                     }
                     else {
                         this.player.health = this.player.health - 3 * this.player.damageReduction;
-                        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "HURT", loop: false, holdReference: false});
+                        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "HURT", loop: false, holdReference: false, channel: AudioChannelType.CUSTOM_1});
                         shot.sprite.visible = false;
                         shot.stillCookin = false;
                         this.player.animation.play("DAMAGE", false);
@@ -640,7 +654,7 @@ export default class MainSMScene extends SMScene {
                             battler.health = battler.health - 500;
                         }
                         else {
-                            battler.health = battler.health - 1;
+                            battler.health = battler.health - 2;
                             this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "ENEMY_HURT", loop: false, holdReference: false});
                             battler.animation.play("HURT", false, "WALK");                     
                         }
@@ -708,7 +722,7 @@ export default class MainSMScene extends SMScene {
     public updateCrystals() {
         this.sceneCrystals.forEach((crystal) => {
             if (crystal.position.distanceTo(this.player.position) <= 30) {
-                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COIN_PICKUP", loop: false, holdReference: false});
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "PICKUP_COIN", loop: false, holdReference: false});
                 this.player.crystals += crystal.value;
                 crystal.visible = false;
             }
@@ -853,8 +867,10 @@ export default class MainSMScene extends SMScene {
                 this.dropOrChooseItem(cache.sprite.position, 999);
                 this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TREASURE", loop: false, holdReference: false});
                 cache.sprite.destroy();
+                return;
             }
         })
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "UNPICKUPPABLE", loop: false, holdReference: false});
     }
 
     protected handleItemRequest(player: PlayerActor, inventory: Inventory): void {
@@ -939,7 +955,10 @@ export default class MainSMScene extends SMScene {
                 this.playerDead = true;
                 this.player.crystals = Math.floor(this.player.crystals / 2);
                 battler.animation.play("DYING", false, "DEAD");
-                let deathTimer = new Timer(2500, () => this.sceneManager.changeToScene(GameOver), false);
+                let deathTimer = new Timer(2500, () => {
+                    this.sceneManager.changeToScene(GameOver);
+                    this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "CITY_MUSIC"});
+                }, false);
                 deathTimer.start();
             }
             else if (battler == this.boss) {
@@ -980,12 +999,24 @@ export default class MainSMScene extends SMScene {
                     this.dropOrChooseItem(deathSpot, 999);
                     console.log("Item dropped!")
                 }
+                
+                if (battler.maxHealth == 20) {
+                    for (let i = 0; i < 3; i++) {
+                        let crystalSprite = this.add.sprite("Crystal", "primary");
+                        crystalSprite.scale.set(0.75, 0.75);
+                        let crystal = new Crystal(crystalSprite);
+                        crystal.position.copy(deathSpot.clone().add( new Vec2(Math.random() * 15, Math.random() * 15)));
+                        this.sceneCrystals.push(crystal);
+                    }
+                }
+                else {
+                    let crystalSprite = this.add.sprite("Crystal", "primary");
+                    crystalSprite.scale.set(0.75, 0.75);
+                    let crystal = new Crystal(crystalSprite);
+                    crystal.position.copy(deathSpot.clone().add( new Vec2(Math.random() * 15, Math.random() * 15)));
+                    this.sceneCrystals.push(crystal);
+                }
 
-                let crystalSprite = this.add.sprite("Crystal", "primary");
-                crystalSprite.scale.set(0.75, 0.75);
-                let crystal = new Crystal(crystalSprite);
-                crystal.position.copy(deathSpot.clone().add( new Vec2(Math.random() * 15, Math.random() * 15)));
-                this.sceneCrystals.push(crystal);
 
                 if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave && !this.bossDead) {
                     this.waveAlerts.playWaveDefeated();
@@ -1590,7 +1621,7 @@ export default class MainSMScene extends SMScene {
 /* 
         for (let i = 0; i < red.enemies.length; i++) {
             console.log("spawned mouse");
-            let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
+            let npc = this.add.animatedSprite(NPCActor, "rollermouse", "primary");
             npc.position.set(red.enemies[i][0], red.enemies[i][1]);
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
             npc.scale.set(0.25, 0.25);
@@ -1696,17 +1727,22 @@ export default class MainSMScene extends SMScene {
         this.sceneEquippables.push(antennas);
     }
 
-    public spawnTrash(position: Vec2, direction: Vec2) {
+    public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string) {
         let choice = Math.random();
-        let trashSprite;
-        if (choice > 0.5) {
-            trashSprite = "trash-paper"
+        let shotSprite;
+        if (shooter == "raccoon") {
+            if (choice > 0.5) {
+                shotSprite = "trash-paper";
+            }
+            else {
+                shotSprite = "trash-banana";
+            }
         }
-        else {
-            trashSprite = "trash-banana"
+        else if (shooter == "pigeon") {
+            shotSprite = "seed";
         }
 
-        let trash = this.add.sprite(trashSprite, "primary");
+        let trash = this.add.sprite(shotSprite, "primary");
         trash.position.set(position.x, position.y);
         trash.scale.set(1, 1);
         this.trash.push({sprite: trash, velocity: direction.scaled(100), stillCookin: true})
@@ -1794,8 +1830,8 @@ export default class MainSMScene extends SMScene {
     
     public getRandomNodePosition() {
         let angle = Math.PI * 2 * Math.random();
-        let spawnPosX = this.player.position.x + Math.cos(angle) * 300;
-        let spawnPosY = this.player.position.y + Math.sin(angle) * 300;
+        let spawnPosX = this.player.position.x + Math.cos(angle) * 500;
+        let spawnPosY = this.player.position.y + Math.sin(angle) * 500;
         let spawnPos = new Vec2(spawnPosX, spawnPosY);
 
         let spawnOptions = this.spawnableNodes.filter((node) => {
@@ -1859,7 +1895,7 @@ export default class MainSMScene extends SMScene {
     public spawnBoss() {     
         let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
         boss.position.set(230, 1000);
-        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(30, 53)), null, false);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(40, 120)), null, false);
         boss.scale.set(1, 1);
 
         // Give the NPC a healthbar
@@ -1870,8 +1906,8 @@ export default class MainSMScene extends SMScene {
         // Set the NPCs stats
         boss.battleGroup = 1
         boss.speed = 0;
-        boss.health = 30;
-        boss.maxHealth = 30;
+        boss.health = 75;
+        boss.maxHealth = 75;
         boss.navkey = "navmesh";
 
 
@@ -1887,34 +1923,47 @@ export default class MainSMScene extends SMScene {
       
     }
 
-    public spawnEnemies() {
+    public spawnEnemies(type: string) {
         let spawnPos = this.getRandomNodePosition();
+        let npc;
+        if (type == "rollermouse") {
+            console.log("spawned mouse");
+            npc = this.add.animatedSprite(NPCActor, "rollermouse", "primary");
+            npc.position.set(spawnPos.x, spawnPos.y);
+            npc.battleGroup = 1;
+            npc.speed = 50;
+            npc.health = 10;
+            npc.maxHealth = 10;
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
+            npc.navkey = "navmesh";
+            npc.addAI(GuardBehavior, {target: this.player, range: 200});
+            npc.scale.set(0.25, 0.25);
+        }
+        else if (type == "pigeon") {
+            console.log("spawned pigeon");
+            npc = this.add.animatedSprite(NPCActor, "pigeon", "primary");
+            npc.position.set(spawnPos.x, spawnPos.y);
+            npc.battleGroup = 1;
+            npc.speed = 50;
+            npc.health = 20;
+            npc.maxHealth = 20;
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+            npc.navkey = "navmesh";
+            npc.addAI(SeedSlingerBehavior, {target: this.player, range: 75});
+            npc.scale.set(0.5, 0.5);
+        }
+        else {
+            console.error("DOOM ERROR, no idea what happened: Spawn type mismatch");
+        }
 
-        console.log("spawned mouse");
-        let npc = this.add.animatedSprite(NPCActor, "RedEnemy", "primary");
-        npc.position.set(spawnPos.x, spawnPos.y);
-        console.log("spawned mouse at x:", spawnPos.x, "y:", spawnPos.y)
-        npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(3, 3)), null, false);
-        npc.scale.set(0.25, 0.25);
 
         // Give the NPC a healthbar
         let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
         this.healthbars.set(npc, healthbar);
         healthbar.visible = false;
-        
-        // Set the NPCs stats
-        npc.battleGroup = 1
-        npc.speed = 50;
-        npc.health = 10;
-        npc.maxHealth = 10;
-        npc.navkey = "navmesh";
 
-        npc.addAI(GuardBehavior, {target: this.player, range: 100});
-
-        // Play the NPCs "IDLE" animation 
-        npc.animation.play("IDLE");
+        npc.animation.play("WALK");
         
-        // Add the NPC to the battlers array
         this.battlers.push(npc);
     }
 
