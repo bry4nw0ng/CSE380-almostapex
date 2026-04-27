@@ -305,14 +305,17 @@ export default class MainSMScene extends SMScene {
         this.load.image("tray_long", "game_assets/ui/hud/tray-long.png");
         this.load.image("spacebar", "game_assets/ui/hud/spacebar.png");
         this.load.image("key-one", "game_assets/ui/hud/key-one.png");
-         this.load.image("key-two", "game_assets/ui/hud/key-two.png");
-          this.load.image("key-three", "game_assets/ui/hud/key-three.png");
+        this.load.image("key-two", "game_assets/ui/hud/key-two.png");
+        this.load.image("key-three", "game_assets/ui/hud/key-three.png");
 
         this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
 
         this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
 
-        //AUDIO STUFF
+        //MUSIC
+        this.load.audio("CITY_MUSIC", "game_assets/sounds/songs/city.mp3");
+
+        //SOUND STUFF
         this.load.audio("TRANSACTION", "game_assets/sounds/buy-sell-item.wav");
         this.load.audio("UNPICKUPPABLE", "game_assets/sounds/cant-pick-up.wav");
         this.load.audio("PICKUP_COIN", "game_assets/sounds/coin-pickup.wav");
@@ -433,6 +436,8 @@ export default class MainSMScene extends SMScene {
         this.bmZoneLabel.textColor = Color.WHITE;
         this.bmZoneLabel.fontSize = 24;
         this.bmZoneLabel.visible = false;
+
+        this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "CITY_MUSIC", loop: true, holdReference: true});
     }
 
 
