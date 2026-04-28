@@ -7,6 +7,7 @@ import GameNode from "../../../Wolfie2D/Nodes/GameNode";
 import Vec2 from "../../../Wolfie2D/DataTypes/Vec2";
 import Positioned from "../../../Wolfie2D/DataTypes/Interfaces/Positioned";
 import Unique from "../../../Wolfie2D/DataTypes/Interfaces/Unique";
+import AnimatedSprite from "../../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 
 interface Health {
     get health(): number;
@@ -40,6 +41,8 @@ export default class HealthbarHUD implements Updateable {
     protected isStatic: boolean;
     protected staticPosition: Vec2;
 
+    protected playerHealthBar: AnimatedSprite | null;
+
     /** The actual healthbar (the part with color) */
     protected healthBar: Label;
     /** The healthbars background (the part with the border) */
@@ -49,6 +52,8 @@ export default class HealthbarHUD implements Updateable {
         this.scene = scene;
         this.layer = layer;
         this.owner = owner;
+
+        this.playerHealthBar = null;
 
         this.size = options.size;
         this.offset = options.offset;
@@ -68,11 +73,31 @@ export default class HealthbarHUD implements Updateable {
         this.healthBarBg.size.copy(this.size);
     }
 
+    public switchToAnimatedHB(sprite: AnimatedSprite) {
+        this.playerHealthBar = sprite;
+
+        this.healthBar.visible = false;
+        this.healthBarBg.visible = false;
+
+        this.playerHealthBar.position.set(this.staticPosition.x + 10, this.staticPosition.y + 50);
+        this.playerHealthBar.animation.playIfNotAlready("PCT_100");
+    }
     /**
      * Updates the healthbars position according to the position of it's owner
      * @param deltaT 
      */
     public update(deltaT: number): void {
+        if (this.playerHealthBar) {
+            let pctHealthLeft = Math.ceil(this.owner.health) * 10;
+            if (this.owner.health == 0)  {
+                this.playerHealthBar.animation.playIfNotAlready("PCT_10");
+            } 
+            else if (this.owner.health > 0) {
+                this.playerHealthBar.animation.playIfNotAlready(`PCT_${pctHealthLeft}`);
+            }
+            return;
+        }
+
         if (this.isStatic) {
             this.healthBarBg.position.copy(this.staticPosition);
 
@@ -85,22 +110,42 @@ export default class HealthbarHUD implements Updateable {
             this.healthBarBg.position.copy(this.owner.position).add(this.offset);
 
             let scale = this.scene.getViewScale();
-            this.healthBar.scale.scale(scale);
-            this.healthBarBg.scale.scale(scale);
+/*             this.healthBar.scale.scale(scale);
+            this.healthBarBg.scale.scale(scale); */
+            //IMPORTANT if something odd is happening check this, i suppose i just dont understand why it was the way it was
+            this.healthBar.scale.set(scale, scale);
+            this.healthBarBg.scale.set(scale, scale);
 
             let unit = this.healthBarBg.size.x / this.owner.maxHealth;
             this.healthBar.size.set(Math.max(0, this.healthBarBg.size.x - unit * (this.owner.maxHealth - this.owner.health)), this.healthBarBg.size.y);
             this.healthBar.position.set(this.healthBarBg.position.x - (unit / scale / 2) * (this.owner.maxHealth - this.owner.health), this.healthBarBg.position.y);
         }
-
 		this.healthBar.backgroundColor = this.owner.health < this.owner.maxHealth * 1/4 ? Color.RED : this.owner.health < this.owner.maxHealth * 3/4 ? Color.YELLOW : Color.GREEN;
+    }
+
+    //With my new check healthbars werent following NPC's
+    public followNPC() {
+        if (!this.isStatic) {
+            this.healthBar.position.copy(this.owner.position).add(this.offset);
+            this.healthBarBg.position.copy(this.owner.position).add(this.offset);
+        }
     }
 
     get ownerId(): number { return this.owner.id; }
 
     set visible(visible: boolean) {
+        if(this.playerHealthBar) {
+            this.playerHealthBar.visible = visible;
+        }
         this.healthBar.visible = visible;
         this.healthBarBg.visible = visible;
+    }
+
+    get visible(): boolean {
+        if(this.playerHealthBar) {
+            return this.playerHealthBar.visible;
+        }
+        return this.healthBar.visible;
     }
     
 

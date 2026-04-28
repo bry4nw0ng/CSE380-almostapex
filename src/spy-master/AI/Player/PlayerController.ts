@@ -15,7 +15,7 @@ import GameEvent from "../../../Wolfie2D/Events/GameEvent";
 import { AAControls } from "../../AAControls";
 //import AAAnimatedSprite from "../../Node/AAAnimatedSprite";
 import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
-import { AAEvents, AbilityEvent, ItemEvent } from "../../Events";
+import { AAEvents, AbilityEvent, CheatEvent, ItemEvent } from "../../Events";
 
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
@@ -31,6 +31,10 @@ import Inventory from "../../GameSystems/ItemSystem/Inventory";
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
 import MainSMScene from "../../Scenes/MainSMScene";
+import Scene from "../../../Wolfie2D/Scene/Scene";
+
+import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
+import MainMenu from "../../Scenes/MainMenu";
 
 /**
  * The controller that controls the player.
@@ -50,6 +54,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 	protected _speed: number;
     protected playerFacingDir: number;
 
+    protected scene: Scene;
     //protected tilemap: OrthogonalTilemap;
     // protected cannon: Sprite;
     //protected weapon: PlayerWeapon;
@@ -59,6 +64,7 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected weaponTiredTimer: Timer;
     protected weaponTiredGunTimer: Timer;
 
+    protected cheats: string[];
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
         this.owner = owner;
@@ -67,15 +73,17 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
         this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
         this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
-        this.weaponTiredGunTimer = new Timer(200, () => this.owner.isWeaponTired = false, false);
+        this.weaponTiredGunTimer = new Timer(400, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
         this.speed = 800;
         this.velocity = Vec2.ZERO;
         this.playerFacingDir = 1;
-        this.health = 5
-        this.maxHealth = 5;
+        this.health = 10
+        this.maxHealth = 10;
+
+        this.scene = this.owner.getScene();
 
         this.receiver.subscribe(AbilityEvent.USED_JETPACK);
         
@@ -89,6 +97,20 @@ export default class PlayerController extends StateMachineAI implements AI{
         
         // Start the player in the Idle state
         this.initialize(AAPlayerStates.IDLE);
+
+        this.cheats = [
+            "CHEAT_CITY",
+            "CHEAT_MOUNTAIN",
+            "CHEAT_OCEAN",
+            "CHEAT_TOP_LEVEL",
+            "CHEAT_INVINCIBLE",
+            "CHEAT_POW_CANNON",
+            "CHEAT_GIVE_ITEMS",
+            "CHEAT_SPAWN_BOSS",
+            "CHEAT_TELEPORT_TO_MERCHANT",
+            "CHEAT_GIVE_CRYSTALS",
+            "CHEAT_CONSOLE_LOCATION"
+        ];
     }
     
     public handleEvent(event: GameEvent): void {
@@ -105,11 +127,12 @@ export default class PlayerController extends StateMachineAI implements AI{
     } 
 
     public handleJetPackTriggered() {
-        let prevSpeed = this.speed;
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
         this.speed = this.speed * 2;
-        let activeTimer = new Timer(5000, () => this.speed = prevSpeed, false);
+        let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
         activeTimer.start();
     }
+
     /** 
 	 * Get the inputs from the keyboard, or Vec2.Zero if nothing is being pressed
 	 */
@@ -147,12 +170,16 @@ export default class PlayerController extends StateMachineAI implements AI{
         if (Input.isJustPressed(AAControls.MEELEE)) {
             let weapon = this.owner.equippables.find(item => item.isWeapon == true); //Might have to change if add more meelees
             if (weapon && !(this.owner.isWeaponTired)) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "SWING", loop: false, holdReference: false});
                 weapon.useWeapon(this.owner, this.playerFacingDir);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredTimer.start();
             }
         }
-        if (Input.isJustPressed(AAControls.ATTACK)) {
+        if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
+            if (this.scene instanceof MainMenu) {
+                return;
+            }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
                 let scene = this.owner.getScene() as MainSMScene;
@@ -173,28 +200,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             }
         }
-        // If the player hits the attack button and the weapon system isn't running, restart the system and fire!
-        /*if (Input.isPressed(AAControls.ATTACK) && !this.weapon.isSystemRunning()) {
-            // Start the particle system at the player's current position
-            this.weapon.startSystem(500, 0, this.owner.position);
-
-            let xDir = this.faceDir.x;
-            if (xDir >= 0) {
-                this.owner.animation.play("WATERGUN_RIGHT", false);
-            }
-            else {
-                this.owner.animation.play("WATERGUN_LEFT", false);
-            }
-
-            if (this.iTimer.isStopped()) {
-                this.iTimer.start();
-            }
-            else {
-                this.iTimer.reset();
-                this.iTimer.start();
-            }
-            }
-            */
+        
            //Reset position of items each update
             for (let equippable of this.owner.equippables.items()) {
                 if (this.playerFacingDir == -1) {
@@ -214,6 +220,12 @@ export default class PlayerController extends StateMachineAI implements AI{
                 }
             };
         
+        for (const cheat of this.cheats) {
+            if (Input.isJustPressed(AAControls[cheat])) {
+                this.emitter.fireEvent(CheatEvent[cheat]);
+                return;
+            }
+        }
     }
 
     public makeDaNeedleSpin(needle: DaNeedle, roc: number) {

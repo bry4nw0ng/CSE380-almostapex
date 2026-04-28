@@ -14,16 +14,17 @@ export default class RedHat extends Item {
         this._isPassive = true;
         this._description = "Increases luck by 10%";
         this._luckBoost = 1.1;
+        this.value = 200;
+        this._maxStack = 10;
     }
 
     public get luckBoost(): number { return this._luckBoost; }
     public set luckBoost(boost: number) { this._luckBoost = boost; }
 
     public override applyBuff(player: PlayerActor) {
-        player.luck = this._luckBoost;
+        player.luck *= this._luckBoost;
     }
     public override removeBuff(player: PlayerActor) {
-        player.luck = 1;
+        player.luck /= this._luckBoost;
     }
-
 }

@@ -5,6 +5,7 @@ import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import IsometricTilemap from "../../Wolfie2D/Nodes/Tilemaps/IsometricTilemap";
+import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
 
 
 export default abstract class SMScene extends Scene {
@@ -13,10 +14,7 @@ export default abstract class SMScene extends Scene {
 
     public abstract getWalls(): IsometricTilemap;
 
-    public abstract getHealthpacks(): Healthpack[];
-
-    public abstract getLaserGuns(): LaserGun[];
-
     public abstract isTargetVisible(position: Vec2, target: Vec2): boolean;
-    
+
+    public abstract getNavmesh(): Navmesh;
 }

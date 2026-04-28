@@ -21,7 +21,7 @@ import MainSMScene from "../../../Scenes/MainSMScene";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import { BattlerEvent } from "../../../Events";
 
-export default class RacconBehavior extends NPCBehavior {
+export default class RaccoonBehavior extends NPCBehavior {
 
     /** The target the guard should guard */
     protected target: TargetableEntity;
@@ -40,6 +40,7 @@ export default class RacconBehavior extends NPCBehavior {
         this.range = options.range;
 
         this.switchTimer = new Timer(1500, () => this.attack(), false);
+
         // Initialize guard statuses
         this.initializeStatuses();
         // Initialize guard actions
@@ -77,6 +78,7 @@ export default class RacconBehavior extends NPCBehavior {
         this.addStatus(GuardStatuses.GOAL, new FalseStatus());
     }
 
+    //Doesnt do nothin, trying to acclimate myself to GOAP in the shooter logic
     protected initializeActions(): void {
         let scene = this.owner.getScene() as MainSMScene;
         let gitEm = new Idle(this, this.owner);
@@ -88,6 +90,9 @@ export default class RacconBehavior extends NPCBehavior {
     }
 
     public attack() {
+        let dist = this.owner.position.distanceTo(this.target.position);
+        console.log("Raccoon attack() fired, dist to player:", dist);
+        
         let scene = this.owner.getScene() as MainSMScene;
         if (this.owner.position.distanceTo(this.target.position) > 1000) {
             this.switchTimer.start();
@@ -105,17 +110,19 @@ export default class RacconBehavior extends NPCBehavior {
         this.owner.animation.play("ATTACK", false);
 
         if (this.attackStrategy == "spray") {
+            console.log("Sprayed");
             for (let i = 0; i <= 20; i++) {
                 let angle = Math.random() * Math.PI * 2;
                 let aim = new Vec2(Math.cos(angle), Math.sin(angle));
-                scene.spawnTrash(this.owner.position.clone(), aim);
+                scene.spawnEnemyShot(this.owner.position.clone(), aim, "raccoon");
             }
         }
         else if (this.attackStrategy == "aim") {
+            console.log("Aimed");
             let aim = this.owner.position.dirTo(this.target.position);
             for (let i = 0; i <= 10; i++) {
-                let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 + Math.random() * 0.1))
-                scene.spawnTrash(this.owner.position.clone(), bloom);
+                let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 - Math.random() * 0.1))
+                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "raccoon");
             }
 
         }

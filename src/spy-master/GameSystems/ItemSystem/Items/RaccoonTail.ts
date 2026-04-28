@@ -4,6 +4,7 @@ import SMScene from "../../../Scenes/SMScene";
 import Item from "../Item";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
 import PlayerActor from "../../../Actors/PlayerActor";
+import { AbilityEvent } from "../../../Events";
 
 //Gives ability to rummage through objects (IMPORTANT: implement dumpster for level one so can look after complete), also speed boost x1.1
 //Just check if have, then box will open if interact 
@@ -19,19 +20,20 @@ export default class RaccoonTail extends Item {
         this._description = "Search ability + 10% speed";
         this._cooldownDuration = 8000;
         this.equippableOffset = new Vec2(-28, 5);
+        this.value = 3000;
     }
 
     public get speedBoost(): number { return this._speedBoost;}
     public set speedBoost(boost: number) { this._speedBoost = boost; }
 
-
-    //Will probably use trigger event instead
     public override applyBuff(player: PlayerActor) {
-        player.speed = this._speedBoost;
-        //player.toggleCanSearch();
+        player.speed *= this._speedBoost;
     }
     public override removeBuff(player: PlayerActor) {
-        player.speed = player.speed / 1.1;
-        //Wont be removing toggle, once earned, keep (Boss item)
+        player.speed /= this._speedBoost;
+    }
+
+    public override useAbility(player: PlayerActor): void {
+        this.emitter.fireEvent(AbilityEvent.OPEN_TREASURE);
     }
 }

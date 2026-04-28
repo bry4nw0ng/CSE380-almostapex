@@ -8,11 +8,7 @@ import Tilemap from "../Tilemap";
 import MathUtils from "../../Utils/MathUtils";
  
 export default class IsometricTilemap extends Tilemap {
-    //public getMinColRow(region: AABB): Vec2 {
-      //  return new Vec2(0, 0);
-    //}
-    /*
-    public override getMinColRow(region: AABB): Vec2 {
+    /* public override getMinColRow(region: AABB): Vec2 {
         let left = region.left;
         let top = region.top;
         
@@ -29,11 +25,8 @@ export default class IsometricTilemap extends Tilemap {
         row = MathUtils.clamp(row, 0, this.numRows - 1);
         
         return new Vec2(col, row);
-    }*/
-    //public getMaxColRow(region: AABB): Vec2 {
-      //  return new Vec2(this.numCols, this.numRows);
-    //}
-    /*
+    }
+
     public override getMaxColRow(region: AABB): Vec2 {
         let right = region.right;
         let bottom = region.bottom;
@@ -50,20 +43,78 @@ export default class IsometricTilemap extends Tilemap {
         row = MathUtils.clamp(row, 0, this.numRows - 1);
         
         return new Vec2(col, row);
-    }*/
-    public override getMinColRow(region: AABB): Vec2 {
+    } */
+
+//Fixed this with the help of AI (not part of the primary project, just the broken portion of Wolfie2D)
+public override getMinColRow(region: AABB): Vec2 {
+    let tileW = this.scale.x * this.tileSize.x / 2;
+    let tileH = this.scale.y * this.tileSize.y / 2;
+
+    let corners = [
+        {x: region.left,  y: region.top},
+        {x: region.right, y: region.top},
+        {x: region.left,  y: region.bottom},
+        {x: region.right, y: region.bottom},
+    ];
+
+    let minCol = Infinity, minRow = Infinity;
+    for (let c of corners) {
+        let col = (c.x / tileW + c.y / tileH) / 2;
+        let row = (c.y / tileH - c.x / tileW) / 2;
+        minCol = Math.min(minCol, col);
+        minRow = Math.min(minRow, row);
+    }
+
+    minCol = MathUtils.clamp(Math.floor(minCol) - 2, 0, this.numCols - 1);
+    minRow = MathUtils.clamp(Math.floor(minRow) - 2, 0, this.numRows - 1);
+
+    return new Vec2(minCol, minRow);
+}
+
+public override getMaxColRow(region: AABB): Vec2 {
+    let tileW = this.scale.x * this.tileSize.x / 2;
+    let tileH = this.scale.y * this.tileSize.y / 2;
+
+    let corners = [
+        {x: region.left,  y: region.top},
+        {x: region.right, y: region.top},
+        {x: region.left,  y: region.bottom},
+        {x: region.right, y: region.bottom},
+    ];
+
+    let maxCol = -Infinity, maxRow = -Infinity;
+    for (let c of corners) {
+        let col = (c.x / tileW + c.y / tileH) / 2;
+        let row = (c.y / tileH - c.x / tileW) / 2;
+        maxCol = Math.max(maxCol, col);
+        maxRow = Math.max(maxRow, row);
+    }
+
+    maxCol = MathUtils.clamp(Math.ceil(maxCol) + 2, 0, this.numCols - 1);
+    maxRow = MathUtils.clamp(Math.ceil(maxRow) + 2, 0, this.numRows - 1);
+
+    return new Vec2(maxCol, maxRow);
+}
+/*     public override getMinColRow(region: AABB): Vec2 {
         return new Vec2(0, 0);
     }
 
     public override getMaxColRow(region: AABB): Vec2 {
         return new Vec2(this.numCols - 1, this.numRows - 1);
-    }
+    } */
     public override getWorldPosition(col: number, row: number): Vec2 {
         if (col < 0 || col > this.numCols || row < 0 || row > this.numRows) {
             return Vec2.ZERO;
         }
+
+/*         
         let x = (this.scale.x * this.tileSize.x / 2 * (col - row));
-        let y = (this.scale.y * this.tileSize.y / 2 * (col + row));
+        let y = (this.scale.y * this.tileSize.y / 2 * (col + row)); */
+        let hWidth = this.scale.x * this.tileSize.x / 2;
+        let hHeight = this.scale.y * this.tileSize.y / 2;
+        
+        let x = hWidth * (col - row);
+        let y = hHeight * (col + row);
 
         return new Vec2(x, y);
     }
@@ -82,10 +133,11 @@ export default class IsometricTilemap extends Tilemap {
         let hWidth = this.scale.x * this.tileSize.x / 2;
         let hHeight = this.scale.y * this.tileSize.y / 2;
 
-        let centerX = hWidth * (col - row) + hWidth / 2;
-        let centerY = hHeight * (col + row) + hHeight / 2;
-
-        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth / 2, hHeight / 2));
+        //let centerX = hWidth * (col - row) + hWidth;
+        let centerX = hWidth * (col - row) + hWidth;
+        let centerY = hHeight * (col + row);
+        
+        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight * 0.5));
     }
 
  

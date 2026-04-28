@@ -19,7 +19,9 @@ export enum ItemEvent {
 }
 
 export enum HudEvent {
-    HEALTH_CHANGE = "HEALTH_CHANGE"
+    HEALTH_CHANGE = "HEALTH_CHANGE",
+    WAVE_IN_CENTER = "WaveAlertInCenter",
+    WAVE_DONE = "WaveAlertDone",
 }
 
 export enum PlayerEvent {
@@ -46,7 +48,8 @@ export enum AAEvents {
     PARTICLE_HIT_DESTRUCTIBLE = "PARTICLE_HIT_DESTRUCTIBLE",
 
     // The event sent when the player dies. Gets sent after the player's death animation
-    PLAYER_DEAD = "PLAYER_DEAD"
+    PLAYER_DEAD = "PLAYER_DEAD",
+    WAVE_CHANGE = "WAVE_CHANGE"
     
 }
 
@@ -54,4 +57,18 @@ export enum AbilityEvent {
     OPEN_TREASURE = "OPEN_TREASURE",
     USED_GUM = "USED_GUM",
     USED_JETPACK = "USED_JETPACK"
+}
+
+export enum CheatEvent {
+    CHEAT_CITY = "CHEAT_CITY",
+    CHEAT_MOUNTAIN = "CHEAT_MOUNTAIN",
+    CHEAT_OCEAN = "CHEAT_OCEAN",
+    CHEAT_TOP_LEVEL = "CHEAT_TOP_LEVEL",
+    CHEAT_INVINCIBLE = "CHEAT_INVINCIBLE",
+    CHEAT_POW_CANNON = "CHEAT_POW_CANNON",
+    CHEAT_GIVE_ITEMS = "CHEAT_GIVE_ITEMS",
+    CHEAT_SPAWN_BOSS = "CHEAT_SPAWN_BOSS",
+    CHEAT_GIVE_CRYSTALS = "CHEAT_GIVE_CRYSTALS",
+    CHEAT_TELEPORT_TO_MERCHANT = "CHEAT_TELEPORT_TO_MERCHANT",
+    CHEAT_CONSOLE_LOCATION = "CHEAT_CONSOLE_LOCATION"
 }

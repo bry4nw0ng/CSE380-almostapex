@@ -11,6 +11,7 @@ import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import SMScene from "../Scenes/SMScene";
 import Item from "../GameSystems/ItemSystem/Item";
 import Timer from "../../Wolfie2D/Timing/Timer";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -22,6 +23,9 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected targetable: TargetableEntity;
 
     protected heldItem: SMItem;
+
+    protected _crystals: number;
+
     //Buffs
     protected _damageReduction: number;
     protected _luck: number;
@@ -32,26 +36,26 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
 
-    public equippables: Inventory = new Inventory(10);
-    public abilities: Inventory = new Inventory(4);
+    protected _hasNeedle: boolean;
+
+    public equippables: Inventory = new Inventory(20);
+    public abilities: Inventory = new Inventory(3);
 
     constructor(sheet: Spritesheet) {
         super(sheet);
         this.battler = new BasicBattler(this);
         this.targetable = new BasicTargetable(this);
 
-        this.receiver.subscribe(ItemEvent.LASERGUN_FIRED)
-        this.receiver.subscribe(AbilityEvent.USED_JETPACK)
+        this._crystals = 500;
         
-        this.jPMultiplier
         this._damageReduction = 1;
         this._luck = 1;
         this._invincible = false;
-        //this._canSearch = false;
         this._isCoolingDown = false;
         this._isWeaponTired = false;
         this.iTimer = new Timer(750, () => this.toggleInvincible(false), false);
 
+        this._hasNeedle = false;
     }
 
     get battlerActive(): boolean {
@@ -90,6 +94,16 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
             this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.id});
         }
     }
+
+    get crystals(): number {
+        return this._crystals;
+    }
+
+    set crystals(tot: number) {
+        this._crystals = tot;
+        console.log("Crystals: ", this._crystals);
+    }
+
     get speed(): number {
         return this.battler.speed;
     }
@@ -136,10 +150,20 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         return this._isWeaponTired;
     }
 
+    get hasNeedle() {
+        return this._hasNeedle;
+    }
+    set hasNeedle(has: boolean) {
+        this._hasNeedle = has;
+    }
+
     public equip(equippable: Item): void{
         console.log("isAbility:", equippable.isAbility);
         console.log("Equipped:", equippable);
         this.equippables.add(equippable);
+        if (equippable instanceof DaNeedle) {
+            this._hasNeedle = true;
+        }
         if (equippable.isAbility) {
             console.log("Added ability");
             this.abilities.add(equippable);
@@ -150,7 +174,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     public unEquip(equippable: Item): void {
         this.equippables.remove(equippable.id);
         if (equippable.isAbility) {
-            this.abilities.add(equippable);
+            this.abilities.remove(equippable.id);
         }
         equippable.removeBuff(this);
     }

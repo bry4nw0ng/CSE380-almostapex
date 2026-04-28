@@ -101,7 +101,6 @@ export default class AstarStrategy extends NavPathStrat {
         //Ends at -1, I init the starting node with parent of -1 tf: once reach, we are at the current node position
         while (curNode != -1) {
             bestPath.push(graph.getNodePosition(curNode));
-            // console.log("Pushing: " + graph.getNodePosition(curNode));
             curNode = nodeAtt.get(curNode)!.parInd;
         }
 
@@ -116,4 +115,5 @@ export default class AstarStrategy extends NavPathStrat {
         let totDist = xDist + yDist;
         return totDist;
     }
+    
 }

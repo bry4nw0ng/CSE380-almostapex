@@ -67,6 +67,7 @@ export default class Inventory implements Unique {
     protected get emitter(): Emitter { return this._emitter; }
     protected set emitter(emitter: Emitter) { this._emitter = emitter; }
 
+
     /**
      * Gets an item from this inventory by id.
      * @param id the id of the item to get
@@ -141,4 +142,5 @@ export default class Inventory implements Unique {
             this.emitter.fireEvent(this.onChange, { id: this.id, inventory: this });
         }
     }
+
 }

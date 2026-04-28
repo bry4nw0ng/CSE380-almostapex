@@ -1,7 +1,6 @@
 import Game from "./Wolfie2D/Loop/Game";
 import SplashScreen from "./spy-master/Scenes/SplashScreen";
 import { AAControls } from "./spy-master/AAControls";
-import { AbilityEvent } from "./spy-master/Events";
 
 // The main function is your entrypoint into Wolfie2D. Specify your first scene and any options here.
 (function main(){
@@ -24,6 +23,17 @@ import { AbilityEvent } from "./spy-master/Events";
             {name: AAControls.ABILITY3, keys: ["3"]},
             {name: AAControls.PICKUP_ITEM, keys: ["e"]},
             {name: AAControls.INTERACT, keys: ["e"]},
+            {name: AAControls.CHEAT_CITY, keys: ["c"]},
+            {name: AAControls.CHEAT_MOUNTAIN, keys: ["m"]},
+            {name: AAControls.CHEAT_OCEAN, keys: ["o"]},
+            {name: AAControls.CHEAT_TOP_LEVEL, keys: ["t"]},
+            {name: AAControls.CHEAT_INVINCIBLE, keys: ["i"]},
+            {name: AAControls.CHEAT_POW_CANNON, keys: ["p"]},
+            {name: AAControls.CHEAT_GIVE_ITEMS, keys: ["u"]},
+            {name: AAControls.CHEAT_SPAWN_BOSS, keys: ["y"]},
+            {name: AAControls.CHEAT_GIVE_CRYSTALS, keys: ["0"]},
+            {name: AAControls.CHEAT_TELEPORT_TO_MERCHANT, keys: ["9"]},
+            {name: AAControls.CHEAT_CONSOLE_LOCATION, keys: ["-"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want
