@@ -13,7 +13,6 @@ import Input from "../../Wolfie2D/Input/Input";
 import MainMenu from "./MainMenu";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
-import Timer from "../../Wolfie2D/Timing/Timer";
 
 export default class SplashScreen extends Scene {
 
@@ -21,7 +20,6 @@ export default class SplashScreen extends Scene {
     private apexSprite: Sprite;
     private almostSprite: Sprite;
     private fading: boolean = false;
-    private timer: Timer;
 
     public loadScene(): void {
         this.load.image("logo", "game_assets/ui/splash/logo.png");
@@ -47,16 +45,18 @@ export default class SplashScreen extends Scene {
             position: new Vec2(center.x, center.y),
             size: new Vec2(half.x * 2, half.y * 2)
         });
-        bg.color = new Color(135, 206, 235);
-/*         bg.color = Color.BLACK;
+        //bg.color = new Color(135, 206, 235);
+        bg.color = Color.BLACK;
         this.apexSprite = this.add.sprite("apex", "logo");
-        this.apexSprite.position.set(center.x, center.y - 150);
-        this.apexSprite.scale.set(0.35, 0.35);
+        this.apexSprite.position.set(center.x, center.y - 500);
+        this.apexSprite.scale.set(2, 2);
 
         this.almostSprite = this.add.sprite("almost", "almost");
-        this.almostSprite.position.set(center.x, center.y - 150);
-        this.almostSprite.scale.set(0.35, 0.35); */
-
+        this.almostSprite.position.set(center.x - 220, center.y - 130);
+        this.almostSprite.scale.set(2, 2);
+        this.almostSprite.rotation = Math.PI / 8;
+        this.almostSprite.alpha = 0;
+/* 
         // scale down logo to fit canvas
         const logo = this.add.sprite("logo", "logo");
         logo.position.set(center.x, center.y - 150);
@@ -66,7 +66,7 @@ export default class SplashScreen extends Scene {
         const slime = this.add.animatedSprite(AnimatedSprite, "demo_slime", "logo");
         slime.position.set(center.x, center.y + 25);
         slime.scale.set(0.75, 0.75);
-        slime.animation.play("Dancing", true);
+        slime.animation.play("Dancing", true); */
 
         // "Click to start" below the logo
         const prompt = <Label>this.add.uiElement(UIElementType.LABEL, "ui", {
@@ -106,14 +106,15 @@ export default class SplashScreen extends Scene {
             }],
             onEnd: "fade-done"
         });
+        
 
         this.apexSprite.tweens.add("toCenter", {
-            startDelay: 0,
-            duration: 500,
+            startDelay: 300,
+            duration: 1000,
             effects: [
                 {
                     property: TweenableProperties.posY,
-                    start: this.viewport.getHalfSize().y  + 100,
+                    start: this.viewport.getHalfSize().y  - 500,
                     end: this.viewport.getHalfSize().y - 50,
                     ease: EaseFunctionType.IN_OUT_QUAD
                 }
@@ -121,9 +122,55 @@ export default class SplashScreen extends Scene {
             onEnd: "ApexToCenter"
         });
 
+        this.almostSprite.tweens.add("AlmostFadeIn", {
+            startDelay: 1000,
+            duration: 750,
+            effects: [
+                {
+                    property: TweenableProperties.alpha,
+                    start: 0,
+                    end: 1,
+                    ease: EaseFunctionType.IN_OUT_QUAD
+                }
+            ],
+            onEnd: "AlmostFadedIn"
+        });
+
+        this.almostSprite.tweens.add("TiltLeft", {
+            startDelay: 0,
+            duration: 750,
+            effects: [
+                {
+                    property: TweenableProperties.rotation,
+                    start: Math.PI/ 8,
+                    end: -Math.PI/ 16,
+                    ease: EaseFunctionType.IN_OUT_QUAD
+                }
+            ],
+            onEnd: "TiltedLeft"
+        });
+
+        this.almostSprite.tweens.add("TiltRight", {
+            startDelay: 0,
+            duration: 750,
+            effects: [
+                {
+                    property: TweenableProperties.rotation,
+                    start: -Math.PI/ 16,
+                    end: Math.PI/ 8,
+                    ease: EaseFunctionType.IN_OUT_QUAD
+                }
+            ],
+            onEnd: "TiltedRight"
+        });
+
         this.receiver.subscribe("startgame");
         this.receiver.subscribe("fade-done");
         this.receiver.subscribe("ApexToCenter");
+        this.receiver.subscribe("TiltedLeft");
+        this.receiver.subscribe("TiltedRight");
+
+        this.apexSprite.tweens.play("toCenter");
     }
 
     public updateScene(): void {
@@ -142,8 +189,15 @@ export default class SplashScreen extends Scene {
 
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
-            case "startgame":
-                if (!this.fading) this.startFade();
+            case "ApexToCenter":
+                this.almostSprite.tweens.play("AlmostFadeIn");
+                this.almostSprite.tweens.play("TiltLeft");
+                break;
+            case "TiltedLeft":
+                this.almostSprite.tweens.play("TiltRight");
+                break;
+            case "TiltedRight":
+                this.almostSprite.tweens.play("TiltLeft");
                 break;
             case "startgame":
                 if (!this.fading) this.startFade();
