@@ -12,15 +12,23 @@ import Label from "../../Wolfie2D/Nodes/UIElements/Label";
 import Input from "../../Wolfie2D/Input/Input";
 import MainMenu from "./MainMenu";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
+import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
+import Timer from "../../Wolfie2D/Timing/Timer";
 
 export default class SplashScreen extends Scene {
 
     private fadeOverlay: Rect;
+    private apexSprite: Sprite;
+    private almostSprite: Sprite;
     private fading: boolean = false;
+    private timer: Timer;
 
     public loadScene(): void {
         this.load.image("logo", "game_assets/ui/splash/logo.png");
         this.load.spritesheet("demo_slime", "game_assets/spritesheets/demo_slime2.json");
+        this.load.image("almost", "game_assets/ui/splash/almost.png");
+        this.load.image("apex", "game_assets/ui/splash/apex.png");
+
     }
 
     public startScene(): void {
@@ -29,6 +37,7 @@ export default class SplashScreen extends Scene {
 
         this.addLayer("bg", 0);
         this.addLayer("logo", 1);
+        this.addLayer("almost", 2);
         this.addUILayer("ui");
         this.addUILayer("fade");
         
@@ -39,6 +48,14 @@ export default class SplashScreen extends Scene {
             size: new Vec2(half.x * 2, half.y * 2)
         });
         bg.color = new Color(135, 206, 235);
+/*         bg.color = Color.BLACK;
+        this.apexSprite = this.add.sprite("apex", "logo");
+        this.apexSprite.position.set(center.x, center.y - 150);
+        this.apexSprite.scale.set(0.35, 0.35);
+
+        this.almostSprite = this.add.sprite("almost", "almost");
+        this.almostSprite.position.set(center.x, center.y - 150);
+        this.almostSprite.scale.set(0.35, 0.35); */
 
         // scale down logo to fit canvas
         const logo = this.add.sprite("logo", "logo");
@@ -59,7 +76,7 @@ export default class SplashScreen extends Scene {
         prompt.textColor = Color.WHITE;
         prompt.fontSize = 24;
 
-        // play button
+/*         // play button
         const playBtn = this.add.uiElement(UIElementType.BUTTON, "ui", {
             position: new Vec2(center.x, center.y + 250),
             text: "PLAY"
@@ -68,7 +85,7 @@ export default class SplashScreen extends Scene {
         playBtn.borderWidth = 2;
         playBtn.borderColor = Color.WHITE;
         playBtn.backgroundColor = new Color(80, 80, 200);
-        playBtn.onClickEventId = "startgame";
+        playBtn.onClickEventId = "startgame"; */
 
         // testing fade
         this.fadeOverlay = <Rect>this.add.graphic(GraphicType.RECT, "fade", {
@@ -90,8 +107,23 @@ export default class SplashScreen extends Scene {
             onEnd: "fade-done"
         });
 
+        this.apexSprite.tweens.add("toCenter", {
+            startDelay: 0,
+            duration: 500,
+            effects: [
+                {
+                    property: TweenableProperties.posY,
+                    start: this.viewport.getHalfSize().y  + 100,
+                    end: this.viewport.getHalfSize().y - 50,
+                    ease: EaseFunctionType.IN_OUT_QUAD
+                }
+            ],
+            onEnd: "ApexToCenter"
+        });
+
         this.receiver.subscribe("startgame");
         this.receiver.subscribe("fade-done");
+        this.receiver.subscribe("ApexToCenter");
     }
 
     public updateScene(): void {
@@ -110,6 +142,9 @@ export default class SplashScreen extends Scene {
 
     public handleEvent(event: GameEvent): void {
         switch (event.type) {
+            case "startgame":
+                if (!this.fading) this.startFade();
+                break;
             case "startgame":
                 if (!this.fading) this.startFade();
                 break;

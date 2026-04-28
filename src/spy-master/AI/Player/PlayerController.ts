@@ -108,7 +108,8 @@ export default class PlayerController extends StateMachineAI implements AI{
             "CHEAT_GIVE_ITEMS",
             "CHEAT_SPAWN_BOSS",
             "CHEAT_TELEPORT_TO_MERCHANT",
-            "CHEAT_GIVE_CRYSTALS"
+            "CHEAT_GIVE_CRYSTALS",
+            "CHEAT_CONSOLE_LOCATION"
         ];
     }
     

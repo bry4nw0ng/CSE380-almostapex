@@ -424,6 +424,8 @@ export default class MainSMScene extends SMScene {
         this.receiver.subscribe(CheatEvent.CHEAT_GIVE_CRYSTALS);
         this.receiver.subscribe(CheatEvent.CHEAT_SPAWN_BOSS);
         this.receiver.subscribe(CheatEvent.CHEAT_TELEPORT_TO_MERCHANT);
+        
+        this.receiver.subscribe(CheatEvent.CHEAT_CONSOLE_LOCATION);
 
         this.receiver.subscribe(CheatEvent.CHEAT_CITY);
         this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
@@ -780,6 +782,10 @@ export default class MainSMScene extends SMScene {
                 this.player.position.copy(this.MERCHANT_LOCATION);
                 break;
             }
+            case CheatEvent.CHEAT_CONSOLE_LOCATION: {
+                console.log("Player at X: ", this.player.position.x, ", Y: ", this.player.position.y);
+                break;
+            }
             case CheatEvent.CHEAT_SPAWN_BOSS: {
                 this.spawnBoss();
                 break;
@@ -999,7 +1005,7 @@ export default class MainSMScene extends SMScene {
                     this.dropOrChooseItem(deathSpot, 999);
                     console.log("Item dropped!")
                 }
-                
+
                 if (battler.maxHealth == 20) {
                     for (let i = 0; i < 3; i++) {
                         let crystalSprite = this.add.sprite("Crystal", "primary");
