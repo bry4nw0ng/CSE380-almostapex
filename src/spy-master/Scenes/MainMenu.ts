@@ -23,6 +23,10 @@ import MainSMScene from "./MainSMScene";
 import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
+import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
+import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
+import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
+import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -74,6 +78,10 @@ export default class MainMenu extends SMScene {
     private helpNext: Sprite;
     private helpPrev: Sprite;
 
+    private playerShadow: Sprite;
+
+    private fadeOverlay: Rect;
+    
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
     private readonly CLOSE_HIT = 40;               // click radius in px
 
@@ -97,6 +105,10 @@ export default class MainMenu extends SMScene {
         this.load.image("cheats", "game_assets/ui/book/cheats.png");
 
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
+
+        this.load.image("generic-shadow", "game_assets/sprites/shadow.png");
+
+        this.load.audio("MENU", "game_assets/sounds/songs/home-cleaned.mp3");
     }
 
     public startScene(): void {
@@ -108,11 +120,14 @@ export default class MainMenu extends SMScene {
 
         this.addLayer("bg", 0);
         this.addLayer("home", 1);
-        this.addLayer("player", 2);
-        this.addLayer("debug", 3);
+        this.addLayer("shadow", 2);
+        this.addLayer("player", 3);
+        this.addLayer("debug", 4);
+        this.addLayer("fade", 10);
         this.addUILayer("popup");
         this.addUILayer("popupOverlay");
         this.addUILayer("ui");
+
 
         // Black background
         const black = this.add.graphic(GraphicType.RECT, "bg", {
@@ -121,6 +136,24 @@ export default class MainMenu extends SMScene {
         });
         black.color = Color.BLACK;
 
+        this.fadeOverlay = <Rect>this.add.graphic(GraphicType.RECT, "fade", {
+            position: new Vec2(center.x, center.y),
+            size: new Vec2(this.viewport.getHalfSize().x * 2, this.viewport.getHalfSize().y * 2)
+        });
+        this.fadeOverlay.color = Color.BLACK;
+        this.fadeOverlay.alpha = 1;
+
+        this.fadeOverlay.tweens.add("fadeIn", {
+            startDelay: 0,
+            duration: 800,
+            effects: [{
+                property: TweenableProperties.alpha,
+                start: 1,
+                end: 0,
+                ease: EaseFunctionType.IN_OUT_SINE
+            }],
+            onEnd: "fade-done"
+        });
         // Hut background image
 /*         const bg = this.add.sprite("mainmenu", "bg");
         bg.position.set(center.x, center.y);
@@ -156,6 +189,12 @@ export default class MainMenu extends SMScene {
         this.player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         this.player.addAI(PlayerController);
         this.player.animation.play("IDLE", true);
+
+        this.playerShadow = this.add.sprite("generic-shadow", "shadow");
+        this.playerShadow.position.set(496, 513);
+        this.playerShadow.scale.set(2.5, 2);
+        this.playerShadow.alpha = 0.6;
+        this.playerShadow.visible = true;
 
         this.viewport.setCenter(center.x, center.y);
         this.viewport.setZoomLevel(2);
@@ -240,6 +279,9 @@ export default class MainMenu extends SMScene {
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
+        this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "MENU", loop: true, holdReference: true});
+        
+        this.fadeOverlay.tweens.play("fadeIn");
     }
 
     public updateScene(_deltaT: number): void {
@@ -247,10 +289,6 @@ export default class MainMenu extends SMScene {
             this.viewport.setZoomLevel(1);
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
-                return;
-            }
-            if (Input.isKeyJustPressed("1")) {
-                this.sceneManager.changeToScene(MainSMScene);
                 return;
             }
             if (Input.isMouseJustPressed()) {
@@ -262,6 +300,7 @@ export default class MainMenu extends SMScene {
                 }
                 if (Math.abs(mouse.x - this.CITY_POS.x) <= this.CLOSE_HIT &&
                     Math.abs(mouse.y - this.CITY_POS.y) <= this.CLOSE_HIT) {
+                    this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
                     this.sceneManager.changeToScene(MainSMScene);
                 }
             }
@@ -303,6 +342,7 @@ export default class MainMenu extends SMScene {
             return;
         }
 
+        this.playerShadow.position.set(this.player.position.x + 12, this.player.position.y + 26);
         this.constrainPlayerToFloor();
         this.checkZoneProximity();
 

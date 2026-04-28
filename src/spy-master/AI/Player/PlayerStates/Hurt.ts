@@ -13,7 +13,7 @@ export default class Hurt extends PlayerState {
     
     // Trigger the player's death animation when we enter the dead state
     public onEnter(options: Record<string, any>): void {
-        this.owner.animation.play("DAMAGE", false);
+        this.owner.animation.playIfNotAlready("DAMAGE", false);
         this.hTimer = new Timer(1000, () => this.finished(AAPlayerStates.IDLE));
 
         this.hTimer.start();

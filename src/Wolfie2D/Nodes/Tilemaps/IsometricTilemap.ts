@@ -106,8 +106,15 @@ public override getMaxColRow(region: AABB): Vec2 {
         if (col < 0 || col > this.numCols || row < 0 || row > this.numRows) {
             return Vec2.ZERO;
         }
+
+/*         
         let x = (this.scale.x * this.tileSize.x / 2 * (col - row));
-        let y = (this.scale.y * this.tileSize.y / 2 * (col + row));
+        let y = (this.scale.y * this.tileSize.y / 2 * (col + row)); */
+        let hWidth = this.scale.x * this.tileSize.x / 2;
+        let hHeight = this.scale.y * this.tileSize.y / 2;
+        
+        let x = hWidth * (col - row);
+        let y = hHeight * (col + row);
 
         return new Vec2(x, y);
     }
@@ -126,10 +133,11 @@ public override getMaxColRow(region: AABB): Vec2 {
         let hWidth = this.scale.x * this.tileSize.x / 2;
         let hHeight = this.scale.y * this.tileSize.y / 2;
 
+        //let centerX = hWidth * (col - row) + hWidth;
         let centerX = hWidth * (col - row) + hWidth;
         let centerY = hHeight * (col + row);
         
-        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight));
+        return new AABB(new Vec2(centerX, centerY), new Vec2(hWidth, hHeight * 0.5));
     }
 
  

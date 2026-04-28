@@ -33,6 +33,9 @@ import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 import MainSMScene from "../../Scenes/MainSMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
+import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
+import MainMenu from "../../Scenes/MainMenu";
+
 /**
  * The controller that controls the player.
  */
@@ -70,7 +73,7 @@ export default class PlayerController extends StateMachineAI implements AI{
         this.iTimer = new Timer(1000, () => this.changeState(AAPlayerStates.IDLE));
         this.cooldownTimer = new Timer(15000, () => this.owner.isCoolingDown = false, false);
         this.weaponTiredTimer = new Timer(1000, () => this.owner.isWeaponTired = false, false);
-        this.weaponTiredGunTimer = new Timer(200, () => this.owner.isWeaponTired = false, false);
+        this.weaponTiredGunTimer = new Timer(400, () => this.owner.isWeaponTired = false, false);
 
         //this.tilemap = this.owner.getScene().getTilemap(options.tilemap) as OrthogonalTilemap;
         //this.speed = 400;
@@ -105,7 +108,8 @@ export default class PlayerController extends StateMachineAI implements AI{
             "CHEAT_GIVE_ITEMS",
             "CHEAT_SPAWN_BOSS",
             "CHEAT_TELEPORT_TO_MERCHANT",
-            "CHEAT_GIVE_CRYSTALS"
+            "CHEAT_GIVE_CRYSTALS",
+            "CHEAT_CONSOLE_LOCATION"
         ];
     }
     
@@ -123,10 +127,12 @@ export default class PlayerController extends StateMachineAI implements AI{
     } 
 
     public handleJetPackTriggered() {
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
         this.speed = this.speed * 2;
         let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
         activeTimer.start();
     }
+
     /** 
 	 * Get the inputs from the keyboard, or Vec2.Zero if nothing is being pressed
 	 */
@@ -164,12 +170,16 @@ export default class PlayerController extends StateMachineAI implements AI{
         if (Input.isJustPressed(AAControls.MEELEE)) {
             let weapon = this.owner.equippables.find(item => item.isWeapon == true); //Might have to change if add more meelees
             if (weapon && !(this.owner.isWeaponTired)) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "SWING", loop: false, holdReference: false});
                 weapon.useWeapon(this.owner, this.playerFacingDir);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredTimer.start();
             }
         }
-        if (Input.isJustPressed(AAControls.ATTACK)) {
+        if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
+            if (this.scene instanceof MainMenu) {
+                return;
+            }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
                 let scene = this.owner.getScene() as MainSMScene;

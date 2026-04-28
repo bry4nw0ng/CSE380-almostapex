@@ -51,9 +51,7 @@ export default class ActionSlotsHUD implements Updateable {
     /** Item IDs currently in each slot (to detect changes) */
     private slotItemIds: (number | null)[];
 
-    /** Original box colors for restoring after cooldown */
-    private boxColors: Color[];
-    private cooldownColor: Color = new Color(80, 80, 80, 200);
+    private keyTipSpriteKeys: string[];
 
     /** Tooltip label shown on hover */
     private tooltip: Label;
@@ -71,15 +69,19 @@ export default class ActionSlotsHUD implements Updateable {
         this.abilities = abilities;
         this.boxSprites = [];
         this.boxPositions = [];
-        this.boxColors = [];
         this.boxSize = options.boxWidth;
         this.slotIcons = [null, null, null, null];
         this.slotItemIds = [null, null, null, null];
 
         this.crystalSprite = null;
 
-        //let weaponColor = new Color(140, 60, 60, 200);
-        //let abilityColor = new Color(60, 60, 140, 200);
+        //Did like this so didnt render immediately, otherwise i think it would render behind
+        this.keyTipSpriteKeys = [
+            "spacebar",
+            "key-one",
+            "key-two",
+            "key-three"
+        ]
         
         this.boxSprites = [];
         this.countdownLabels = [];
@@ -103,6 +105,7 @@ export default class ActionSlotsHUD implements Updateable {
             }
 
             let box;
+            let tip;
             if (i == 0) {
                 box = this.scene.add.sprite("tray_red", layer);
                 box.position.set(centerX + 18, centerY - 10);
@@ -110,6 +113,7 @@ export default class ActionSlotsHUD implements Updateable {
             }
             else if (i > 0 && i < 4) {
                 box = this.scene.add.sprite("tray_blue", layer);
+
                 box.position.set(centerX, centerY - 10)
                 this.boxPositions.push(new Vec2(centerX, centerY - 10));
             }
@@ -124,6 +128,11 @@ export default class ActionSlotsHUD implements Updateable {
             }
             this.boxSprites.push(box);
 
+            if (i < 4) {
+                tip = this.scene.add.sprite(this.keyTipSpriteKeys[i], layer);
+                tip.position.set(this.boxPositions[i].x, this.boxPositions[i].y + 22);
+                tip.visible = true;
+            }
 
             if (i == 4) {
                 centerX = 30;
@@ -153,8 +162,8 @@ export default class ActionSlotsHUD implements Updateable {
         this.tooltip.borderColor = Color.WHITE;
         this.tooltip.borderWidth = 1;
         this.tooltip.textColor = Color.WHITE;
-        this.tooltip.fontSize = 18;
-        this.tooltip.size.set(280, 36);
+        this.tooltip.fontSize = 12;
+        this.tooltip.size.set(350, 36);
         this.tooltip.visible = false;
     }
 

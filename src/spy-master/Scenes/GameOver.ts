@@ -19,7 +19,7 @@ export default class GameOver extends Scene {
         gameOver.fontSize = 48;
 
         const restart = <Button>this.add.uiElement(UIElementType.BUTTON, "primary", {position: new Vec2(center.x, center.y + 50), text: "Return to Menu"});
-        restart.size.set(300, 50);
+        restart.size.set(450, 50);
         restart.borderWidth = 2;
         restart.borderColor = Color.WHITE;
         restart.backgroundColor = new Color(60, 60, 60, 200);

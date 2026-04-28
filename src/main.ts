@@ -32,7 +32,8 @@ import { AAControls } from "./spy-master/AAControls";
             {name: AAControls.CHEAT_GIVE_ITEMS, keys: ["u"]},
             {name: AAControls.CHEAT_SPAWN_BOSS, keys: ["y"]},
             {name: AAControls.CHEAT_GIVE_CRYSTALS, keys: ["0"]},
-            {name: AAControls.CHEAT_TELEPORT_TO_MERCHANT, keys: ["9"]}
+            {name: AAControls.CHEAT_TELEPORT_TO_MERCHANT, keys: ["9"]},
+            {name: AAControls.CHEAT_CONSOLE_LOCATION, keys: ["-"]},
         ],
         useWebGL: false,                        // Tell the game we want to use webgl
         showDebug: false                      // Whether to show debug messages. You can change this to true if you want
