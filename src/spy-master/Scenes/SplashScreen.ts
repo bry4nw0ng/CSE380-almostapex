@@ -45,10 +45,11 @@ export default class SplashScreen extends Scene {
             position: new Vec2(center.x, center.y),
             size: new Vec2(half.x * 2, half.y * 2)
         });
+
         //bg.color = new Color(135, 206, 235);
         bg.color = Color.BLACK;
         this.apexSprite = this.add.sprite("apex", "logo");
-        this.apexSprite.position.set(center.x, center.y - 500);
+        this.apexSprite.position.set(center.x, center.y - 1000);
         this.apexSprite.scale.set(2, 2);
 
         this.almostSprite = this.add.sprite("almost", "almost");
@@ -110,11 +111,11 @@ export default class SplashScreen extends Scene {
 
         this.apexSprite.tweens.add("toCenter", {
             startDelay: 300,
-            duration: 1000,
+            duration: 2000,
             effects: [
                 {
                     property: TweenableProperties.posY,
-                    start: this.viewport.getHalfSize().y  - 500,
+                    start: this.viewport.getHalfSize().y  - 1000,
                     end: this.viewport.getHalfSize().y - 50,
                     ease: EaseFunctionType.IN_OUT_QUAD
                 }

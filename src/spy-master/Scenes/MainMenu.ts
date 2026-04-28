@@ -78,6 +78,8 @@ export default class MainMenu extends SMScene {
     private helpNext: Sprite;
     private helpPrev: Sprite;
 
+    private playerShadow: Sprite;
+
     private fadeOverlay: Rect;
     
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
@@ -104,6 +106,8 @@ export default class MainMenu extends SMScene {
 
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
 
+        this.load.image("generic-shadow", "game_assets/sprites/shadow.png");
+
         this.load.audio("MENU", "game_assets/sounds/songs/home-cleaned.mp3");
     }
 
@@ -116,8 +120,9 @@ export default class MainMenu extends SMScene {
 
         this.addLayer("bg", 0);
         this.addLayer("home", 1);
-        this.addLayer("player", 2);
-        this.addLayer("debug", 3);
+        this.addLayer("shadow", 2);
+        this.addLayer("player", 3);
+        this.addLayer("debug", 4);
         this.addLayer("fade", 10);
         this.addUILayer("popup");
         this.addUILayer("popupOverlay");
@@ -184,6 +189,12 @@ export default class MainMenu extends SMScene {
         this.player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
         this.player.addAI(PlayerController);
         this.player.animation.play("IDLE", true);
+
+        this.playerShadow = this.add.sprite("generic-shadow", "shadow");
+        this.playerShadow.position.set(496, 513);
+        this.playerShadow.scale.set(2.5, 2);
+        this.playerShadow.alpha = 0.6;
+        this.playerShadow.visible = true;
 
         this.viewport.setCenter(center.x, center.y);
         this.viewport.setZoomLevel(2);
@@ -331,6 +342,7 @@ export default class MainMenu extends SMScene {
             return;
         }
 
+        this.playerShadow.position.set(this.player.position.x + 12, this.player.position.y + 26);
         this.constrainPlayerToFloor();
         this.checkZoneProximity();
 

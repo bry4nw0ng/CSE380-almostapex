@@ -43,7 +43,6 @@ export default class ShootEm extends NPCAction {
     
     public update(deltaT: number): void {
         super.update(deltaT);
-
         if (this.target == null) {
             this.finished();
             return;
@@ -63,7 +62,8 @@ export default class ShootEm extends NPCAction {
         if (this.timer.isStopped()) {
             if (this.inDaBarrel > 0) {
                 this.attack();
-                this.actor.animation.playIfNotAlready("ATTACKING_RIGHT", false, "WALK");
+                this.actor.animation.play("ATTACKING_RIGHT", false);
+                this.actor.animation.queue("WALK", true);
                 this.inDaBarrel -= 1;
                 //had to check if more or else timer kept bein funky
                 if (this.inDaBarrel > 0) {
@@ -72,6 +72,9 @@ export default class ShootEm extends NPCAction {
                 }
             }
 
+        }
+        else {
+            this.actor.animation.playIfNotAlready("ATTACKING_RIGHT", false);
         }
     }
 
