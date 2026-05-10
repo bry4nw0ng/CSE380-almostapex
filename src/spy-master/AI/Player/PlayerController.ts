@@ -177,14 +177,13 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
         }
         if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
-            if (this.scene instanceof MainMenu) {
+            if (!(this.scene instanceof MainSMScene)) {
                 return;
             }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
-                let scene = this.owner.getScene() as MainSMScene;
                 let aim = this.faceDir;
-                scene.spawnSpitball(this.owner.position.clone(), aim);
+                this.scene.spawnSpitball(this.owner.position.clone(), aim);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredGunTimer.start();
             }

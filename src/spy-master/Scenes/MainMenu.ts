@@ -20,6 +20,7 @@ import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import { AAControls } from "../AAControls";
 import SMScene from "./SMScene";
 import MainSMScene from "./MainSMScene";
+import OceanScene from "./OceanScene";
 import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
@@ -69,6 +70,7 @@ export default class MainMenu extends SMScene {
     private popupDim: Graphic;
     private popupMap: Sprite;
     private popupClose: Sprite;
+    // private popupHitboxDebug: Graphic[] = []; // DEBUG: visualize map click regions
 
     private helpOpen: boolean = false;
     private helpPage: number = 0;
@@ -83,9 +85,13 @@ export default class MainMenu extends SMScene {
     private fadeOverlay: Rect;
     
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
-    private readonly CLOSE_HIT = 40;               // click radius in px
+
+    private readonly CLOSE_HIT = 40; // close button click radius in px
+
+    private readonly MAP_HIT   = 60; // map region click radius in px
 
     private readonly CITY_POS = new Vec2(285, 695);
+    private readonly OCEAN_POS = new Vec2(460, 305);
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -235,6 +241,22 @@ export default class MainMenu extends SMScene {
         this.popupClose.scale.set(8, 8); // tune scale to match final sprite size
         this.popupClose.visible = false;
 
+        // DEBUG: hitbox overlays for map click regions
+        // const debugTargets: { pos: Vec2; size: number; color: Color }[] = [
+        //     { pos: this.CITY_POS,  size: this.MAP_HIT,   color: new Color(0, 255, 0, 0.35) },
+        //     { pos: this.OCEAN_POS, size: this.MAP_HIT,   color: new Color(0, 150, 255, 0.35) },
+        //     { pos: new Vec2(this.popupClose.position.x, this.popupClose.position.y), size: this.CLOSE_HIT, color: new Color(255, 0, 0, 0.35) },
+        // ];
+        // for (const t of debugTargets) {
+        //     const rect = this.add.graphic(GraphicType.RECT, "popupOverlay", {
+        //         position: t.pos.clone(),
+        //         size: new Vec2(t.size * 2, t.size * 2)
+        //     });
+        //     rect.color = t.color;
+        //     rect.visible = false;
+        //     this.popupHitboxDebug.push(rect);
+        // }
+
         // help/controls popup 
         this.helpDim = this.add.graphic(GraphicType.RECT, "popup", {
             position: new Vec2(center.x, center.y),
@@ -298,10 +320,15 @@ export default class MainMenu extends SMScene {
                     Math.abs(mouse.y - this.popupClose.position.y) <= this.CLOSE_HIT) {
                     this.closePopup();
                 }
-                if (Math.abs(mouse.x - this.CITY_POS.x) <= this.CLOSE_HIT &&
-                    Math.abs(mouse.y - this.CITY_POS.y) <= this.CLOSE_HIT) {
+                if (Math.abs(mouse.x - this.CITY_POS.x) <= this.MAP_HIT &&
+                    Math.abs(mouse.y - this.CITY_POS.y) <= this.MAP_HIT) {
                     this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
                     this.sceneManager.changeToScene(MainSMScene);
+                }
+                if (Math.abs(mouse.x - this.OCEAN_POS.x) <= this.MAP_HIT &&
+                    Math.abs(mouse.y - this.OCEAN_POS.y) <= this.MAP_HIT) {
+                    this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
+                    this.sceneManager.changeToScene(OceanScene);
                 }
             }
 
@@ -375,6 +402,7 @@ export default class MainMenu extends SMScene {
         this.popupMap.visible = false;
         this.popupClose.visible = false;
         this.zoneLabel.visible = false;
+        // for (const r of this.popupHitboxDebug) r.visible = false;
         this.viewport.setZoomLevel(2);
     }
 
@@ -447,6 +475,7 @@ export default class MainMenu extends SMScene {
                 this.popupDim.visible = true;
                 this.popupMap.visible = true;
                 this.popupClose.visible = true;
+                // for (const r of this.popupHitboxDebug) r.visible = true;
                 this.zoneLabel.visible = false;
                 break;
             case Zones.BOOK_TABLE: this.openHelp(); break;
