@@ -64,6 +64,7 @@ import SeedSlingerBehavior from "../AI/NPC/NPCBehavior/SeedSlingerBehavior";
 import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
+import EndArrow from "../GameSystems/HUD/NextLevelArrow";
 
 const BattlerGroups = {
     RED: 1,
@@ -78,6 +79,7 @@ export default class MainSMScene extends SMScene {
     private actionSlots: ActionSlotsHUD;
 
     private arrow: Arrow;
+    private endArrow: EndArrow;
 
     /** All the battlers in the SMScene (including the player) */
     private battlers: (Battler & Actor & GameNode)[];
@@ -115,7 +117,6 @@ export default class MainSMScene extends SMScene {
     private navmesh: Navmesh;
 
     private spawnableNodes: number[];
-
 
     //Spawn Logic
     private playerDead: boolean = false;
@@ -159,6 +160,9 @@ export default class MainSMScene extends SMScene {
 
     private readonly PAUSE_CLOSE_HIT = 25;
 
+    private readonly END_LEVEL_LOCATION = new Vec2(-60, 1670);
+    private elZoneLabel: Label;
+
     private readonly MERCHANT_LOCATION = new Vec2(1920, 1000);
     private bmZoneLabel: Label;
     private shopOpen: boolean = false;
@@ -172,6 +176,8 @@ export default class MainSMScene extends SMScene {
     private forSale: Item[] = [];
 
     private fadeOverlay: Rect;
+
+    private manhole: AnimatedSprite;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -274,6 +280,8 @@ export default class MainSMScene extends SMScene {
 
         this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
 
+        this.load.spritesheet("manhole", "game_assets/spritesheets/manhole.json");
+
         // Load the healthpack and lasergun loactions
         //this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
         //this.load.object("laserguns", "game_assets/data/items/laserguns.json");
@@ -319,6 +327,7 @@ export default class MainSMScene extends SMScene {
         //New hud changes
         this.load.spritesheet("healthbar", "game_assets/ui/hud/healthbar.json");
         this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png");
+        this.load.image("endArrowSprite", "game_assets/sprites/level-trans-arrow.png");
         this.load.image("tray_red", "game_assets/ui/hud/tray-red.png");
         this.load.image("tray_blue", "game_assets/ui/hud/tray-blue.png");
         this.load.image("tray_gray", "game_assets/ui/hud/tray-gray.png");
@@ -453,6 +462,7 @@ export default class MainSMScene extends SMScene {
         // init pause menu UI
         this.initPauseMenu();
         this.initShopMenu();
+        this.initLevelEnd();
 
         this.bmZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
             position: new Vec2(256, 275),
@@ -461,6 +471,15 @@ export default class MainSMScene extends SMScene {
         this.bmZoneLabel.textColor = Color.WHITE;
         this.bmZoneLabel.fontSize = 24;
         this.bmZoneLabel.visible = false;
+
+        this.elZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
+            position: new Vec2(256, 275),
+            text: "[E] To Go to the Ocean"
+        });
+        this.elZoneLabel.textColor = Color.WHITE;
+        this.elZoneLabel.fontSize = 24;
+        this.elZoneLabel.visible = false;
+
         this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "CITY_MUSIC", loop: true, holdReference: true});
 
         this.fadeOverlay = <Rect>this.add.graphic(GraphicType.RECT, "fade", {
@@ -479,7 +498,19 @@ export default class MainSMScene extends SMScene {
                 end: 0,
                 ease: EaseFunctionType.IN_OUT_SINE
             }],
-            onEnd: "fade-done"
+            onEnd: "fade-in-done"
+        });
+
+        this.fadeOverlay.tweens.add("fadeOut", {
+            startDelay: 0,
+            duration: 800,
+            effects: [{
+                property: TweenableProperties.alpha,
+                start: 0,
+                end: 1,
+                ease: EaseFunctionType.IN_OUT_SINE
+            }],
+            onEnd: "fade-out-done"
         });
 
         this.fadeOverlay.tweens.play("fadeIn");
@@ -601,6 +632,25 @@ export default class MainSMScene extends SMScene {
             this.bmZoneLabel.visible = false;
         }
 
+        if (this.player.position.distanceTo(this.END_LEVEL_LOCATION) < 30) {
+            this.elZoneLabel.visible = true;
+            if (!this.manhole.animation.isPlaying("OPEN") && !this.manhole.animation.isPlaying("IDLE_OPEN")) {
+                this.manhole.animation.playIfNotAlready("OPEN", false);
+                this.manhole.animation.queue("IDLE_OPEN", true);
+            }
+            if (Input.isJustPressed(AAControls.INTERACT) && this.bossDead == true) {
+                //ADD LOGIC FOR LEVEL SWITCH
+
+            }
+        }
+        else {
+            if (!this.manhole.animation.isPlaying("CLOSE") && !this.manhole.animation.isPlaying("IDLE_CLOSE")) {
+                this.manhole.animation.playIfNotAlready("CLOSE", false);
+                this.manhole.animation.queue("IDLE_CLOSE", true);
+            }
+            this.elZoneLabel.visible = false;
+        }
+
         //Rendering the heathbars was getting expensive, needed to change to only update if needed (Now doesnt show if max health)
         this.healthbars.forEach((healthbar, battler) => {
             if (battler instanceof PlayerActor) {
@@ -629,6 +679,13 @@ export default class MainSMScene extends SMScene {
         }
         else {
             this.arrow.visible = false;
+        }
+
+        if (this.bossDead && this.player.position.distanceTo(this.END_LEVEL_LOCATION) > 100) {
+            this.endArrow.update(deltaT, this.END_LEVEL_LOCATION);
+        }
+        else {
+            this.endArrow.visible = false;
         }
 
         if (this.player.hasNeedle && this.needle.isSpinning) {
@@ -1677,8 +1734,9 @@ export default class MainSMScene extends SMScene {
         this.player = player;
 
         let arrowSprite = this.add.sprite("arrowSprite", "arrowLayer");
+        let endArrowSprite = this.add.sprite("endArrowSprite", "arrowLayer");
         this.arrow = new Arrow(arrowSprite, this.player);
-
+        this.endArrow = new EndArrow(endArrowSprite, this.player);
 
         return player;
     }
@@ -1730,7 +1788,7 @@ export default class MainSMScene extends SMScene {
         merchantShadow.visible = true;
 
         merchant.scale.set(0.25, 0.25);
-        merchant.animation.playIfNotAlready("Idle", true);
+        merchant.animation.play("Idle", true);
 
         let dumpster = this.load.getObject("dumpster");
 
@@ -1759,6 +1817,12 @@ export default class MainSMScene extends SMScene {
         }
     }
     
+    protected initLevelEnd() {
+        let manhole = this.add.animatedSprite(AnimatedSprite, "manhole", "primary");
+        manhole.position.copy(this.END_LEVEL_LOCATION);
+        this.manhole = manhole;
+        this.manhole.animation.play("IDLE_CLOSE", true);
+    }
 
 
     public cheatGiveItems(): void{

@@ -128,8 +128,9 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     public handleJetPackTriggered() {
         this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
+        let temp = this.speed;
         this.speed = this.speed * 2;
-        let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
+        let activeTimer = new Timer(5000, () => this.speed = temp, false);
         activeTimer.start();
     }
 
