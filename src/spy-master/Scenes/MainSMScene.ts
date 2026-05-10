@@ -65,11 +65,14 @@ import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import EndArrow from "../GameSystems/HUD/NextLevelArrow";
+import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
+import PufferBehavior from "../AI/NPC/NPCBehavior/PufferBehavior";
 
+/* 
 const BattlerGroups = {
     RED: 1,
     BLUE: 2
-} as const;
+} as const; */
 
 export default class MainSMScene extends SMScene {
 
@@ -88,8 +91,6 @@ export default class MainSMScene extends SMScene {
     private healthbars: Map<Battler & Actor & GameNode, HealthbarHUD>;
 
     private shadows: Map<Battler & Actor & GameNode, Sprite>;
-
-
 
     //bullets trash/player
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
@@ -515,8 +516,6 @@ export default class MainSMScene extends SMScene {
 
         this.fadeOverlay.tweens.play("fadeIn");
     }
-
-
 
     /**
      * @see Scene.updateScene
@@ -1818,7 +1817,7 @@ export default class MainSMScene extends SMScene {
     }
     
     protected initLevelEnd() {
-        let manhole = this.add.animatedSprite(AnimatedSprite, "manhole", "primary");
+        let manhole = this.add.animatedSprite(AnimatedSprite, "manhole", "shadow");
         manhole.position.copy(this.END_LEVEL_LOCATION);
         this.manhole = manhole;
         this.manhole.animation.play("IDLE_CLOSE", true);
@@ -1897,7 +1896,6 @@ export default class MainSMScene extends SMScene {
         spitball.scale.set(1, 1);
         this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "SPITBALL", loop: false, holdReference: false});
         this.spitballs.push({sprite: spitball, velocity: direction.scaled(120), stillCookin: true})
-
     }
 
     /**
@@ -2037,6 +2035,8 @@ export default class MainSMScene extends SMScene {
     public spawnBoss() {     
         let boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
         boss.position.set(230, 1000);
+        //in case we want to test shark
+        //boss.position.copy(this.player.position);
         boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(40, 120)), null, false);
         boss.scale.set(1, 1);
 
@@ -2053,6 +2053,7 @@ export default class MainSMScene extends SMScene {
         boss.navkey = "navmesh";
 
 
+        //Return to RaccoonBehavior
         boss.addAI(RaccoonBehavior, {target: this.player, range: 750});
 
         // Play the NPCs "IDLE" animation 
@@ -2085,7 +2086,7 @@ export default class MainSMScene extends SMScene {
             npc.maxHealth = 9;
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
             npc.navkey = "navmesh";
-            npc.addAI(GuardBehavior, {target: this.player, range: 200});
+            npc.addAI(GuardBehavior, {target: this.player, range: 1000});
             npc.scale.set(0.25, 0.25);
             npcShadow.alpha = 0.8;
         }
@@ -2106,6 +2107,7 @@ export default class MainSMScene extends SMScene {
             npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
             npc.navkey = "navmesh";
             npc.addAI(SeedSlingerBehavior, {target: this.player, range: 75});
+            //npc.addAI(SeedSlingerBehavior, {target: this.player, range: 75});
             npc.scale.set(0.5, 0.5);
         }
         else {
