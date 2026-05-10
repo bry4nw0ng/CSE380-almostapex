@@ -11,19 +11,13 @@ import Graphic from "../../Wolfie2D/Nodes/Graphic";
 import RenderingManager from "../../Wolfie2D/Rendering/RenderingManager";
 import SceneManager from "../../Wolfie2D/Scene/SceneManager";
 import Viewport from "../../Wolfie2D/SceneGraph/Viewport";
-import IsometricTilemap from "../../Wolfie2D/Nodes/Tilemaps/IsometricTilemap";
 import PlayerActor from "../Actors/PlayerActor";
 import PlayerController from "../AI/Player/PlayerController";
-import Battler from "../GameSystems/BattleSystem/Battler";
-import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
-import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import { AAControls } from "../AAControls";
-import SMScene from "./SMScene";
+import Scene from "../../Wolfie2D/Scene/Scene";
 import MainSMScene from "./MainSMScene";
 import OceanScene from "./OceanScene";
-import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
-import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
@@ -57,7 +51,7 @@ interface Zone {
     bounds: { x: [number, number]; y: [number, number] };
 }
 
-export default class MainMenu extends SMScene {
+export default class MainMenu extends Scene {
 
     private player: PlayerActor;
     // private coordLabel: Label; // DEBUG: x/y position shown for zone bounds
@@ -482,13 +476,5 @@ export default class MainMenu extends SMScene {
             case Zones.BED:        break; // TODO: exit game
         }
     }
-
-    // ---- SMScene stubs ----
-    public getBattlers(): Battler[] { return []; }
-    public getWalls(): IsometricTilemap { return null as unknown as IsometricTilemap; }
-    public getHealthpacks(): Healthpack[] { return []; }
-    public getLaserGuns(): LaserGun[] { return []; }
-    public isTargetVisible(_pos: Vec2, _target: Vec2): boolean { return true; }
-    public getNavmesh(): Navmesh { return null as unknown as Navmesh;}
 
 }
