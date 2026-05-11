@@ -1,6 +1,6 @@
 {
     "name": "crab",
-    "spriteSheetImage": "crab_sheet.png",
+    "spriteSheetImage": "crab.png",
     "spriteWidth": 64,
     "spriteHeight": 64,
     "leftBuffer": 0,
