@@ -20,6 +20,9 @@ import {
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
+import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
+import PlayerActor from "../Actors/PlayerActor";
+import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 
 
 export default class OceanLevel extends SMScene {
@@ -32,10 +35,25 @@ export default class OceanLevel extends SMScene {
         this.loadSharedAssets();
         this.load.spritesheet("puffer", "game_assets/spritesheets/puffer.json");
         this.load.image("spike", "game_assets/sprites/puffer-spike.png");
+        this.load.image("small_bubble", "game_assets/sprites/bubble-small.png");
+        this.load.image("large_bubble", "game_assets/sprites/bubble-large.png");
+        this.load.spritesheet("shark", "game_assets/spritesheets/shark.json");
+
+        this.load.image("ChestSprite", "game_assets/sprites/chest.png");
+        this.load.object("chest", "game_assets/data/enemies/chest.json");
         // Ocean-specific enemies (crab/pufferfish/shark) to be added later.
         // Ocean tileset image auto-loads from ocean.tmj.
     }
 
+    
+    protected override initLevelContent(player: PlayerActor): void {
+        this.initializeNPCs();
+
+        this.sharkfin = this.add.animatedSprite(AnimatedSprite, "Underwater_Sharkfin", "primary");
+        this.sharkfin.scale.set(0.75,0.75);
+        this.sharkfin.visible = false;
+    }
+    
     // startScene + updateScene inherited from SMScene.
 
     public getLevelKey(): string { return "ocean"; }
@@ -43,6 +61,10 @@ export default class OceanLevel extends SMScene {
     public getTilemapKey(): string { return "ocean"; }
 
     public getTilemapPath(): string { return "game_assets/tilemaps/ocean.tmj"; }
+
+    protected curBossDrop(): number | null {
+        return 100;
+    }
 
     /** Spawn at the center of the map until a real walkable tile is picked. */
     public getSpawnPosition(): Vec2 {
@@ -58,6 +80,20 @@ export default class OceanLevel extends SMScene {
     public getMusicKey(): string { return "OCEAN_MUSIC"; }
     public getMusicPath(): string { return "game_assets/sounds/songs/water.mp3"; }
 
+    protected initializeNPCs(): void {
+        let chest = this.load.getObject("chest");
+
+        for (let i = 0; i < chest.chests.length; i++) {
+            let treasure = this.add.sprite("ChestSprite", "shadow");
+            treasure.position.set(chest.chests[i][0], chest.chests[i][1]);
+            treasure.scale.set(1.5, 1.5);
+
+            this.treasure.push({sprite: treasure, stillCookin: true});
+
+        }
+    }
+
+    
     public getEnemyTypes(): EnemyDef[] { return [
         {
             key: "puffer",
@@ -75,7 +111,27 @@ export default class OceanLevel extends SMScene {
             shotSprites: ["spike"],
         }
     ]; }
-    public getBoss(): BossDef | null { return null; }
+    public getBoss(): BossDef | null { 
+        return {
+            key: "shark",
+            spritesheetKey: "shark",
+            spritesheetPath: "game_assets/spritesheets/shark.json",
+            health: 60,
+            maxHealth: 60,
+            speed: 100,
+            scale: new Vec2(1, 1),
+            battleGroup: 1,
+            hitbox: new AABB(Vec2.ZERO, new Vec2(90, 40)),
+            shadow: { offset: new Vec2(0, 0), scale: new Vec2(1, 1), alpha: 0 },
+            ai: { ctor: SharkBehavior, opts: { range: 750 } },
+            crystalDrops: 20,
+            shotSprites: ["large_bubble", "small_bubble"],
+            spawnTrigger: "after_final_wave",
+            spawnPosition: new Vec2(this.player.position.x + 200, this.player.position.y),
+            deathDropItem: "Sharkfin",
+        };
+    }
+
     public getWaveConfig(): WaveDef[] { return [
                 {
             count: 5,
@@ -110,6 +166,24 @@ export default class OceanLevel extends SMScene {
             }
         }
         return false;
+    }
+
+    protected override handleUsedRaccoonTail(): void {
+        let opened = false;
+        this.treasure.forEach(cache => {
+            if (cache.stillCookin && cache.sprite.position.distanceTo(this.player.position) < 100) {
+                this.dropOrChooseItem(cache.sprite.position, 999, null);
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "TREASURE", loop: false, holdReference: false });
+                cache.sprite.destroy();
+                cache.stillCookin = false;
+                opened = true;
+            }
+        });
+        this.treasure = this.treasure.filter(c => c.stillCookin);
+
+        if (!opened) {
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "UNPICKUPPABLE", loop: false, holdReference: false });
+        }
     }
 }
 

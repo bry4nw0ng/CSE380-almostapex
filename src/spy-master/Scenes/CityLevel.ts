@@ -83,7 +83,6 @@ const BattlerGroups = {
 
 export default class CityLevel extends SMScene {
 
-    private treasure: { sprite: Sprite, stillCookin: boolean }[];
     private bases: BattlerBase[];
 
     private readonly END_LEVEL_LOCATION = new Vec2(-60, 1670);
@@ -91,7 +90,6 @@ export default class CityLevel extends SMScene {
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
-        this.treasure = [];
     }
 
     /**
@@ -126,21 +124,27 @@ export default class CityLevel extends SMScene {
     }
 
     protected override handleUsedRaccoonTail(): void {
+        let opened = false;
         this.treasure.forEach(cache => {
-            if (cache.sprite.position.distanceTo(this.player.position) < 100) {
-                this.dropOrChooseItem(cache.sprite.position, 999, null);
+            if (cache.stillCookin && cache.sprite.position.distanceTo(this.player.position) < 100) {
+                this.dropOrChooseItem(cache.sprite.position, 999, null)
                 this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TREASURE", loop: false, holdReference: false});
-                cache.sprite.destroy();
-                return;
+                cache.sprite.destroy(); 
+                cache.stillCookin = false;
+                opened = true;
             }
-        });
-        this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "UNPICKUPPABLE", loop: false, holdReference: false});
+        }); 
+        this.treasure = this.treasure.filter(c => c.stillCookin);
+
+        if (!opened) { 
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "UNPICKUPPABLE", loop: false, holdReference: false});
+        }
     }
 
     /**
      * Initialize the NPCs
      */
-    protected initializeNPCs(player): void {
+    protected initializeNPCs(player: PlayerActor): void {
         console.log("spawned merchant");
         let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
         merchant.position.copy(this.MERCHANT_LOCATION);
@@ -181,6 +185,10 @@ export default class CityLevel extends SMScene {
 
     public getLayerDepthMap(): LayerDepthMap {
         return { floor: 0, wall: 3, wallNC: 5, transparent: 6 };
+    }
+    
+    protected override curBossDrop(): number | null {
+        return 200;
     }
 
     public getMusicKey(): string { return "CITY_MUSIC"; }
@@ -231,7 +239,7 @@ export default class CityLevel extends SMScene {
             speed: 0,
             scale: new Vec2(1, 1),
             battleGroup: 1,
-            hitbox: new AABB(Vec2.ZERO, new Vec2(40, 120)),
+            hitbox: new AABB(Vec2.ZERO, new Vec2(60, 150)),
             shadow: { offset: new Vec2(0, 0), scale: new Vec2(1, 1), alpha: 0 },
             ai: { ctor: RaccoonBehavior, opts: { range: 750 } },
             crystalDrops: 10,

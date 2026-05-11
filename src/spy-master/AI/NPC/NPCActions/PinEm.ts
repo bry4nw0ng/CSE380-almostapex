@@ -75,7 +75,7 @@ export default class PinEm extends NPCAction {
             let curAngle = Math.PI / 3 * i;
             let shootDir = new Vec2(Math.cos(curAngle), Math.sin(curAngle));
             //Have to change when implmented
-            scene.spawnEnemyShot(this.actor.position.clone(), shootDir, "puffer");
+            scene.spawnEnemyShot(this.actor.position.clone(), shootDir, "puffer", 100);
         }
     }
 

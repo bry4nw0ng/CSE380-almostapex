@@ -114,7 +114,7 @@ export default class RaccoonBehavior extends NPCBehavior {
             for (let i = 0; i <= 20; i++) {
                 let angle = Math.random() * Math.PI * 2;
                 let aim = new Vec2(Math.cos(angle), Math.sin(angle));
-                scene.spawnEnemyShot(this.owner.position.clone(), aim, "raccoon");
+                scene.spawnEnemyShot(this.owner.position.clone(), aim, "raccoon", 100);
             }
         }
         else if (this.attackStrategy == "aim") {
@@ -122,7 +122,7 @@ export default class RaccoonBehavior extends NPCBehavior {
             let aim = this.owner.position.dirTo(this.target.position);
             for (let i = 0; i <= 10; i++) {
                 let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 - Math.random() * 0.1))
-                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "raccoon");
+                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "raccoon", 125);
             }
 
         }

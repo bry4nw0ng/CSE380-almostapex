@@ -6,7 +6,7 @@ import Timer from "../../../../Wolfie2D/Timing/Timer";
 import PlayerActor from "../../../Actors/PlayerActor";
 import { AbilityEvent } from "../../../Events";
 
-//Gives ability to rummage through objects (IMPORTANT: implement dumpster for level one so can look after complete), also speed boost x1.1
+//Gives ability to rummage through objects, also speed boost x1.1
 //Just check if have, then box will open if interact 
 //BOSS ITEM
 export default class RaccoonTail extends Item {
