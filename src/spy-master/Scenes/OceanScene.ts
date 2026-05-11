@@ -12,12 +12,21 @@ import PlayerController from "../AI/Player/PlayerController";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import SMScene from "./SMScene";
 import MainMenu from "./MainMenu";
+import Item from "../GameSystems/ItemSystem/Item";
+import {
+    BossDef,
+    EndLevelSpriteDef,
+    EnemyDef,
+    ItemKey,
+    LayerDepthMap,
+    SceneCtor,
+    WaveDef,
+} from "./LevelTypes";
 
 export default class OceanScene extends SMScene {
 
-    private player: PlayerActor;
+    // player and walls lifted to SMScene
     private playerShadow: Sprite;
-    private walls: IsometricTilemap;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -85,9 +94,39 @@ export default class OceanScene extends SMScene {
         }
     }
 
-    // ---- SMScene stubs ----
-    public getBattlers(): Battler[] { return [this.player as unknown as Battler]; }
-    public getWalls(): IsometricTilemap { return this.walls; }
-    public isTargetVisible(_pos: Vec2, _target: Vec2): boolean { return true; }
-    public getNavmesh(): Navmesh { return null as unknown as Navmesh; }
+    public getLevelKey(): string { return "ocean"; }
+
+    public getTilemapKey(): string { return "ocean"; }
+
+    public getTilemapPath(): string { return "game_assets/tilemaps/ocean.tmj"; }
+
+    public getSpawnPosition(): Vec2 { return Vec2.ZERO; }
+
+    public getLayerDepthMap(): LayerDepthMap {
+        return { floor: 0, props: 1, wall: 3, wallNC: 5, transparent: 6 };
+    }
+
+    public getMusicKey(): string { return "CITY_MUSIC"; }
+
+    public getMusicPath(): string { return "game_assets/sounds/songs/city-cleaned.mp3"; }
+
+    public getEnemyTypes(): EnemyDef[] { return []; }
+
+    public getBoss(): BossDef | null { return null; }
+
+    public getWaveConfig(): WaveDef[] { return []; }
+
+    public getShopInventory(): Item[] { return []; }
+
+    public getDropItemPool(): ItemKey[] { return []; }
+
+    public getEndLevelLocation(): Vec2 { return Vec2.ZERO; }
+
+    public getEndLevelLabel(): string { return ""; }
+
+    public getEndLevelSprite(): EndLevelSpriteDef {
+        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "" };
+    }
+
+    public getNextLevel(): SceneCtor | null { return null; }
 }

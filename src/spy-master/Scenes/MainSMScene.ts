@@ -65,6 +65,15 @@ import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import EndArrow from "../GameSystems/HUD/NextLevelArrow";
+import {
+    BossDef,
+    EndLevelSpriteDef,
+    EnemyDef,
+    ItemKey,
+    LayerDepthMap,
+    SceneCtor,
+    WaveDef,
+} from "./LevelTypes";
 
 const BattlerGroups = {
     RED: 1,
@@ -81,16 +90,6 @@ export default class MainSMScene extends SMScene {
     private arrow: Arrow;
     private endArrow: EndArrow;
 
-    /** All the battlers in the SMScene (including the player) */
-    private battlers: (Battler & Actor & GameNode)[];
-    /** Healthbars for the battlers */
-    //Changed to map to battler instead (dont want to have to find every time)
-    private healthbars: Map<Battler & Actor & GameNode, HealthbarHUD>;
-
-    private shadows: Map<Battler & Actor & GameNode, Sprite>;
-
-
-
     //bullets trash/player
     private trash: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
     private spitballs: {sprite: Sprite, velocity: Vec2, stillCookin: boolean}[] = [];
@@ -103,20 +102,7 @@ export default class MainSMScene extends SMScene {
 
     private sceneEquippables: Array<Item>;
 
-    private player: PlayerActor;
     private boss: NPCActor;
-
-    // The wall layer of the tilemap
-    private walls: IsometricTilemap;
-    //Non collidable walls, have to add to navmesh so that enemies dont spawn there, but not collidable
-    private wallsNC: IsometricTilemap;
-    private bothWalls: IsometricTilemap[];
-
-    // The position graph for the navmesh
-    private graph: PositionGraph;
-    private navmesh: Navmesh;
-
-    private spawnableNodes: number[];
 
     //Spawn Logic
     private playerDead: boolean = false;
@@ -181,12 +167,8 @@ export default class MainSMScene extends SMScene {
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
-        this.spawnableNodes = [];
-
-        this.battlers = new Array<Battler & Actor & GameNode>();
-        this.healthbars = new Map<Battler & Actor & GameNode, HealthbarHUD>();
-        this.shadows = new Map<Battler & Actor & GameNode, Sprite>();
-        this.treasure = [];       
+        // battlers, healthbars, shadows, spawnableNodes initialized in SMScene
+        this.treasure = [];
         this.sceneEquippables = new Array<Item>();
 
         this.curAboutPage = 0;
@@ -1960,16 +1942,8 @@ export default class MainSMScene extends SMScene {
         this.navManager.addNavigableEntity("navmesh", this.navmesh);
     }
 
-    protected isWall(col: number, row: number) {
-        let isReallyWall = false;
-        this.bothWalls.forEach((walltype) => {
-            if (walltype.getTile(col, row) !== 0) {
-                isReallyWall = true
-            }
-        });
-        return isReallyWall;
-    }
-    
+    // isWall lifted to SMScene
+
     public getRandomNodePosition() {
         let angle = Math.PI * 2 * Math.random();
         let spawnPosX = this.player.position.x + Math.cos(angle) * 400;
@@ -2125,62 +2099,58 @@ export default class MainSMScene extends SMScene {
         this.battlers.push(npc);
     }
 
-    public getBattlers(): Battler[] { return this.battlers; }
-
-    public getPlayer(): PlayerActor { return this.player}
-
-    public getWalls(): IsometricTilemap { return this.walls; }
-
-    public getNavmesh(): Navmesh {return this.navmesh;}
+    // getBattlers / getWalls / getNavmesh / getPlayer / isWall / isTargetVisible
+    // lifted to SMScene.
 
     public toggleCheatPow(): void {this.CHEATPOWGUN = !this.CHEATPOWGUN};
     public toggleCheatInvincible(): void {this.CHEATINVINCIBLE = !this.CHEATINVINCIBLE};
 
-    /**
-     * Checks if the given target position is visible from the given position.
-     * @param position 
-     * @param target 
-     * @returns 
-     */
-    public isTargetVisible(position: Vec2, target: Vec2): boolean {
+    // ─── Level seam stubs (Phase 2a) ───────────────────────────────────────
+    // Implementations are placeholders that mirror the existing hardcoded
+    // values. Phase 2 will start consuming these getters and migrating logic
+    // up to SMScene; level-specific data (enemies, waves, shop) will be
+    // populated then.
 
-        // Get the new player location
-        let start = position.clone();
-        let delta = target.clone().sub(start);
+    public getLevelKey(): string { return "city"; }
 
-        // Iterate through the tilemap region until we find a collision
-        let minX = Math.min(start.x, target.x);
-        let maxX = Math.max(start.x, target.x);
-        let minY = Math.min(start.y, target.y);
-        let maxY = Math.max(start.y, target.y);
+    public getTilemapKey(): string { return "level"; }
 
-        // Get the wall tilemap
-        let walls = this.getWalls();
+    public getTilemapPath(): string { return "game_assets/tilemaps/city-map-revised.tmj"; }
 
-        let minIndex = walls.getTilemapPosition(minX, minY);
-        let maxIndex = walls.getTilemapPosition(maxX, maxY);
+    public getSpawnPosition(): Vec2 { return new Vec2(-1500, 1000); }
 
-        let tileSize = walls.getScaledTileSize();
-
-        for (let col = minIndex.x; col <= maxIndex.x; col++) {
-            for (let row = minIndex.y; row <= maxIndex.y; row++) {
-                if (this.isWall(col, row)) {
-                    // Get the position of this tile
-                    //let tilePos = new Vec2(col * tileSize.x + tileSize.x / 2, row * tileSize.y + tileSize.y / 2);
-                    let tilePos = walls.getWorldPosition(col, row);
-                    // Create a collider for this tile
-                    let collider = new AABB(tilePos, tileSize.scaled(1 / 2));
-
-                    let hit = collider.intersectSegment(start, delta, Vec2.ZERO);
-
-                    if (hit !== null && start.distanceSqTo(hit.pos) < start.distanceSqTo(target)) {
-                        // We hit a wall, we can't see the player
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-
+    public getLayerDepthMap(): LayerDepthMap {
+        return { floor: 0, wall: 3, wallNC: 5, transparent: 6 };
     }
+
+    public getMusicKey(): string { return "CITY_MUSIC"; }
+
+    public getMusicPath(): string { return "game_assets/sounds/songs/city-cleaned.mp3"; }
+
+    public getEnemyTypes(): EnemyDef[] { return []; }
+
+    public getBoss(): BossDef | null { return null; }
+
+    public getWaveConfig(): WaveDef[] { return []; }
+
+    public getShopInventory(): Item[] { return []; }
+
+    public getDropItemPool(): ItemKey[] {
+        return ["Shield", "RedHat", "JetPack", "Healthpack", "Gum", "DaNeedle", "Antennas"];
+    }
+
+    public getEndLevelLocation(): Vec2 { return this.END_LEVEL_LOCATION; }
+
+    public getEndLevelLabel(): string { return "[E] To Go to the Ocean"; }
+
+    public getEndLevelSprite(): EndLevelSpriteDef {
+        return {
+            spritesheetKey: "manhole",
+            idleClosed: "IDLE_CLOSE",
+            opening: "OPEN",
+            idleOpen: "IDLE_OPEN",
+        };
+    }
+
+    public getNextLevel(): SceneCtor | null { return null; }
 }
