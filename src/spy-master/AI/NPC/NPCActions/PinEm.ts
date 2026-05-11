@@ -8,7 +8,7 @@ import NPCBehavior from "../NPCBehavior";
 import NPCAction from "./NPCAction";
 import { ItemEvent } from "../../../Events";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
+import SMScene from "../../../Scenes/SMScene";
 
 export default class PinEm extends NPCAction {
 
@@ -62,7 +62,7 @@ export default class PinEm extends NPCAction {
     }
 
     public attack() {
-        let scene = this.actor.getScene() as MainSMScene;
+        let scene = this.actor.getScene() as SMScene
         let aim = this.actor.position.dirTo(this.target.position);
         if (aim.x < 0) {
             this.actor.invertX = false;
@@ -75,7 +75,7 @@ export default class PinEm extends NPCAction {
             let curAngle = Math.PI / 3 * i;
             let shootDir = new Vec2(Math.cos(curAngle), Math.sin(curAngle));
             //Have to change when implmented
-            scene.spawnEnemyShot(this.actor.position.clone(), shootDir, "pigeon");
+            scene.spawnEnemyShot(this.actor.position.clone(), shootDir, "puffer");
         }
     }
 

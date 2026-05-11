@@ -29,7 +29,7 @@ import SMScene from "../../Scenes/SMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
-import SMScene from "../../Scenes/SMScene";
+
 
 /**
  * The controller that controls the player.
@@ -95,9 +95,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
         this.cheats = [
             "CHEAT_CITY",
-            "CHEAT_MOUNTAIN",
             "CHEAT_OCEAN",
-            "CHEAT_TOP_LEVEL",
             "CHEAT_INVINCIBLE",
             "CHEAT_POW_CANNON",
             "CHEAT_GIVE_ITEMS",
@@ -188,15 +186,24 @@ export default class PlayerController extends StateMachineAI implements AI{
         let abilityKeys = [AAControls.ABILITY1, AAControls.ABILITY2, AAControls.ABILITY3];
         for (let i = 0; i < 3; i++) {
             if (Input.isJustPressed(abilityKeys[i])) {
-                let ab = abilityOpts[i];
-                if (ab && !ab.isCoolingDown) {
-                    ab.useAbility(this.owner);
-                    ab.startCooldown();
-                }
+                const ab = abilityOpts[i];
+                if (ab) {
+                    if (Input.isPressed(AAControls.DROP_ITEM)) {
+                        this.owner.unEquip(ab);
+                        let scene = this.owner.getScene() as SMScene;
+                        scene.dropOrChooseItem(this.owner.position.clone(), 999, ab);
+                        
+                    }
+                    else if (!ab.isCoolingDown) {
+                        ab.useAbility(this.owner);
+                        ab.startCooldown();
+                    }
+                } 
             }
         }
         
            //Reset position of items each update
+        if (!this.owner.sharkfinActive) {
             for (let equippable of this.owner.equippables.items()) {
                 if (this.playerFacingDir == -1) {
                     equippable.getSprite().invertX = true;
@@ -214,6 +221,20 @@ export default class PlayerController extends StateMachineAI implements AI{
                     );
                 }
             };
+        }
+        else {
+            let scene = this.owner.getScene() as SMScene;
+            let sharkfin = scene.getSharkFin();
+            if (sharkfin) {
+                if (this.playerFacingDir == 1) {
+                    sharkfin.invertX = false;
+                }
+                else if (this.playerFacingDir == -1) {
+                    sharkfin.invertX = true;
+                }
+            }
+
+        }
         
         for (const cheat of this.cheats) {
             if (Input.isJustPressed(AAControls[cheat])) {

@@ -198,6 +198,7 @@ export default class ActionSlotsHUD implements Updateable {
                 }
                 this.slotIcons[i] = null;
                 this.slotItemIds[i] = null;
+                this.countdownLabels[i].text = "";
 
                 // Create new icon if there's an item
                 if (item) {

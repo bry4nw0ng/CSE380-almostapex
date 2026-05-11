@@ -14,7 +14,7 @@ export default class Coral extends Item {
         this._description = "Increases Fire Rate by 10%";
         this._fireRate = 1.1;
         this.value = 300;
-        this.equippableOffset = new Vec2(12, 7);
+        this.equippableOffset = new Vec2(-15, 4);
         this._maxStack = 10;
     }
 

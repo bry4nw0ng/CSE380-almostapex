@@ -38,6 +38,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
 
+    protected _sharkfinActive: boolean;
+
     protected _hasNeedle: boolean;
 
     public equippables: Inventory = new Inventory(20);
@@ -60,6 +62,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.iTimer = new Timer(750, () => this.toggleInvincible(false), false);
 
         this._hasNeedle = false;
+        this._sharkfinActive = false;
     }
 
     get battlerActive(): boolean {
@@ -154,6 +157,14 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         return this._invincible;
     }
 
+    get sharkfinActive(): boolean {
+        return this._sharkfinActive;
+    }
+
+    set sharkfinActive(isOn: boolean) {
+        this._sharkfinActive = isOn;
+    }
+
     set isCoolingDown(isOn: boolean) {
         this._isCoolingDown = isOn;
     }
@@ -192,6 +203,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     public unEquip(equippable: Item): void {
         this.equippables.remove(equippable.id);
         if (equippable.isAbility) {
+            equippable.stopCooldownTimer();
             this.abilities.remove(equippable.id);
         }
         equippable.removeBuff(this);

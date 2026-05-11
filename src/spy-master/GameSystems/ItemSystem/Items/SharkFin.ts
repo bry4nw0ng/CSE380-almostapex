@@ -16,7 +16,7 @@ export default class Sharkfin extends Item {
         this._isAbility = true;
         this._description = "Dive Ability + 10% speed";
         this._cooldownDuration = 8000;
-        this.equippableOffset = new Vec2(-28, 5);
+        this.equippableOffset = new Vec2(-10, -4);
         this.value = 3000;
     }
 

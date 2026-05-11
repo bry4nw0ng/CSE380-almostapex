@@ -17,9 +17,9 @@ import GoapAction from "../../../../Wolfie2D/AI/Goap/GoapAction";
 import GoapState from "../../../../Wolfie2D/AI/Goap/GoapState";
 import Battler from "../../../GameSystems/BattleSystem/Battler";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import { BattlerEvent } from "../../../Events";
+import SMScene from "../../../Scenes/SMScene";
 
 //Mainly copied from raccoon behavior (which was copied from guardbehavior lol)
 export default class SharkBehavior extends NPCBehavior {
@@ -116,7 +116,7 @@ export default class SharkBehavior extends NPCBehavior {
 
         this.indieBubbleTimer = new Timer(this.bubbleTime, () => {
             //Will have to change to ocean
-            let scene = this.owner.getScene() as MainSMScene;
+            let scene = this.owner.getScene() as SMScene;
             let aim = this.owner.position.dirTo(this.target.position);
             let bloom = new Vec2(aim.x * (1 + Math.random() * 0.2), aim.y * (1 - Math.random() * 0.2))
             //IMPORTANT CHANGE FOR OCEAN
@@ -261,7 +261,7 @@ export default class SharkBehavior extends NPCBehavior {
 
     //Doesnt do nothin, trying to acclimate myself to GOAP in the shooter logic
     protected initializeActions(): void {
-        let scene = this.owner.getScene() as MainSMScene;
+        let scene = this.owner.getScene() as SMScene;
         let gitEm = new Idle(this, this.owner);
         gitEm.targets = [this.target];
         gitEm.targetFinder = new BasicFinder();
@@ -274,7 +274,7 @@ export default class SharkBehavior extends NPCBehavior {
     public shoot() {
         let dist = this.owner.position.distanceTo(this.target.position);
         //Will have to change
-        let scene = this.owner.getScene() as MainSMScene;
+        let scene = this.owner.getScene() as SMScene;
         //this.switchTimer.start();
         //this.owner.animation.play("ATTACK", false);
 

@@ -51,6 +51,9 @@ import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
 import RaccoonTail from "../GameSystems/ItemSystem/Items/RaccoonTail";
 import RedHat from "../GameSystems/ItemSystem/Items/RedHat";
 import Shield from "../GameSystems/ItemSystem/Items/Shield";
+import Kelpstache from "../GameSystems/ItemSystem/Items/Kelpstache";
+import Coral from "../GameSystems/ItemSystem/Items/Coral";
+import Sharkfin from "../GameSystems/ItemSystem/Items/SharkFin";
 import Inventory from "../GameSystems/ItemSystem/Inventory";
 import { ClosestPositioned } from "../GameSystems/Searching/SMReducers";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
@@ -66,7 +69,6 @@ import {
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
-
 
 export default abstract class SMScene extends Scene {
     protected battlers: (Battler & Actor & GameNode)[];
@@ -157,7 +159,9 @@ export default abstract class SMScene extends Scene {
     protected sellables: Item[] = [];
     protected forSale: Item[] = [];
 
+    //Equippable logic
     protected sceneEquippables: Item[] = [];
+    protected sharkfin: AnimatedSprite;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -178,6 +182,8 @@ export default abstract class SMScene extends Scene {
         this.closestEnemy = null;
         this.bossDead = false;
         this.shopState = "main";
+
+        this.sharkfin = null;
 
         this.waveTweenTimer = new Timer(3000, () => this.startWave(this.curWave), false);
         this.waveDelayTimer = new Timer(4000, () => {
@@ -224,6 +230,9 @@ export default abstract class SMScene extends Scene {
     public toggleCheatInvincible(): void { this.CHEATINVINCIBLE = !this.CHEATINVINCIBLE; }
 
     public spawnSpitball(position: Vec2, direction: Vec2): void {
+        if (this.player.sharkfinActive) {
+            return;
+        }
         const spitball = this.add.sprite("spitball", "primary");
         spitball.position.set(position.x, position.y);
         spitball.scale.set(1, 1);
@@ -260,7 +269,7 @@ export default abstract class SMScene extends Scene {
                             battler.health = battler.health - 500;
                         }
                         else {
-                            battler.health = battler.health - 2;
+                            battler.health = battler.health - 2 * this.player.damageIncrease;
                             this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "ENEMY_HURT", loop: false, holdReference: false });
                         }
                         shot.sprite.visible = false;
@@ -323,7 +332,12 @@ export default abstract class SMScene extends Scene {
     public updateShadows(): void {
         this.shadows.forEach((shadow, battler) => {
             if (battler instanceof PlayerActor) {
-                shadow.position.set(battler.position.x - 4, battler.position.y + 13);
+                if (this.player.sharkfinActive) {
+                    shadow.position.set(-2000, 0);
+                }  
+                else {
+                    shadow.position.set(battler.position.x - 4, battler.position.y + 13);
+                }
             }
             else {
                 const def = this.enemyTypeMap.get(battler);
@@ -354,7 +368,7 @@ export default abstract class SMScene extends Scene {
         this.battlers.forEach((battler) => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
-                    battler.health = battler.health - 0.1;
+                    battler.health = battler.health - 0.1 + (this.player.damageIncrease - 1);
                 }
             }
         });
@@ -370,6 +384,31 @@ export default abstract class SMScene extends Scene {
                 activeTimer.start();
             }
         });
+    }
+
+    protected handleSharkFin() {
+        this.player.visible = false;
+        this.player.sharkfinActive = true;
+        this.sharkfin.animation.play("MOVING", true);
+        this.sharkfin.visible = true;
+        
+        this.player.toggleInvincible(true);
+        let equippables = [...this.player.equippables.items()];
+        console.log("equippables to hide:", equippables.length, equippables.map(e => e.constructor.name));
+        equippables.forEach(equippable => {
+            equippable.visible = false;
+        });
+        let sharkfinTimer = new Timer(5000, () => {
+            this.player.visible = true;
+            this.sharkfin.visible = false;
+            let equippables = [...this.player.equippables.items()];
+            equippables.forEach(equippable => {
+                equippable.visible = true;
+            });
+            this.player.sharkfinActive = false;
+            this.player.toggleInvincible(false);
+        }, false);
+        sharkfinTimer.start();
     }
 
     protected initLayers(): void {
@@ -452,8 +491,19 @@ export default abstract class SMScene extends Scene {
 
     // TODO: replace hardcoded pool with getDropItemPool() + ItemRegistry.itemFromKey()
     // TODO: split into dropItemAtPosition(pos) and setShopSlot(i) to kill the 999 sentinel
-    protected dropOrChooseItem(position: Vec2, i: number): void {
-        const choice = Math.floor(Math.random() * 7);
+    //Added a choice to also drop a chosen item
+    public dropOrChooseItem(position: Vec2, i: number, abilityChoice: Item | number | null): void {
+        let choice;
+
+        if (abilityChoice instanceof Item) {
+            choice = this.getAbilityNumber(abilityChoice);
+        }
+        else if (typeof abilityChoice === "number") {
+            choice = abilityChoice
+        }
+        else {
+            choice = Math.floor(Math.random() * 7);
+        }
 
         let sprite: Sprite;
         let newOb: Item;
@@ -486,6 +536,17 @@ export default abstract class SMScene extends Scene {
                 sprite = this.add.sprite("Antennas", "equippables");
                 newOb = new Antennas(sprite);
                 break;
+            //Make sure random never reaches the boss items, just for drop mechanics
+            case 100:
+                sprite = this.add.sprite("Sharkfin", "equippables");
+                sprite.rotation = Math.PI / 8;
+                sprite.scale.set(0.5, 0.5);
+                newOb = new Sharkfin(sprite);
+                break;
+            case 200:
+                sprite = this.add.sprite("RaccoonTail", "equippables");
+                newOb = new RaccoonTail(sprite);
+                break;
             default:
                 return;
         }
@@ -497,6 +558,21 @@ export default abstract class SMScene extends Scene {
             sprite.visible = false;
             newOb.position.set(0, -500);
             this.forSale[i] = newOb;
+        }
+    }
+
+    protected getAbilityNumber(item: Item): number {
+        if (item instanceof Gum) {
+            return 4;
+        }
+        else if (item instanceof JetPack) {
+            return 2;
+        }
+        else if (item instanceof RaccoonTail) {
+            return 200;
+        }
+        else if (item instanceof Sharkfin) {
+            return 100;
         }
     }
 
@@ -718,7 +794,7 @@ export default abstract class SMScene extends Scene {
 
     protected setBuyItems(): void {
         for (let i = 0; i < 3; i++) {
-            this.dropOrChooseItem(new Vec2(0, 0), i);
+            this.dropOrChooseItem(new Vec2(0, 0), i, null);
         }
     }
 
@@ -1332,6 +1408,10 @@ export default abstract class SMScene extends Scene {
         if (this.player.hasNeedle && this.needle.isSpinning) {
             this.handleDaNeedleUsed(this.needle.position);
         }
+
+        if (this.player.sharkfinActive) {
+            this.sharkfin.position.copy(this.player.position);
+        }
     }
 
     /**
@@ -1452,7 +1532,14 @@ export default abstract class SMScene extends Scene {
         this.load.image("Gum", "game_assets/sprites/used-gum.png");
         this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
         this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
+        
+        this.load.image("Coral", "game_assets/sprites/horn-coral.png");
+        this.load.image("Sharkfin", "game_assets/sprites/shark-fin.png");
+        this.load.image("Kelpstache", "game_assets/sprites/kelpstache.png");
+
         this.load.image("Crystal", "game_assets/sprites/crystal.png");
+
+        this.load.spritesheet("Underwater_Sharkfin", "game_assets/spritesheets/underwater-sharkfin.json");
 
         // HUD
         this.load.spritesheet("wave_alerts", "game_assets/spritesheets/wave-alerts.json");
@@ -1575,6 +1662,7 @@ export default abstract class SMScene extends Scene {
         this.receiver.subscribe(AbilityEvent.OPEN_TREASURE);
         this.receiver.subscribe(AbilityEvent.USED_GUM);
         this.receiver.subscribe(ItemEvent.DANEEDLE_USED);
+        this.receiver.subscribe(AbilityEvent.SHARK_FIN);
 
         this.addUILayer("health");
 
@@ -1590,9 +1678,7 @@ export default abstract class SMScene extends Scene {
         this.receiver.subscribe(CheatEvent.CHEAT_TELEPORT_TO_MERCHANT);
         this.receiver.subscribe(CheatEvent.CHEAT_CONSOLE_LOCATION);
         this.receiver.subscribe(CheatEvent.CHEAT_CITY);
-        this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
         this.receiver.subscribe(CheatEvent.CHEAT_OCEAN);
-        this.receiver.subscribe(CheatEvent.CHEAT_TOP_LEVEL);
 
         this.receiver.subscribe(HudEvent.WAVE_IN_CENTER);
         this.receiver.subscribe(HudEvent.WAVE_DONE);
@@ -1688,6 +1774,10 @@ export default abstract class SMScene extends Scene {
             }
             case AbilityEvent.USED_GUM: {
                 this.handleUsedGum();
+                break;
+            }
+            case AbilityEvent.SHARK_FIN: {
+                this.handleSharkFin();
                 break;
             }
             case AbilityEvent.OPEN_TREASURE: {
@@ -1808,10 +1898,7 @@ export default abstract class SMScene extends Scene {
             deathTimer.start();
         }
         else if (battler == this.boss) {
-            const raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
-            const raccoonTail = new RaccoonTail(raccoonTailSprite);
-            raccoonTail.position.copy(deathSpot);
-            this.sceneEquippables.push(raccoonTail);
+            this.dropOrChooseItem(deathSpot, 999, 200)
 
             for (let i = 0; i < 10; i++) {
                 const crystalSprite = this.add.sprite("Crystal", "primary");
@@ -1820,6 +1907,7 @@ export default abstract class SMScene extends Scene {
                 crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
                 this.sceneCrystals.push(crystal);
             }
+
             this.bossDead = true;
             battler.battlerActive = false;
             this.healthbars.get(battler).visible = false;
@@ -1842,7 +1930,7 @@ export default abstract class SMScene extends Scene {
             this.shadows.delete(battler);
             this.battlers = this.battlers.filter(b => b.id !== id);
             if (Math.random() * this.player.luck >= 0.85) {
-                this.dropOrChooseItem(deathSpot, 999);
+                this.dropOrChooseItem(deathSpot, 999, null);
                 console.log("Item dropped!");
             }
 
@@ -1916,45 +2004,64 @@ export default abstract class SMScene extends Scene {
     public cheatGiveItems(): void {
         const playerAt = this.player.position;
 
-        const shieldSprite = this.add.sprite("Shield", "primary");
+        const shieldSprite = this.add.sprite("Shield", "equippables");
         const shield = new Shield(shieldSprite);
         shield.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 100));
         this.sceneEquippables.push(shield);
 
-        const redHatSprite = this.add.sprite("RedHat", "primary");
+        const redHatSprite = this.add.sprite("RedHat", "equippables");
         const redHat = new RedHat(redHatSprite);
         redHat.position.copy(new Vec2(playerAt.x - 100, playerAt.y + 100));
         this.sceneEquippables.push(redHat);
 
-        const raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+        const raccoonTailSprite = this.add.sprite("RaccoonTail", "equippables");
         const raccoonTail = new RaccoonTail(raccoonTailSprite);
         raccoonTail.position.copy(new Vec2(playerAt.x + 100, playerAt.y - 100));
         this.sceneEquippables.push(raccoonTail);
 
-        const jetPackSprite = this.add.sprite("JetPack", "primary");
+        const jetPackSprite = this.add.sprite("JetPack", "equippables");
         const jetPack = new JetPack(jetPackSprite);
         jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 100));
         this.sceneEquippables.push(jetPack);
 
-        const healthPackSprite = this.add.sprite("healthpack", "primary");
+        const healthPackSprite = this.add.sprite("healthpack", "equippables");
         const healthPack = new Healthpack(healthPackSprite);
         healthPack.position.copy(new Vec2(playerAt.x + 100, playerAt.y));
         this.sceneEquippables.push(healthPack);
 
-        const gumSprite = this.add.sprite("Gum", "primary");
+        const gumSprite = this.add.sprite("Gum", "equippables");
         const gum = new Gum(gumSprite);
         gum.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 200));
         this.sceneEquippables.push(gum);
 
-        const daNeedleSprite = this.add.sprite("DaNeedle", "primary");
+        const daNeedleSprite = this.add.sprite("DaNeedle", "equippables");
         const daNeedle = new DaNeedle(daNeedleSprite);
         daNeedle.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 100));
         this.sceneEquippables.push(daNeedle);
 
-        const antennaSprite = this.add.sprite("Antennas", "primary");
+        const antennaSprite = this.add.sprite("Antennas", "equippables");
         const antennas = new Antennas(antennaSprite);
         antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
         this.sceneEquippables.push(antennas);
+
+        let coralSprite = this.add.sprite("Coral", "equippables");
+        coralSprite.scale.set(0.75, 0.75);
+        let coral = new Coral(coralSprite);
+        coral.position.copy(new Vec2(playerAt.x + 200, playerAt.y - 100));
+        this.sceneEquippables.push(coral);
+
+        let sharkfinSprite = this.add.sprite("Sharkfin", "equippables");
+        sharkfinSprite.rotation = Math.PI / 8;
+        sharkfinSprite.scale.set(0.5, 0.5);
+        let sharkfin = new Sharkfin(sharkfinSprite);
+        sharkfin.position.copy(new Vec2(playerAt.x - 200, playerAt.y + 100));
+
+        this.sceneEquippables.push(sharkfin);
+
+        let kelpstacheSprite = this.add.sprite("Kelpstache", "equippables");
+        let kelpstache = new Kelpstache(kelpstacheSprite);
+        kelpstache.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 100));
+        this.sceneEquippables.push(kelpstache);
     }
 
     /**
@@ -1962,4 +2069,8 @@ export default abstract class SMScene extends Scene {
      * city's RaccoonTail opens dumpsters). Default does nothing.
      */
     protected handleUsedRaccoonTail(): void {}
+
+    public getSharkFin(): AnimatedSprite | null {
+        return this.sharkfin;
+    }
 }

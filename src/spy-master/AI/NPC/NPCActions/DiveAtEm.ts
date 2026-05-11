@@ -8,7 +8,6 @@ import NPCBehavior from "../NPCBehavior";
 import NPCAction from "./NPCAction";
 import { ItemEvent } from "../../../Events";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
 
 //Mostly Copied from Shootem
 export default class DiveAtEm extends NPCAction {
