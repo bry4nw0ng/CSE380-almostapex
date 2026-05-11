@@ -10,10 +10,56 @@ import Scene from "../../Wolfie2D/Scene/Scene";
 import SceneManager from "../../Wolfie2D/Scene/SceneManager";
 import RenderingManager from "../../Wolfie2D/Rendering/RenderingManager";
 import Viewport from "../../Wolfie2D/SceneGraph/Viewport";
+import MathUtils from "../../Wolfie2D/Utils/MathUtils";
+import DirectStrategy from "../../Wolfie2D/Pathfinding/Strategies/DirectStrategy";
+import AstarStrategy from "../Pathfinding/AstarStrategy";
+import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
+import { AudioChannelType } from "../../Wolfie2D/Sound/AudioManager";
+import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
+import Graphic from "../../Wolfie2D/Nodes/Graphic";
+import { GraphicType } from "../../Wolfie2D/Nodes/Graphics/GraphicTypes";
+import Button from "../../Wolfie2D/Nodes/UIElements/Button";
+import { UIElementType } from "../../Wolfie2D/Nodes/UIElements/UIElementTypes";
+import Color from "../../Wolfie2D/Utils/Color";
+import TimerManager from "../../Wolfie2D/Timing/TimerManager";
+import Input from "../../Wolfie2D/Input/Input";
+import Timer from "../../Wolfie2D/Timing/Timer";
+import { AAControls } from "../AAControls";
+import Label from "../../Wolfie2D/Nodes/UIElements/Label";
+import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
+import AudioManager from "../../Wolfie2D/Sound/AudioManager";
+import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
+import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
+import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
+import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
+import RaccoonBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
+import SeedSlingerBehavior from "../AI/NPC/NPCBehavior/SeedSlingerBehavior";
+import PlayerController from "../AI/Player/PlayerController";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
+import InventoryHUD from "../GameSystems/HUD/InventoryHUD";
+import RelicTrayHUD from "../GameSystems/HUD/RelicTrayHUD";
+import ActionSlotsHUD from "../GameSystems/HUD/ActionSlotsHUD";
+import Arrow from "../GameSystems/HUD/LastEnemyArrow";
+import EndArrow from "../GameSystems/HUD/NextLevelArrow";
+import WaveAlerts from "../GameSystems/HUD/WaveAlerts";
 import Item from "../GameSystems/ItemSystem/Item";
+import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
+import Crystal from "../GameSystems/ItemSystem/Items/Crystal";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
+import Gum from "../GameSystems/ItemSystem/Items/Gum";
+import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
+import JetPack from "../GameSystems/ItemSystem/Items/Jetpack";
+import RaccoonTail from "../GameSystems/ItemSystem/Items/RaccoonTail";
+import RedHat from "../GameSystems/ItemSystem/Items/RedHat";
+import Shield from "../GameSystems/ItemSystem/Items/Shield";
+import Inventory from "../GameSystems/ItemSystem/Inventory";
+import { ClosestPositioned } from "../GameSystems/Searching/SMReducers";
+import GameEvent from "../../Wolfie2D/Events/GameEvent";
+import { AAEvents, AbilityEvent, BattlerEvent, CheatEvent, HudEvent, ItemEvent, PlayerEvent } from "../Events";
+import MainMenu from "./MainMenu";
+import GameOver from "./GameOver";
 import {
     BossDef,
     EndLevelSpriteDef,
@@ -40,12 +86,991 @@ export default abstract class SMScene extends Scene {
     protected navmesh: Navmesh;
     protected spawnableNodes: number[];
 
+    // ─── Projectiles + damage ──────────────────────────────────────────────
+
+    protected trash: { sprite: Sprite; velocity: Vec2; stillCookin: boolean }[] = [];
+    protected spitballs: { sprite: Sprite; velocity: Vec2; stillCookin: boolean }[] = [];
+    protected sceneCrystals: Crystal[] = [];
+
+    protected closestEnemy: NPCActor | null = null;
+    protected needle: DaNeedle | null = null;
+
+    protected CHEATINVINCIBLE: boolean = false;
+    protected CHEATPOWGUN: boolean = false;
+
+    // ─── Wave runner state ─────────────────────────────────────────────────
+    // TODO: drive timer callbacks from getWaveConfig() instead of the
+    // hardcoded curWave-number ladder in the constructor.
+
+    protected curWave: number;
+    protected leftInCurWave: number;
+    protected totSpawned: number;
+    protected totInCurWave: number;
+    protected curDelay: number;
+
+    protected playerDead: boolean = false;
+    protected bossDead: boolean;
+
+    protected spawnDelayTimer: Timer;
+    protected waveDelayTimer: Timer;
+    protected waveTweenTimer: Timer;
+
+    protected boss: NPCActor;
+
+    protected waveAlerts: WaveAlerts;
+    protected waveCrestSprite: AnimatedSprite | null = null;
+
+    // ─── HUD ───────────────────────────────────────────────────────────────
+
+    protected inventoryHud: InventoryHUD;
+    protected relicTray: RelicTrayHUD;
+    protected actionSlots: ActionSlotsHUD;
+    protected arrow: Arrow;
+    protected endArrow: EndArrow;
+
+    protected bmZoneLabel: Label;
+    protected elZoneLabel: Label;
+    protected fadeOverlay: Rect;
+    protected endLevelSprite: AnimatedSprite;
+
+    // ─── Pause menu state ──────────────────────────────────────────────────
+
+    protected paused: boolean = false;
+    protected pauseDim: Graphic;
+    protected pauseTitle: Button;
+    protected pauseButtons: Button[] = [];
+
+    protected pauseHelpOpen: boolean = false;
+    protected pauseHelpPages: Sprite[] = [];
+    protected pauseHelpClose: Sprite;
+    protected aboutPrev: Sprite;
+    protected aboutNext: Sprite;
+    protected curAboutPage: number = 0;
+
+    protected readonly PAUSE_CLOSE_HIT = 25;
+
+    // ─── Shop state (field declarations only; methods stay in subclass for now) ───
+
+    protected shopOpen: boolean = false;
+    protected shopState: string;
+    protected shopTitle: Button;
+    protected mainButtons: Button[] = [];
+    protected sellButtons: Button[] = [];
+    protected buyButtons: Button[] = [];
+    protected merchantSprites: Sprite[] = [];
+    protected sellables: Item[] = [];
+    protected forSale: Item[] = [];
+
+    protected sceneEquippables: Item[] = [];
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
         this.battlers = new Array<Battler & Actor & GameNode>();
         this.healthbars = new Map<Battler & Actor & GameNode, HealthbarHUD>();
         this.shadows = new Map<Battler & Actor & GameNode, Sprite>();
         this.spawnableNodes = [];
+
+        // Wave runner state + timers. Callbacks close over `this`; HUD refs
+        // (waveAlerts, waveCrestSprite) get populated in startScene before
+        // any timer fires. The wave-number ladder is still city-specific
+        // (TODO: drive from getWaveConfig() in the deferred polish round).
+        this.curDelay = 0;
+        this.totSpawned = 0;
+        this.curWave = 0;
+        this.leftInCurWave = 0;
+        this.totInCurWave = 0;
+        this.closestEnemy = null;
+        this.bossDead = false;
+        this.shopState = "main";
+
+        this.waveTweenTimer = new Timer(3000, () => this.startWave(this.curWave), false);
+        this.waveDelayTimer = new Timer(4000, () => {
+            if (this.curWave == 0) {
+                this.waveAlerts.playWave1Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
+            }
+            else if (this.curWave == 1) {
+                this.waveAlerts.playWave2Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
+                this.waveCrestSprite.animation.playIfNotAlready("WAVE_2", true);
+            }
+            else if (this.curWave == 2) {
+                this.waveAlerts.playWave3Incoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
+                this.waveCrestSprite.animation.playIfNotAlready("WAVE_3", true);
+            }
+            else if (this.curWave == 3) {
+                this.waveAlerts.playBossIncoming();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "BOSS_SPAWNED", loop: false, holdReference: false });
+                this.waveCrestSprite.animation.playIfNotAlready("WAVE_4", true);
+            }
+            this.waveTweenTimer.start();
+        }, false);
+
+        this.spawnDelayTimer = new Timer(this.curDelay, () => {
+            if (!this.bossDead && this.totSpawned < this.totInCurWave) {
+                if (this.curWave == 2 && ((this.totInCurWave - this.totSpawned) < 4)) {
+                    this.spawnEnemies("pigeon");
+                }
+                else if (this.curWave == 3 && ((this.totInCurWave - this.totSpawned) < 7)) {
+                    this.spawnEnemies("pigeon");
+                }
+                else {
+                    this.spawnEnemies("rollermouse");
+                }
+                this.totSpawned += 1;
+                console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.totInCurWave);
+            }
+            else if (this.totSpawned == this.totInCurWave) {
+                this.spawnDelayTimer.pause();
+                console.log("All enemies spawned ", this.curWave);
+            }
+            else if (this.bossDead) {
+                this.spawnDelayTimer.pause();
+            }
+        }, true);
+    }
+
+    public toggleCheatPow(): void { this.CHEATPOWGUN = !this.CHEATPOWGUN; }
+    public toggleCheatInvincible(): void { this.CHEATINVINCIBLE = !this.CHEATINVINCIBLE; }
+
+    public spawnSpitball(position: Vec2, direction: Vec2): void {
+        const spitball = this.add.sprite("spitball", "primary");
+        spitball.position.set(position.x, position.y);
+        spitball.scale.set(1, 1);
+        this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "SPITBALL", loop: false, holdReference: false });
+        this.spitballs.push({ sprite: spitball, velocity: direction.scaled(120), stillCookin: true });
+    }
+
+    public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string): void {
+        const choice = Math.random();
+        let shotSprite: string;
+        if (shooter == "raccoon") {
+            shotSprite = choice > 0.5 ? "trash-paper" : "trash-banana";
+        }
+        else if (shooter == "pigeon") {
+            shotSprite = "seed";
+        }
+
+        const trash = this.add.sprite(shotSprite, "primary");
+        trash.position.set(position.x, position.y);
+        trash.scale.set(1, 1);
+        this.trash.push({ sprite: trash, velocity: direction.scaled(100), stillCookin: true });
+    }
+
+    public updateSpitballs(deltaT: number): void {
+        this.spitballs.forEach((shot) => {
+            if (shot.stillCookin) {
+                this.battlers.forEach((battler) => {
+                    if (battler instanceof NPCActor && shot.sprite.position.distanceTo(battler.position) < 20) {
+                        if (this.CHEATPOWGUN) {
+                            battler.health = battler.health - 500;
+                        }
+                        else {
+                            battler.health = battler.health - 2;
+                            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "ENEMY_HURT", loop: false, holdReference: false });
+                        }
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                    }
+                    else if (shot.sprite.position.distanceTo(this.player.position) > 1000) {
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                    }
+                });
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+            }
+            else {
+                shot.sprite.destroy();
+            }
+        });
+
+        this.spitballs = this.spitballs.filter((shot) => shot.stillCookin == true);
+    }
+
+    public updateEnemyShots(deltaT: number): void {
+        this.trash.forEach((shot) => {
+            if (shot.stillCookin) {
+                if (this.player.health > 0 && !(this.player.invincible) && shot.sprite.position.distanceTo(this.player.position) < 20 && !this.CHEATINVINCIBLE) {
+                    const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                    if (antennas) {
+                        if (antennas.curStack > 1) {
+                            antennas.curStack -= 1;
+                        }
+                        else {
+                            this.player.equippables.remove(antennas.id);
+                            antennas.visible = false;
+                        }
+                        this.player.startIFrames();
+                    }
+                    else {
+                        this.player.health = this.player.health - 3 * this.player.damageReduction;
+                        this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false, channel: AudioChannelType.CUSTOM_1 });
+                        shot.sprite.visible = false;
+                        shot.stillCookin = false;
+                        this.player.animation.play("DAMAGE", false);
+                        this.player.startIFrames();
+                    }
+                }
+                else if (shot.sprite.position.distanceTo(this.player.position) > 2000) {
+                    shot.sprite.visible = false;
+                    shot.stillCookin = false;
+                }
+                shot.sprite.position.add(shot.velocity.clone().scaled(deltaT));
+                shot.sprite.rotation = shot.sprite.rotation + deltaT * 2;
+            }
+            else {
+                shot.sprite.destroy();
+            }
+        });
+        this.trash = this.trash.filter((shot) => shot.stillCookin == true);
+    }
+
+    public updateShadows(): void {
+        this.shadows.forEach((shadow, battler) => {
+            // TODO: replace maxHealth-based identification with per-battler ShadowConfig from EnemyDef
+            if (battler.maxHealth == 20) {
+                shadow.position.set(battler.position.x - 15, battler.position.y + 25);
+            }
+            else if (battler.maxHealth == 9) {
+                shadow.position.set(battler.position.x - 3, battler.position.y + 6);
+            }
+            else {
+                // player
+                shadow.position.set(battler.position.x - 4, battler.position.y + 13);
+            }
+
+            shadow.visible = battler.battlerActive;
+        });
+    }
+
+    public updateCrystals(): void {
+        this.sceneCrystals.forEach((crystal) => {
+            if (crystal.position.distanceTo(this.player.position) <= 30) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "PICKUP_COIN", loop: false, holdReference: false });
+                this.player.crystals += crystal.value;
+                crystal.visible = false;
+            }
+        });
+        this.sceneCrystals = this.sceneCrystals.filter((crystal) => crystal.visible);
+    }
+
+    protected handleDaNeedleUsed(needlePosition: Vec2): void {
+        this.battlers.forEach((battler) => {
+            if (battler instanceof NPCActor) {
+                if (battler.position.distanceTo(needlePosition) < 70) {
+                    battler.health = battler.health - 0.1;
+                }
+            }
+        });
+    }
+
+    protected handleUsedGum(): void {
+        this.battlers.forEach((battler) => {
+            if (battler instanceof NPCActor) {
+                const prevSpeed = battler.speed;
+                battler.speed = battler.speed / 2;
+                const activeTimer = new Timer(5000, () => battler.speed = prevSpeed, false);
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "GUM", loop: false, holdReference: false });
+                activeTimer.start();
+            }
+        });
+    }
+
+    protected initLayers(): void {
+        this.addLayer("primary", 3);
+        this.addLayer("shadow", 2);
+        this.addLayer("equippables", 5);
+        this.addUILayer("fade");
+        this.addUILayer("slots");
+        this.addUILayer("items");
+        this.getLayer("slots").setDepth(1);
+        this.getLayer("items").setDepth(2);
+        this.getLayer("fade").setDepth(10);
+        this.getLayer("slots").setHidden(true);
+        this.getLayer("items").setHidden(true);
+        this.addUILayer("hud");
+        this.addLayer("arrowLayer", 8);
+    }
+
+    protected initializeNavmesh(graph: PositionGraph, walls: IsometricTilemap[]): void {
+        const dim: Vec2 = walls[0].getDimensions();
+        for (let i = 0; i < dim.y; i++) {
+            for (let j = 0; j < dim.x; j++) {
+                const collider = walls[0].getTileCollider(j, i);
+                graph.addPositionedNode(collider.center);
+            }
+        }
+
+        let rc: Vec2;
+        for (let i = 0; i < graph.numVertices; i++) {
+            rc = walls[0].getTileColRow(i);
+            if (!this.isWall(rc.x, rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), rc.y) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(rc.x, MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y + 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x + 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1)) &&
+                !this.isWall(MathUtils.clamp(rc.x - 1, 0, dim.x - 1), MathUtils.clamp(rc.y - 1, 0, dim.y - 1))
+            ) {
+                rc = walls[0].getTileColRow(i + 1);
+                if ((i + 1) % dim.x !== 0 && !this.isWall(rc.x, rc.y)) {
+                    graph.addEdge(i, i + 1);
+                }
+                rc = walls[0].getTileColRow(i + dim.x);
+                if (i + dim.x < graph.numVertices && !this.isWall(rc.x, rc.y)) {
+                    graph.addEdge(i, i + dim.x);
+                }
+                this.spawnableNodes.push(i);
+            }
+        }
+
+        this.navmesh = new Navmesh(graph);
+        this.navmesh.registerStrategy("direct", new DirectStrategy(this.navmesh));
+        this.navmesh.registerStrategy("astar", new AstarStrategy(this.navmesh));
+        this.navmesh.setStrategy("astar");
+        this.navManager.addNavigableEntity("navmesh", this.navmesh);
+    }
+
+    public getRandomNodePosition(): Vec2 {
+        const angle = Math.PI * 2 * Math.random();
+        const spawnPosX = this.player.position.x + Math.cos(angle) * 400;
+        const spawnPosY = this.player.position.y + Math.sin(angle) * 400;
+        const spawnPos = new Vec2(spawnPosX, spawnPosY);
+
+        const spawnOptions = this.spawnableNodes.filter((node) => {
+            return this.navmesh.graph.getNodePosition(node).distanceTo(spawnPos) < 200;
+        });
+
+        const lenOpts = spawnOptions.length;
+        let choice: number;
+        if (lenOpts > 0) {
+            choice = spawnOptions[Math.floor(Math.random() * lenOpts)];
+        }
+        else {
+            choice = this.spawnableNodes[Math.floor(Math.random() * this.spawnableNodes.length)];
+        }
+        return this.navmesh.graph.getNodePosition(choice);
+    }
+
+    // TODO: replace hardcoded pool with getDropItemPool() + ItemRegistry.itemFromKey()
+    // TODO: split into dropItemAtPosition(pos) and setShopSlot(i) to kill the 999 sentinel
+    protected dropOrChooseItem(position: Vec2, i: number): void {
+        const choice = Math.floor(Math.random() * 7);
+
+        let sprite: Sprite;
+        let newOb: Item;
+        switch (choice) {
+            case 0:
+                sprite = this.add.sprite("Shield", "equippables");
+                newOb = new Shield(sprite);
+                break;
+            case 1:
+                sprite = this.add.sprite("RedHat", "equippables");
+                newOb = new RedHat(sprite);
+                break;
+            case 2:
+                sprite = this.add.sprite("JetPack", "equippables");
+                newOb = new JetPack(sprite);
+                break;
+            case 3:
+                sprite = this.add.sprite("healthpack", "equippables");
+                newOb = new Healthpack(sprite);
+                break;
+            case 4:
+                sprite = this.add.sprite("Gum", "equippables");
+                newOb = new Gum(sprite);
+                break;
+            case 5:
+                sprite = this.add.sprite("DaNeedle", "equippables");
+                newOb = new DaNeedle(sprite);
+                break;
+            case 6:
+                sprite = this.add.sprite("Antennas", "equippables");
+                newOb = new Antennas(sprite);
+                break;
+            default:
+                return;
+        }
+        if (i == 999) {
+            newOb.position.set(position.x, position.y);
+            this.sceneEquippables.push(newOb);
+        }
+        else {
+            sprite.visible = false;
+            newOb.position.set(0, -500);
+            this.forSale[i] = newOb;
+        }
+    }
+
+    protected initShopMenu(): void {
+        const cx = 256;
+        const cy = 256;
+
+        this.shopTitle = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+            position: new Vec2(cx, cy - 90),
+            text: "Shhh...",
+        });
+        this.shopTitle.size.set(200, 30);
+        this.shopTitle.borderWidth = 0;
+        this.shopTitle.backgroundColor = new Color(0, 0, 0, 0);
+        this.shopTitle.textColor = Color.WHITE;
+        this.shopTitle.fontSize = 24;
+        this.shopTitle.visible = false;
+        this.shopTitle.position.set(256, 100);
+
+        const shhButtons: [string, string][] = [
+            ["Buy", "buy"],
+            ["Sell", "sell"],
+            ["Resume", "resume"],
+        ];
+
+        const buyerButtons: [string, string | null][] = [
+            ["", null],
+            ["", null],
+            ["", null],
+            ["Reset Shop for 100 crystals", "reset_shop"],
+        ];
+
+        const startY = cy - 126;
+        const spacing = 35;
+
+        for (let i = 0; i < shhButtons.length; i++) {
+            const [label, eventId] = shhButtons[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label,
+            });
+            btn.size.set(200, 28);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            if (eventId) {
+                btn.onClickEventId = eventId;
+            }
+            btn.visible = false;
+            this.mainButtons.push(btn);
+        }
+
+        for (let i = 0; i < buyerButtons.length; i++) {
+            const [label, eventId] = buyerButtons[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label,
+            });
+            btn.size.set(200, 40);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            btn.onClickEventId = eventId;
+            btn.visible = false;
+            this.buyButtons.push(btn);
+        }
+
+        this.buyButtons[3].size.set(500, 40);
+
+        this.receiver.subscribe("buy");
+        this.receiver.subscribe("sell");
+        this.receiver.subscribe("reset_shop");
+
+        this.pauseHelpClose = this.add.sprite("back-button", "pauseOverlay");
+        this.pauseHelpClose.position.set(50, 50);
+        this.pauseHelpClose.scale.set(3, 3);
+        this.pauseHelpClose.visible = false;
+
+        this.setBuyItems();
+    }
+
+    public openBuyMenu(): void {
+        this.shopState = "buy";
+
+        for (const btn of this.mainButtons) btn.visible = false;
+
+        this.shopTitle.text = "Buy";
+
+        const cx = 256;
+        const startY = 130;
+        const spacing = 35;
+
+        for (let i = 0; i < 3; i++) {
+            const equippable = this.forSale[i];
+            let tray: Sprite;
+            if (equippable) {
+                this.buyButtons[i].text = `Buy for ${equippable.value}`;
+                if (equippable instanceof DaNeedle) {
+                    this.buyButtons[i].textColor = Color.RED;
+                    tray = this.add.sprite("tray_red", "pauseOverlay");
+                }
+                else if (equippable.isAbility) {
+                    this.buyButtons[i].textColor = Color.BLUE;
+                    tray = this.add.sprite("tray_blue", "pauseOverlay");
+                }
+                else {
+                    this.buyButtons[i].textColor = Color.WHITE;
+                    tray = this.add.sprite("tray_gray", "pauseOverlay");
+                }
+                tray.position.set(cx - 90, startY + i * spacing);
+                this.merchantSprites.push(tray);
+
+                const sprite = equippable.getSprite().imageId;
+                const spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
+                spriteOverlay.position.set(cx - 90, startY + i * spacing);
+                this.merchantSprites.push(spriteOverlay);
+            }
+            else {
+                this.buyButtons[i].text = "GONE...SOLD";
+            }
+        }
+        for (const btn of this.buyButtons) btn.visible = true;
+        this.pauseHelpClose.visible = true;
+    }
+
+    public openSellMenu(): void {
+        this.shopState = "sell";
+
+        for (const btn of this.mainButtons) btn.visible = false;
+        for (const btn of this.sellButtons) btn.destroy();
+        this.sellButtons = [];
+        for (const sprite of this.merchantSprites) sprite.destroy();
+        this.merchantSprites = [];
+        this.sellables = [];
+
+        this.shopTitle.text = "Sell";
+        this.pauseHelpClose.visible = true;
+
+        const cx = 256;
+        const startY = 130;
+        const spacing = 35;
+
+        let i = 0;
+
+        const equippables = [...this.player.equippables.items()];
+        equippables.forEach((equippable) => {
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx + 50, startY + i * spacing),
+                text: `Sell for ${Math.floor(equippable.value / 2)} crystals?`,
+            });
+            btn.size.set(400, 28);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            let tray: Sprite;
+            if (equippable instanceof DaNeedle) {
+                btn.textColor = Color.RED;
+                tray = this.add.sprite("tray_red", "pauseOverlay");
+            }
+            else if (equippable.isAbility) {
+                btn.textColor = Color.BLUE;
+                tray = this.add.sprite("tray_blue", "pauseOverlay");
+            }
+            else {
+                btn.textColor = Color.WHITE;
+                tray = this.add.sprite("tray_gray", "pauseOverlay");
+            }
+            btn.fontSize = 16;
+            btn.visible = true;
+            this.sellables.push(equippable);
+            this.sellButtons.push(btn);
+
+            tray.position.set(cx - 90, startY + i * spacing);
+            this.merchantSprites.push(tray);
+
+            const sprite = equippable.getSprite().imageId;
+            const spriteOverlay = this.add.sprite(sprite, "pauseOverlay");
+            spriteOverlay.position.set(cx - 90, startY + i * spacing);
+            this.merchantSprites.push(spriteOverlay);
+
+            i++;
+        });
+    }
+
+    public sellEquippable(id: number): void {
+        const equippable = this.player.equippables.find(b => b.id === id);
+        this.player.crystals += Math.floor(equippable.value / 2);
+        if (equippable instanceof DaNeedle) {
+            this.needle = null;
+            this.player.hasNeedle = false;
+        }
+        if (equippable.curStack > 1) {
+            equippable.curStack -= 1;
+            equippable.removeBuff(this.player);
+        }
+        else {
+            this.player.unEquip(equippable);
+            equippable.visible = false;
+        }
+        this.openSellMenu();
+    }
+
+    public buyEquippable(equippable: Item, i: number): void {
+        if (!equippable || this.player.crystals < equippable.value) {
+            return;
+        }
+        this.player.crystals -= equippable.value;
+        equippable.position.set(this.player.position.x, this.player.position.y);
+        equippable.visible = true;
+        this.sceneEquippables.push(equippable);
+
+        this.forSale[i] = null;
+        this.buyButtons[i].text = "GONE...SOLD";
+    }
+
+    protected setBuyItems(): void {
+        for (let i = 0; i < 3; i++) {
+            this.dropOrChooseItem(new Vec2(0, 0), i);
+        }
+    }
+
+    protected initPauseMenu(): void {
+        this.addUILayer("pause");
+        this.getLayer("pause").setDepth(10);
+        this.addUILayer("pauseOverlay");
+        this.getLayer("pauseOverlay").setDepth(11);
+
+        const cx = 256;
+        const cy = 256;
+
+        this.pauseDim = this.add.graphic(GraphicType.RECT, "pause", {
+            position: new Vec2(cx, cy),
+            size: new Vec2(512, 512),
+        });
+        this.pauseDim.color = new Color(0, 0, 0, 0.7);
+        this.pauseDim.visible = false;
+
+        this.pauseTitle = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+            position: new Vec2(cx, cy - 90),
+            text: "PAUSED",
+        });
+        this.pauseTitle.size.set(300, 40);
+        this.pauseTitle.borderWidth = 0;
+        this.pauseTitle.backgroundColor = new Color(0, 0, 0, 0);
+        this.pauseTitle.textColor = Color.WHITE;
+        this.pauseTitle.fontSize = 24;
+        this.pauseTitle.visible = false;
+
+        const buttonDefs: [string, string][] = [
+            ["Resume",          "resume"],
+            ["Return to Menu",  "pause_mainmenu"],
+            ["Controls",        "pause_controls"],
+            ["About",           "pause_about"],
+            ["Help",            "pause_help"],
+            ["Cheats",          "pause_cheats"],
+        ];
+
+        const startY = cy - 50;
+        const spacing = 35;
+
+        for (let i = 0; i < buttonDefs.length; i++) {
+            const [label, eventId] = buttonDefs[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "pauseOverlay", {
+                position: new Vec2(cx, startY + i * spacing),
+                text: label,
+            });
+            btn.size.set(300, 35);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 16;
+            btn.onClickEventId = eventId;
+            btn.visible = false;
+            this.pauseButtons.push(btn);
+        }
+
+        this.receiver.subscribe("resume");
+        this.receiver.subscribe("pause_mainmenu");
+        this.receiver.subscribe("pause_controls");
+        this.receiver.subscribe("pause_about");
+        this.receiver.subscribe("pause_help");
+        this.receiver.subscribe("pause_cheats");
+
+        this.pauseHelpPages = [
+            this.add.sprite("about1",   "pauseOverlay"),
+            this.add.sprite("about2",   "pauseOverlay"),
+            this.add.sprite("about3",   "pauseOverlay"),
+            this.add.sprite("help",     "pauseOverlay"),
+            this.add.sprite("controls", "pauseOverlay"),
+            this.add.sprite("cheats",   "pauseOverlay"),
+        ];
+        for (const page of this.pauseHelpPages) {
+            page.position.set(cx, cy);
+            page.scale.set(1.5, 1.5);
+            page.visible = false;
+        }
+
+        this.pauseHelpClose = this.add.sprite("back-button", "pauseOverlay");
+        this.pauseHelpClose.position.set(50, 50);
+        this.pauseHelpClose.scale.set(3, 3);
+        this.pauseHelpClose.visible = false;
+
+        this.aboutNext = this.add.sprite("back-button", "pauseOverlay");
+        this.aboutNext.invertX = true;
+        this.aboutNext.position.set(cx + 200, cy);
+        this.aboutNext.scale.set(2, 2);
+        this.aboutNext.visible = false;
+
+        this.aboutPrev = this.add.sprite("back-button", "pauseOverlay");
+        this.aboutPrev.position.set(cx - 200, cy);
+        this.aboutPrev.scale.set(2, 2);
+        this.aboutPrev.visible = false;
+    }
+
+    protected pauseGame(): void {
+        this.paused = true;
+
+        TimerManager.getInstance().pauseAllTimers();
+        this.getLayer("primary").setPaused(true);
+        this.getLayer("equippables").setPaused(true);
+
+        for (const battler of this.battlers) {
+            battler.freeze();
+            battler.aiActive = false;
+        }
+
+        this.pauseDim.visible = true;
+        if (this.shopOpen) {
+            this.shopTitle.visible = true;
+            for (const btn of this.mainButtons) btn.visible = true;
+        }
+        else {
+            this.pauseTitle.visible = true;
+            for (const btn of this.pauseButtons) btn.visible = true;
+        }
+    }
+
+    protected resumeGame(): void {
+        this.paused = false;
+        TimerManager.getInstance().unpauseAllTimers();
+
+        this.getLayer("primary").setPaused(false);
+        this.getLayer("equippables").setPaused(false);
+
+        for (const battler of this.battlers) {
+            battler.unfreeze();
+            battler.aiActive = true;
+        }
+
+        this.pauseDim.visible = false;
+        this.aboutNext.visible = false;
+        this.aboutPrev.visible = false;
+
+        if (this.shopOpen) {
+            this.shopOpen = false;
+            this.shopTitle.visible = false;
+            for (const btn of this.mainButtons) btn.visible = false;
+            for (const btn of this.sellButtons) btn.destroy();
+            for (const btn of this.buyButtons) btn.visible = false;
+            for (const sprite of this.merchantSprites) sprite.visible = false;
+            this.pauseHelpClose.visible = false;
+            this.shopState = "main";
+            this.sellButtons = [];
+            this.sellables = [];
+            this.merchantSprites = [];
+        }
+        else {
+            this.pauseTitle.visible = false;
+            for (const btn of this.pauseButtons) btn.visible = false;
+        }
+
+        if (this.pauseHelpOpen) {
+            this.pauseHelpOpen = false;
+            for (const page of this.pauseHelpPages) page.visible = false;
+            this.pauseHelpClose.visible = false;
+        }
+    }
+
+    protected openPauseHelp(page: number): void {
+        this.pauseHelpOpen = true;
+        this.pauseTitle.visible = false;
+        for (const btn of this.pauseButtons) btn.visible = false;
+        for (let i = 0; i < this.pauseHelpPages.length; i++) {
+            this.pauseHelpPages[i].visible = i === page;
+        }
+        this.pauseHelpClose.visible = true;
+
+        if (page < 3 && page >= 0) {
+            this.aboutPrev.visible = this.curAboutPage > 0;
+            this.aboutNext.visible = this.curAboutPage < 2;
+        }
+    }
+
+    protected closePauseHelp(): void {
+        this.pauseHelpOpen = false;
+        for (const page of this.pauseHelpPages) page.visible = false;
+        this.pauseHelpClose.visible = false;
+        this.pauseTitle.visible = true;
+        this.aboutNext.visible = false;
+        this.aboutPrev.visible = false;
+        for (const btn of this.pauseButtons) btn.visible = true;
+    }
+
+    // TODO: drive from getWaveConfig() instead of hardcoded wave numbers
+    public startWave(waveNum: number): void {
+        this.totSpawned = 0;
+        this.totInCurWave = 0;
+        if (waveNum == 0) {
+            console.log("Wave 1 starting");
+            this.curWave = 1;
+            this.leftInCurWave = 5;
+            this.totInCurWave = 5;
+            this.curDelay = 1000;
+            this.spawnDelayTimer.start(this.curDelay);
+        }
+        else if (waveNum == 1) {
+            console.log("Wave 2 starting");
+            this.curWave = 2;
+            this.leftInCurWave = 10;
+            this.totInCurWave = 10;
+            this.curDelay = 700;
+            this.spawnDelayTimer.start(this.curDelay);
+        }
+        else if (waveNum == 2) {
+            console.log("Wave 3 starting");
+            this.curWave = 3;
+            this.leftInCurWave = 30;
+            this.totInCurWave = 30;
+            this.curDelay = 300;
+            this.spawnDelayTimer.start(this.curDelay);
+        }
+        else if (waveNum == 3) {
+            console.log("Final wave starting");
+            this.curWave = 4;
+            this.leftInCurWave = 1000;
+            this.totInCurWave = 1000;
+            this.curDelay = 3000;
+            this.spawnDelayTimer.start(this.curDelay);
+            this.spawnBoss();
+        }
+    }
+
+    // TODO: drive from getBoss()
+    public spawnBoss(): void {
+        const boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
+        boss.position.set(230, 1000);
+        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(40, 120)), null, false);
+        boss.scale.set(1, 1);
+
+        const healthbar = new HealthbarHUD(this, boss, "primary", { size: boss.size.clone().scaled(1, 1 / 4), offset: boss.size.clone().scaled(0, -1 / 2) });
+        this.healthbars.set(boss, healthbar);
+        healthbar.visible = false;
+
+        boss.battleGroup = 1;
+        boss.speed = 0;
+        boss.health = 75;
+        boss.maxHealth = 75;
+        boss.navkey = "navmesh";
+
+        boss.addAI(RaccoonBehavior, { target: this.player, range: 750 });
+        boss.animation.play("IDLE");
+
+        this.boss = boss;
+        this.battlers.push(boss);
+    }
+
+    // TODO: drive from getEnemyTypes() lookup keyed on `type`
+    public spawnEnemies(type: string): void {
+        const spawnPos = this.getRandomNodePosition();
+        let npc: NPCActor;
+        const npcShadow = this.add.sprite("generic-shadow", "shadow");
+        if (type == "rollermouse") {
+            console.log("spawned mouse");
+            npc = this.add.animatedSprite(NPCActor, "rollermouse", "primary");
+            npc.position.set(spawnPos.x, spawnPos.y);
+
+            npcShadow.position.copy(spawnPos);
+            npcShadow.position.set(spawnPos.x + 8, spawnPos.y + 6);
+            npcShadow.scale.set(0.5, 0.5);
+
+            npc.battleGroup = 1;
+            npc.speed = 50;
+            npc.health = 9;
+            npc.maxHealth = 9;
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
+            npc.navkey = "navmesh";
+            npc.addAI(GuardBehavior, { target: this.player, range: 200 });
+            npc.scale.set(0.25, 0.25);
+            npcShadow.alpha = 0.8;
+        }
+        else if (type == "pigeon") {
+            console.log("spawned pigeon");
+            npc = this.add.animatedSprite(NPCActor, "pigeon", "primary");
+            npc.position.set(spawnPos.x, spawnPos.y);
+
+            npcShadow.position.copy(spawnPos);
+            npcShadow.position.set(spawnPos.x + 15, spawnPos.y + 20);
+            npcShadow.scale.set(1, 0.75);
+            npcShadow.alpha = 0.5;
+
+            npc.battleGroup = 1;
+            npc.speed = 50;
+            npc.health = 20;
+            npc.maxHealth = 20;
+            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
+            npc.navkey = "navmesh";
+            npc.addAI(SeedSlingerBehavior, { target: this.player, range: 75 });
+            npc.scale.set(0.5, 0.5);
+        }
+        else {
+            console.error("DOOM ERROR, no idea what happened: Spawn type mismatch");
+            return;
+        }
+
+        const healthbar = new HealthbarHUD(this, npc, "primary", { size: npc.size.clone().scaled(1, 1 / 4), offset: npc.size.clone().scaled(0, -1 / 2) });
+        this.healthbars.set(npc, healthbar);
+        this.shadows.set(npc, npcShadow);
+        healthbar.visible = false;
+        npcShadow.visible = false;
+
+        npc.animation.play("WALK");
+
+        this.battlers.push(npc);
+    }
+
+    public updateContactDamage(): void {
+        this.closestEnemy = null;
+        this.battlers.forEach((battler) => {
+            if (!(battler instanceof NPCActor)) {
+                return;
+            }
+
+            const distToPlayer = battler.position.distanceTo(this.player.position);
+            if (!this.closestEnemy || this.player.position.distanceTo(this.closestEnemy.position) > this.player.position.distanceTo(battler.position)) {
+                this.closestEnemy = battler;
+            }
+
+            if (this.CHEATINVINCIBLE) {
+                return;
+            }
+
+            if (this.player.health > 0 && !(this.player.invincible) && distToPlayer < 20) {
+                const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                if (antennas) {
+                    if (antennas.curStack > 1) {
+                        antennas.curStack -= 1;
+                    }
+                    else {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
+                    this.player.startIFrames();
+                }
+                else {
+                    if (battler.health > 0) {
+                        this.player.health = this.player.health - 3 * this.player.damageReduction;
+                        this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false });
+                        this.player.animation.play("DAMAGE", false);
+                        this.player.startIFrames();
+                    }
+                }
+            }
+        });
     }
 
     public getBattlers(): Battler[] { return this.battlers; }
@@ -129,4 +1154,753 @@ export default abstract class SMScene extends Scene {
     public abstract getEndLevelSprite(): EndLevelSpriteDef;
 
     public abstract getNextLevel(): SceneCtor | null;
+
+    // ─── Optional level overrides (with defaults) ──────────────────────────
+
+    /**
+     * Position of the merchant. Subclasses override to enable shop interaction.
+     * Returning null disables the teleport-to-merchant cheat.
+     */
+    public getMerchantPosition(): Vec2 | null { return null; }
+
+    /**
+     * Hook for subclasses to handle level-specific events. Return true to
+     * indicate the event was handled, false to fall through to the default
+     * SMScene handler (which throws on unknown events).
+     */
+    protected handleLevelEvent(_event: GameEvent): boolean { return false; }
+
+    /**
+     * Initialize the player, HUD, and arrows. Spawn position from getSpawnPosition().
+     */
+    protected initializePlayer(): PlayerActor {
+        const player = this.add.animatedSprite(PlayerActor, "player1", "primary");
+        const playerShadow = this.add.sprite("generic-shadow", "shadow");
+        const spawnPos = this.getSpawnPosition();
+        player.position.copy(spawnPos);
+
+        playerShadow.position.set(spawnPos.x + 8, spawnPos.y + 6);
+        playerShadow.scale.set(1.15, 1);
+        playerShadow.alpha = 0.8;
+        this.shadows.set(player, playerShadow);
+
+        player.battleGroup = 2;
+        player.health = 10;
+        player.maxHealth = 10;
+
+        player.abilities.onChange = ItemEvent.INVENTORY_CHANGED;
+        this.inventoryHud = new InventoryHUD(this, player.abilities, "inventorySlot", {
+            start: new Vec2(232, 24),
+            slotLayer: "slots",
+            padding: 3,
+            itemLayer: "items",
+        });
+
+        player.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), Vec2.ZERO, true, false);
+        player.scale.set(1, 1);
+
+        const healthbar = new HealthbarHUD(this, player, "hud", {
+            size: new Vec2(400, 25),
+            offset: Vec2.ZERO,
+            static: true,
+            staticPosition: new Vec2(115, 25),
+        });
+        this.healthbars.set(player, healthbar);
+
+        const healthbarSprite = this.add.animatedSprite(AnimatedSprite, "healthbar", "hud");
+        healthbarSprite.scale.set(1.6, 1.8);
+        healthbar.switchToAnimatedHB(healthbarSprite);
+
+        const waveCrest = this.add.animatedSprite(AnimatedSprite, "wave_crest", "hud");
+        waveCrest.position.set(125, -38);
+        waveCrest.scale.set(1.6, 1.8);
+        waveCrest.animation.play("WAVE_1", true);
+        this.waveCrestSprite = waveCrest;
+
+        this.relicTray = new RelicTrayHUD(this, player.equippables, "hud", {
+            position: new Vec2(115, 50),
+            size: new Vec2(400, 60),
+            iconSize: 25,
+            padding: 8,
+        });
+
+        this.actionSlots = new ActionSlotsHUD(this, "hud", player.equippables, player.abilities, {
+            startX: 200,
+            topY: -4,
+            height: 92,
+            boxWidth: 92,
+            weaponAbilityGap: 20,
+            abilityGap: -35,
+        }, player);
+
+        player.addAI(PlayerController);
+        player.animation.play("IDLE");
+
+        this.battlers.push(player);
+        this.viewport.follow(player);
+
+        this.player = player;
+
+        const arrowSprite = this.add.sprite("arrowSprite", "arrowLayer");
+        const endArrowSprite = this.add.sprite("endArrowSprite", "arrowLayer");
+        this.arrow = new Arrow(arrowSprite, this.player);
+        this.endArrow = new EndArrow(endArrowSprite, this.player);
+
+        return player;
+    }
+
+    public override updateScene(deltaT: number): void {
+        if (this.handlePauseInput()) return;
+
+        while (this.receiver.hasNextEvent()) {
+            this.handleEvent(this.receiver.getNextEvent());
+        }
+
+        this.inventoryHud.update(deltaT);
+        this.relicTray.update(deltaT);
+        this.actionSlots.update(deltaT);
+
+        // ── Merchant proximity (only if level has a merchant) ─────────────
+        const merchantPos = this.getMerchantPosition();
+        if (merchantPos) {
+            if (this.player.position.distanceTo(merchantPos) < 30) {
+                this.bmZoneLabel.visible = true;
+                if (Input.isJustPressed(AAControls.INTERACT) && this.shopOpen == false) {
+                    this.shopOpen = true;
+                    this.pauseGame();
+                }
+            }
+            else {
+                this.bmZoneLabel.visible = false;
+            }
+        }
+
+        // ── End-level proximity (only if level has an exit sprite) ────────
+        const exitPos = this.getEndLevelLocation();
+        const exitSpec = this.getEndLevelSprite();
+        if (this.endLevelSprite) {
+            if (this.player.position.distanceTo(exitPos) < 30) {
+                this.elZoneLabel.visible = true;
+                if (!this.endLevelSprite.animation.isPlaying(exitSpec.opening) &&
+                    !this.endLevelSprite.animation.isPlaying(exitSpec.idleOpen)) {
+                    this.endLevelSprite.animation.playIfNotAlready(exitSpec.opening, false);
+                    this.endLevelSprite.animation.queue(exitSpec.idleOpen, true);
+                }
+                if (Input.isJustPressed(AAControls.INTERACT) && this.bossDead) {
+                    const next = this.getNextLevel();
+                    if (next) {
+                        this.sceneManager.changeToScene(next);
+                    }
+                }
+            }
+            else {
+                if (!this.endLevelSprite.animation.isPlaying(exitSpec.closing) &&
+                    !this.endLevelSprite.animation.isPlaying(exitSpec.idleClosed)) {
+                    this.endLevelSprite.animation.playIfNotAlready(exitSpec.closing, false);
+                    this.endLevelSprite.animation.queue(exitSpec.idleClosed, true);
+                }
+                this.elZoneLabel.visible = false;
+            }
+        }
+
+        // Healthbars: only update those visible (cheaper than every frame).
+        this.healthbars.forEach((healthbar, battler) => {
+            if (battler instanceof PlayerActor) {
+                healthbar.update(deltaT);
+                return;
+            }
+            if (battler.position.distanceTo(this.player.position) < 300 && battler.health < battler.maxHealth) {
+                healthbar.visible = true;
+            }
+            if (healthbar.visible) {
+                healthbar.update(deltaT);
+            }
+            else {
+                healthbar.followNPC();
+            }
+        });
+
+        this.updateEnemyShots(deltaT);
+        this.updateSpitballs(deltaT);
+        this.updateContactDamage();
+        this.updateCrystals();
+        this.updateShadows();
+
+        if (this.closestEnemy && this.player.position.distanceTo(this.closestEnemy.position) > 300) {
+            this.arrow.update(deltaT, this.closestEnemy);
+        }
+        else {
+            this.arrow.visible = false;
+        }
+
+        if (this.bossDead && this.player.position.distanceTo(exitPos) > 100) {
+            this.endArrow.update(deltaT, exitPos);
+        }
+        else {
+            this.endArrow.visible = false;
+        }
+
+        if (this.player.hasNeedle && this.needle.isSpinning) {
+            this.handleDaNeedleUsed(this.needle.position);
+        }
+    }
+
+    /**
+     * Handles ESC + paused-state mouse input (help nav, shop clicks).
+     * Returns true if the game is paused — caller should skip remaining
+     * gameplay updates for this frame.
+     */
+    protected handlePauseInput(): boolean {
+        if (Input.isKeyJustPressed("escape")) {
+            if (this.pauseHelpOpen) {
+                this.closePauseHelp();
+            } else if (this.paused) {
+                this.resumeGame();
+            } else {
+                this.pauseGame();
+            }
+        }
+
+        if (!this.paused) return false;
+
+        while (this.receiver.hasNextEvent()) {
+            this.handleEvent(this.receiver.getNextEvent());
+        }
+        const mouse = Input.getMousePressPosition();
+        const close = this.pauseHelpClose.position;
+
+        if (this.pauseHelpOpen && Input.isMouseJustPressed()) {
+            if (Math.abs(mouse.x - close.x) <= this.PAUSE_CLOSE_HIT &&
+                Math.abs(mouse.y - close.y) <= this.PAUSE_CLOSE_HIT) {
+                this.closePauseHelp();
+                return true;
+            }
+
+            const next = this.aboutNext.position;
+            if (this.aboutNext.visible &&
+                Math.abs(mouse.x - next.x) <= this.PAUSE_CLOSE_HIT &&
+                Math.abs(mouse.y - next.y) <= this.PAUSE_CLOSE_HIT) {
+                this.curAboutPage += 1;
+                this.openPauseHelp(this.curAboutPage);
+                return true;
+            }
+
+            const prev = this.aboutPrev.position;
+            if (this.aboutPrev.visible &&
+                Math.abs(mouse.x - prev.x) <= this.PAUSE_CLOSE_HIT &&
+                Math.abs(mouse.y - prev.y) <= this.PAUSE_CLOSE_HIT) {
+                this.curAboutPage -= 1;
+                this.openPauseHelp(this.curAboutPage);
+                return true;
+            }
+        }
+
+        if (this.shopOpen && Input.isMouseJustPressed()) {
+            if (Math.abs(mouse.x - close.x) <= this.PAUSE_CLOSE_HIT &&
+                Math.abs(mouse.y - close.y) <= this.PAUSE_CLOSE_HIT) {
+                for (const btn of this.sellButtons) btn.destroy();
+                for (const btn of this.buyButtons) btn.visible = false;
+                for (const sprite of this.merchantSprites) sprite.visible = false;
+                for (const btn of this.mainButtons) btn.visible = true;
+                this.pauseHelpClose.visible = false;
+                this.shopTitle.text = "Shhh...";
+                this.shopState = "main";
+                this.sellButtons = [];
+                this.sellables = [];
+                this.merchantSprites = [];
+                return true;
+            }
+            if (this.shopState == "sell") {
+                let i = 0;
+                this.sellButtons.forEach((btn) => {
+                    if (Math.abs(mouse.x - btn.position.x) <= btn.size.x / 2 &&
+                        Math.abs(mouse.y - btn.position.y) <= btn.size.y / 2) {
+                        this.sellEquippable(this.sellables[i].id);
+                    }
+                    i++;
+                });
+            }
+            else if (this.shopState == "buy") {
+                let i = 0;
+                this.buyButtons.forEach((btn) => {
+                    if (Math.abs(mouse.x - btn.position.x) <= btn.size.x / 2 &&
+                        Math.abs(mouse.y - btn.position.y) <= btn.size.y / 2) {
+                        this.buyEquippable(this.forSale[i], i);
+                    }
+                    i++;
+                });
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Hook for subclasses to spawn level-specific content after the player is
+     * created (e.g. merchant + treasure caches in the city).
+     */
+    protected initLevelContent(_player: PlayerActor): void {}
+
+    /**
+     * Spawns the level-exit sprite from getEndLevelSprite(). No-op if the
+     * subclass returns an empty spritesheetKey (e.g. ocean stub).
+     */
+    protected initLevelEnd(): void {
+        const spec = this.getEndLevelSprite();
+        if (!spec.spritesheetKey) return;
+        const sprite = this.add.animatedSprite(AnimatedSprite, spec.spritesheetKey, "primary");
+        sprite.position.copy(this.getEndLevelLocation());
+        this.endLevelSprite = sprite;
+        sprite.animation.play(spec.idleClosed, true);
+    }
+
+    public override startScene(): void {
+        // ── Tilemap + walls ───────────────────────────────────────────────
+        const tilemapLayers = this.add.tilemap(this.getTilemapKey());
+        const depths = this.getLayerDepthMap();
+
+        // Layer indices differ between 4-layer (city: Floor/Wall/WallNC/Transparent)
+        // and 5-layer (ocean: Floor/Props/Wall/WallNC/Transparent) tilemaps.
+        const hasProps = depths.props !== undefined;
+        const idxFloor = 0;
+        const idxProps = hasProps ? 1 : -1;
+        const idxWall = hasProps ? 2 : 1;
+        const idxWallNC = hasProps ? 3 : 2;
+        const idxTransparent = hasProps ? 4 : 3;
+
+        tilemapLayers[idxFloor].setDepth(depths.floor);
+        if (hasProps) tilemapLayers[idxProps].setDepth(depths.props!);
+        tilemapLayers[idxWall].setDepth(depths.wall);
+        tilemapLayers[idxWallNC].setDepth(depths.wallNC);
+        tilemapLayers[idxTransparent].setDepth(depths.transparent);
+
+        this.walls = <IsometricTilemap>tilemapLayers[idxWall].getItems()[0];
+        this.wallsNC = <IsometricTilemap>tilemapLayers[idxWallNC].getItems()[0];
+        this.bothWalls = [this.walls, this.wallsNC];
+
+        const midCol = Math.floor(this.walls.getDimensions().x / 2);
+        const midRow = Math.floor(this.walls.getDimensions().y / 2);
+        const centerMap = this.walls.getWorldPosition(midCol, midRow);
+
+        this.viewport.setBounds(
+            -this.walls.size.x,
+            -this.walls.size.y,
+            this.walls.size.x * 2,
+            this.walls.size.y * 2,
+        );
+
+        // ── Audio ─────────────────────────────────────────────────────────
+        AudioManager.setVolume(AudioChannelType.SFX, 0.05);
+        AudioManager.setVolume(AudioChannelType.CUSTOM_1, 3);
+
+        this.viewport.setZoomLevel(2);
+
+        // ── Layers + HUD scaffolding ──────────────────────────────────────
+        this.initLayers();
+        this.initTweenGraphics();
+        this.initializeNavmesh(new PositionGraph(), [this.walls, this.wallsNC]);
+
+        // Player first, then level-specific content (subclass hook).
+        const player = this.initializePlayer();
+        this.initLevelContent(player);
+
+        // ── Receiver subscriptions ────────────────────────────────────────
+        this.receiver.subscribe("enemyDied");
+        this.receiver.subscribe(ItemEvent.ITEM_REQUEST);
+        this.receiver.subscribe(AbilityEvent.OPEN_TREASURE);
+        this.receiver.subscribe(AbilityEvent.USED_GUM);
+        this.receiver.subscribe(ItemEvent.DANEEDLE_USED);
+
+        this.addUILayer("health");
+
+        this.receiver.subscribe(PlayerEvent.PLAYER_KILLED);
+        this.receiver.subscribe(BattlerEvent.BATTLER_KILLED);
+        this.receiver.subscribe(BattlerEvent.BATTLER_RESPAWN);
+
+        this.receiver.subscribe(CheatEvent.CHEAT_POW_CANNON);
+        this.receiver.subscribe(CheatEvent.CHEAT_INVINCIBLE);
+        this.receiver.subscribe(CheatEvent.CHEAT_GIVE_ITEMS);
+        this.receiver.subscribe(CheatEvent.CHEAT_GIVE_CRYSTALS);
+        this.receiver.subscribe(CheatEvent.CHEAT_SPAWN_BOSS);
+        this.receiver.subscribe(CheatEvent.CHEAT_TELEPORT_TO_MERCHANT);
+        this.receiver.subscribe(CheatEvent.CHEAT_CONSOLE_LOCATION);
+        this.receiver.subscribe(CheatEvent.CHEAT_CITY);
+        this.receiver.subscribe(CheatEvent.CHEAT_MOUNTAIN);
+        this.receiver.subscribe(CheatEvent.CHEAT_OCEAN);
+        this.receiver.subscribe(CheatEvent.CHEAT_TOP_LEVEL);
+
+        this.receiver.subscribe(HudEvent.WAVE_IN_CENTER);
+        this.receiver.subscribe(HudEvent.WAVE_DONE);
+        this.receiver.subscribe(AAEvents.WAVE_CHANGE);
+
+        this.viewport.setCenter(centerMap.x, centerMap.y);
+        this.viewport.setFocus(new Vec2(centerMap.x, centerMap.y));
+
+        this.waveDelayTimer.start();
+
+        this.initPauseMenu();
+        this.initShopMenu();
+        this.initLevelEnd();
+
+        // ── Zone labels (visible when player is near merchant / exit) ────
+        this.bmZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
+            position: new Vec2(256, 275),
+            text: "[E] To Speak",
+        });
+        this.bmZoneLabel.textColor = Color.WHITE;
+        this.bmZoneLabel.fontSize = 24;
+        this.bmZoneLabel.visible = false;
+
+        this.elZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
+            position: new Vec2(256, 275),
+            text: this.getEndLevelLabel(),
+        });
+        this.elZoneLabel.textColor = Color.WHITE;
+        this.elZoneLabel.fontSize = 24;
+        this.elZoneLabel.visible = false;
+
+        // ── Music ─────────────────────────────────────────────────────────
+        this.emitter.fireEvent(GameEventType.PLAY_MUSIC, { key: this.getMusicKey(), loop: true, holdReference: true });
+
+        // ── Fade-in overlay ───────────────────────────────────────────────
+        this.fadeOverlay = <Rect>this.add.graphic(GraphicType.RECT, "fade", {
+            position: new Vec2(this.viewport.getHalfSize().x, this.viewport.getHalfSize().x),
+            size: new Vec2(this.viewport.getHalfSize().x * 2, this.viewport.getHalfSize().y * 2),
+        });
+        this.fadeOverlay.color = Color.BLACK;
+        this.fadeOverlay.alpha = 1;
+
+        this.fadeOverlay.tweens.add("fadeIn", {
+            startDelay: 0,
+            duration: 800,
+            effects: [{
+                property: TweenableProperties.alpha,
+                start: 1,
+                end: 0,
+                ease: EaseFunctionType.IN_OUT_SINE,
+            }],
+            onEnd: "fade-in-done",
+        });
+
+        this.fadeOverlay.tweens.add("fadeOut", {
+            startDelay: 0,
+            duration: 800,
+            effects: [{
+                property: TweenableProperties.alpha,
+                start: 0,
+                end: 1,
+                ease: EaseFunctionType.IN_OUT_SINE,
+            }],
+            onEnd: "fade-out-done",
+        });
+
+        this.fadeOverlay.tweens.play("fadeIn");
+    }
+
+    protected initTweenGraphics(): void {
+        const alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
+        const size = this.viewport.getHalfSize().scaled(2);
+        this.waveAlerts = new WaveAlerts(alertSprite, size);
+        alertSprite.animation.playIfNotAlready("WAVE_1");
+    }
+
+    // ─── Event dispatcher ─────────────────────────────────────────────────
+
+    public handleEvent(event: GameEvent): void {
+        if (this.handleLevelEvent(event)) {
+            return;
+        }
+
+        switch (event.type) {
+            case ItemEvent.ITEM_REQUEST: {
+                console.log("Request recieved");
+                this.handleItemRequest(event.data.get("player"), event.data.get("inventory"));
+                break;
+            }
+            case ItemEvent.DANEEDLE_USED: {
+                this.handleDaNeedleUsed(event.data.get("position"));
+                break;
+            }
+            case AbilityEvent.USED_GUM: {
+                this.handleUsedGum();
+                break;
+            }
+            case AbilityEvent.OPEN_TREASURE: {
+                this.handleUsedRaccoonTail();
+                break;
+            }
+            case BattlerEvent.BATTLER_KILLED: {
+                this.handleBattlerKilled(event);
+                break;
+            }
+            case BattlerEvent.BATTLER_RESPAWN: {
+                break;
+            }
+            case CheatEvent.CHEAT_INVINCIBLE: {
+                this.toggleCheatInvincible();
+                break;
+            }
+            case CheatEvent.CHEAT_POW_CANNON: {
+                this.toggleCheatPow();
+                break;
+            }
+            case CheatEvent.CHEAT_GIVE_ITEMS: {
+                this.cheatGiveItems();
+                break;
+            }
+            case CheatEvent.CHEAT_GIVE_CRYSTALS: {
+                this.player.crystals += 10000;
+                break;
+            }
+            case CheatEvent.CHEAT_TELEPORT_TO_MERCHANT: {
+                const merchantPos = this.getMerchantPosition();
+                if (merchantPos) {
+                    this.player.position.copy(merchantPos);
+                }
+                break;
+            }
+            case CheatEvent.CHEAT_CONSOLE_LOCATION: {
+                console.log("Player at X: ", this.player.position.x, ", Y: ", this.player.position.y);
+                break;
+            }
+            case CheatEvent.CHEAT_SPAWN_BOSS: {
+                this.spawnBoss();
+                break;
+            }
+            case HudEvent.WAVE_IN_CENTER: {
+                this.waveAlerts.alertLeave();
+                break;
+            }
+            case HudEvent.WAVE_DONE: {
+                break;
+            }
+            case "resume": {
+                this.resumeGame();
+                break;
+            }
+            case "buy": {
+                this.openBuyMenu();
+                break;
+            }
+            case "sell": {
+                this.openSellMenu();
+                break;
+            }
+            case "reset_shop": {
+                if (this.player.crystals >= 100) {
+                    this.player.crystals -= 100;
+                    this.setBuyItems();
+                    this.openBuyMenu();
+                }
+                break;
+            }
+            case "pause_mainmenu": {
+                this.sceneManager.changeToScene(MainMenu);
+                break;
+            }
+            case "pause_controls": {
+                this.openPauseHelp(4);
+                break;
+            }
+            case "pause_about": {
+                this.curAboutPage = 0;
+                this.openPauseHelp(this.curAboutPage);
+                break;
+            }
+            case "pause_help": {
+                this.openPauseHelp(3);
+                break;
+            }
+            case "pause_cheats": {
+                this.openPauseHelp(5);
+                break;
+            }
+            default: {
+                throw new Error(`Unhandled event type "${event.type}" caught in SMScene event handler`);
+            }
+        }
+    }
+
+    protected handleBattlerKilled(event: GameEvent): void {
+        const id: number = event.data.get("id");
+        const battler = this.battlers.find(b => b.id === id);
+
+        if (!battler) return;
+
+        const deathSpot = battler.position.clone();
+        if (battler instanceof PlayerActor) {
+            if (this.playerDead) {
+                return;
+            }
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "DEATH", loop: false, holdReference: false });
+            this.playerDead = true;
+            this.player.crystals = Math.floor(this.player.crystals / 2);
+            battler.animation.play("DYING", false, "DEAD");
+            const deathTimer = new Timer(2500, () => {
+                this.sceneManager.changeToScene(GameOver);
+                this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
+            }, false);
+            deathTimer.start();
+        }
+        else if (battler == this.boss) {
+            const raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+            const raccoonTail = new RaccoonTail(raccoonTailSprite);
+            raccoonTail.position.copy(deathSpot);
+            this.sceneEquippables.push(raccoonTail);
+
+            for (let i = 0; i < 10; i++) {
+                const crystalSprite = this.add.sprite("Crystal", "primary");
+                crystalSprite.scale.set(0.75, 0.75);
+                const crystal = new Crystal(crystalSprite);
+                crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
+                this.sceneCrystals.push(crystal);
+            }
+            this.bossDead = true;
+            battler.battlerActive = false;
+            this.healthbars.get(battler).visible = false;
+            this.healthbars.delete(battler);
+            this.battlers = this.battlers.filter(b => b.id !== id);
+            this.waveAlerts.playBossDefeated();
+            this.waveCrestSprite.animation.playIfNotAlready("WAVE_5", true);
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "BOSS_DEFEATED", loop: false, holdReference: false });
+            this.spawnDelayTimer.pause();
+            this.waveDelayTimer.pause();
+        }
+        else {
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "ENEMY_DEATH", loop: false, holdReference: false });
+            this.leftInCurWave -= 1;
+            console.log("Enemy Killed: ", this.leftInCurWave, " of ", this.totSpawned, " spawned enemies left");
+            battler.battlerActive = false;
+            this.healthbars.get(battler).visible = false;
+            this.healthbars.delete(battler);
+            this.shadows.get(battler).visible = false;
+            this.shadows.delete(battler);
+            this.battlers = this.battlers.filter(b => b.id !== id);
+            if (Math.random() * this.player.luck >= 0.85) {
+                this.dropOrChooseItem(deathSpot, 999);
+                console.log("Item dropped!");
+            }
+
+            // TODO: drive crystal drop count from EnemyDef.crystalDrops
+            if (battler.maxHealth == 20) {
+                for (let i = 0; i < 3; i++) {
+                    const crystalSprite = this.add.sprite("Crystal", "primary");
+                    crystalSprite.scale.set(0.75, 0.75);
+                    const crystal = new Crystal(crystalSprite);
+                    crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
+                    this.sceneCrystals.push(crystal);
+                }
+            }
+            else {
+                const crystalSprite = this.add.sprite("Crystal", "primary");
+                crystalSprite.scale.set(0.75, 0.75);
+                const crystal = new Crystal(crystalSprite);
+                crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
+                this.sceneCrystals.push(crystal);
+            }
+
+            if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave && !this.bossDead) {
+                this.waveAlerts.playWaveDefeated();
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_DEFEATED", loop: false, holdReference: false });
+                this.waveDelayTimer.start();
+            }
+        }
+    }
+
+    protected handleItemRequest(player: PlayerActor, _inventory: Inventory): void {
+        console.log("Total equippables:", this.sceneEquippables.length);
+        const items: Item[] = this.sceneEquippables.filter((item: Item) => {
+            const alreadyHas = player.equippables.find((equippable) => equippable.constructor === item.constructor);
+            if (item.inventory !== null || item.position.distanceTo(player.position) > 100 ||
+                (alreadyHas && alreadyHas.curStack >= alreadyHas.maxStack)) {
+                return false;
+            }
+            return true;
+        });
+        if (items.length > 0) {
+            const closestItem = items.reduce(ClosestPositioned(player));
+            if (closestItem instanceof Healthpack) {
+                if (player.maxHealth == player.health) {
+                    return;
+                }
+                const newHealth = player.maxHealth < player.health + 5 ? player.maxHealth : player.health + 5;
+                player.health = newHealth;
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HEAL", loop: false, holdReference: false });
+                closestItem.visible = false;
+                this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                return;
+            }
+
+            const alreadyHas = player.equippables.find((equippable) => equippable.constructor === closestItem.constructor);
+
+            if (alreadyHas) {
+                if (alreadyHas.maxStack <= alreadyHas.curStack) {
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "UNPICKUPPABLE", loop: false, holdReference: false });
+                    return;
+                }
+                else {
+                    alreadyHas.curStack += 1;
+                    closestItem.visible = false;
+                    this.sceneEquippables = this.sceneEquippables.filter((equippable) => equippable !== closestItem);
+                    alreadyHas.applyBuff(this.player);
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "PICKUP_ITEM", loop: false, holdReference: false });
+                    return;
+                }
+            }
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "PICKUP_ITEM", loop: false, holdReference: false });
+            player.equip(closestItem);
+            if (closestItem instanceof DaNeedle) {
+                this.needle = closestItem as DaNeedle;
+            }
+        }
+    }
+
+    public cheatGiveItems(): void {
+        const playerAt = this.player.position;
+
+        const shieldSprite = this.add.sprite("Shield", "primary");
+        const shield = new Shield(shieldSprite);
+        shield.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 100));
+        this.sceneEquippables.push(shield);
+
+        const redHatSprite = this.add.sprite("RedHat", "primary");
+        const redHat = new RedHat(redHatSprite);
+        redHat.position.copy(new Vec2(playerAt.x - 100, playerAt.y + 100));
+        this.sceneEquippables.push(redHat);
+
+        const raccoonTailSprite = this.add.sprite("RaccoonTail", "primary");
+        const raccoonTail = new RaccoonTail(raccoonTailSprite);
+        raccoonTail.position.copy(new Vec2(playerAt.x + 100, playerAt.y - 100));
+        this.sceneEquippables.push(raccoonTail);
+
+        const jetPackSprite = this.add.sprite("JetPack", "primary");
+        const jetPack = new JetPack(jetPackSprite);
+        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 100));
+        this.sceneEquippables.push(jetPack);
+
+        const healthPackSprite = this.add.sprite("healthpack", "primary");
+        const healthPack = new Healthpack(healthPackSprite);
+        healthPack.position.copy(new Vec2(playerAt.x + 100, playerAt.y));
+        this.sceneEquippables.push(healthPack);
+
+        const gumSprite = this.add.sprite("Gum", "primary");
+        const gum = new Gum(gumSprite);
+        gum.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 200));
+        this.sceneEquippables.push(gum);
+
+        const daNeedleSprite = this.add.sprite("DaNeedle", "primary");
+        const daNeedle = new DaNeedle(daNeedleSprite);
+        daNeedle.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 100));
+        this.sceneEquippables.push(daNeedle);
+
+        const antennaSprite = this.add.sprite("Antennas", "primary");
+        const antennas = new Antennas(antennaSprite);
+        antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
+        this.sceneEquippables.push(antennas);
+    }
+
+    /**
+     * Subclasses override this for level-specific treasure abilities (e.g.
+     * city's RaccoonTail opens dumpsters). Default does nothing.
+     */
+    protected handleUsedRaccoonTail(): void {}
 }

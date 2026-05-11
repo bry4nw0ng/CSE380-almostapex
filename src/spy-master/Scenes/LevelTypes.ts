@@ -61,6 +61,7 @@ export interface EndLevelSpriteDef {
     idleClosed: string;
     opening: string;
     idleOpen: string;
+    closing: string;
 }
 
 export interface LayerDepthMap {

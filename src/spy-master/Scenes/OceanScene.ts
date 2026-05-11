@@ -25,7 +25,6 @@ import {
 
 export default class OceanScene extends SMScene {
 
-    // player and walls lifted to SMScene
     private playerShadow: Sprite;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
@@ -125,7 +124,7 @@ export default class OceanScene extends SMScene {
     public getEndLevelLabel(): string { return ""; }
 
     public getEndLevelSprite(): EndLevelSpriteDef {
-        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "" };
+        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "", closing: "" };
     }
 
     public getNextLevel(): SceneCtor | null { return null; }

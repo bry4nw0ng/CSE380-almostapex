@@ -5,7 +5,6 @@ import NPCActor from "../../../Actors/NPCActor";
 import NPCBehavior from "../NPCBehavior";
 import NPCAction from "./NPCAction";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
 import NavigationPath from "../../../../Wolfie2D/Pathfinding/NavigationPath";
 import SMScene from "../../../Scenes/SMScene";
 
@@ -26,7 +25,7 @@ export default class ShootEm extends NPCAction {
 
     public onEnter(options: Record<string, any>): void {
         super.onEnter(options);
-        this.scene = this.actor.getScene() as MainSMScene;
+        this.scene = this.actor.getScene() as SMScene;
     }
 
     public handleInput(event: GameEvent): void {
