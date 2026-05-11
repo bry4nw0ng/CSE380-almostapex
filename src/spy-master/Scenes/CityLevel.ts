@@ -128,7 +128,7 @@ export default class CityLevel extends SMScene {
     protected override handleUsedRaccoonTail(): void {
         this.treasure.forEach(cache => {
             if (cache.sprite.position.distanceTo(this.player.position) < 100) {
-                this.dropOrChooseItem(cache.sprite.position, 999);
+                this.dropOrChooseItem(cache.sprite.position, 999, null);
                 this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TREASURE", loop: false, holdReference: false});
                 cache.sprite.destroy();
                 return;
@@ -141,40 +141,6 @@ export default class CityLevel extends SMScene {
      * Initialize the NPCs
      */
     protected initializeNPCs(player): void {
-
-        // Get the object data for the red enemies
-        //let red = this.load.getObject("red");
-        //For debug
-/* 
-        for (let i = 0; i < red.enemies.length; i++) {
-            console.log("spawned mouse");
-            let npc = this.add.animatedSprite(NPCActor, "rollermouse", "primary");
-            npc.position.set(red.enemies[i][0], red.enemies[i][1]);
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
-            npc.scale.set(0.25, 0.25);
-
-            // Give the NPC a healthbar
-            let healthbar = new HealthbarHUD(this, npc, "primary", {size: npc.size.clone().scaled(1, 1/4), offset: npc.size.clone().scaled(0, -1/2)});
-            this.healthbars.set(npc, healthbar);
-            healthbar.visible = false;
-            
-            // Set the NPCs stats
-            npc.battleGroup = 1
-            npc.speed = 30;
-            npc.health = 10;
-            npc.maxHealth = 10;
-            npc.navkey = "navmesh";
-
-            npc.addAI(GuardBehavior, {target: player, range: 100});
-
-            // Play the NPCs "IDLE" animation 
-            npc.animation.play("IDLE");
-            
-            // Add the NPC to the battlers array
-            this.battlers.push(npc);
-        }
-         */
-
         console.log("spawned merchant");
         let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
         merchant.position.copy(this.MERCHANT_LOCATION);
@@ -199,6 +165,9 @@ export default class CityLevel extends SMScene {
 
         }
         //this.spawnBoss();
+        this.sharkfin = this.add.animatedSprite(AnimatedSprite, "Underwater_Sharkfin", "primary");
+        this.sharkfin.scale.set(0.75,0.75);
+        this.sharkfin.visible = false;
 
     }
 
@@ -333,4 +302,18 @@ export default class CityLevel extends SMScene {
     public getNextLevel(): SceneCtor | null { return OceanLevel; }
 
     public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
+
+    protected override handleLevelEvent(event: GameEvent): boolean {
+        switch(event.type) {
+            case CheatEvent.CHEAT_CITY: {
+                return true;   
+            }
+            case CheatEvent.CHEAT_OCEAN: {
+                this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
+                this.sceneManager.changeToScene(OceanLevel);
+                return true;
+            }
+        }
+        return false;
+    }
 }
