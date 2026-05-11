@@ -97,8 +97,6 @@ export default abstract class SMScene extends Scene {
     protected CHEATPOWGUN: boolean = false;
 
     // ─── Wave runner state ─────────────────────────────────────────────────
-    // TODO: drive timer callbacks from getWaveConfig() instead of the
-    // hardcoded curWave-number ladder in the constructor.
 
     protected curWave: number;
     protected leftInCurWave: number;
@@ -171,8 +169,7 @@ export default abstract class SMScene extends Scene {
 
         // Wave runner state + timers. Callbacks close over `this`; HUD refs
         // (waveAlerts, waveCrestSprite) get populated in startScene before
-        // any timer fires. The wave-number ladder is still city-specific
-        // (TODO: drive from getWaveConfig() in the deferred polish round).
+        // any timer fires.
         this.curDelay = 0;
         this.totSpawned = 0;
         this.curWave = 0;
@@ -1280,6 +1277,7 @@ export default abstract class SMScene extends Scene {
                 if (Input.isJustPressed(AAControls.INTERACT) && this.bossDead) {
                     const next = this.getNextLevel();
                     if (next) {
+                        this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
                         this.sceneManager.changeToScene(next);
                     }
                 }
@@ -1423,6 +1421,83 @@ export default abstract class SMScene extends Scene {
             }
         }
         return true;
+    }
+
+    /**
+     * Loads assets shared across all levels (player, HUD, items, pause book,
+     * audio, merchant, etc.). Driven by getTilemapKey/Path and getMusicKey/Path
+     * for the per-level tilemap and music.
+     */
+    protected loadSharedAssets(): void {
+        // Tilemap + music driven by per-level getters
+        this.load.tilemap(this.getTilemapKey(), this.getTilemapPath());
+        this.load.audio(this.getMusicKey(), this.getMusicPath());
+
+        // Player + generic sprites
+        this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
+        this.load.image("generic-shadow", "game_assets/sprites/shadow.png");
+        this.load.image("spitball", "game_assets/sprites/spitball.png");
+
+        // Merchant
+        this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
+
+        // Items
+        this.load.image("healthpack", "game_assets/sprites/healthpack.png");
+        this.load.image("inventorySlot", "game_assets/sprites/inventory.png");
+        this.load.image("laserGun", "game_assets/sprites/laserGun.png");
+        this.load.image("RedHat", "game_assets/sprites/red-hat.png");
+        this.load.image("Shield", "game_assets/sprites/cardboard-shield.png");
+        this.load.image("RaccoonTail", "game_assets/sprites/raccoon-tail.png");
+        this.load.image("JetPack", "game_assets/sprites/cokepack.png");
+        this.load.image("Gum", "game_assets/sprites/used-gum.png");
+        this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
+        this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
+        this.load.image("Crystal", "game_assets/sprites/crystal.png");
+
+        // HUD
+        this.load.spritesheet("wave_alerts", "game_assets/spritesheets/wave-alerts.json");
+        this.load.spritesheet("healthbar", "game_assets/ui/hud/healthbar.json");
+        this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
+        this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png");
+        this.load.image("endArrowSprite", "game_assets/sprites/level-trans-arrow.png");
+        this.load.image("tray_red", "game_assets/ui/hud/tray-red.png");
+        this.load.image("tray_blue", "game_assets/ui/hud/tray-blue.png");
+        this.load.image("tray_gray", "game_assets/ui/hud/tray-gray.png");
+        this.load.image("tray_long", "game_assets/ui/hud/tray-long.png");
+        this.load.image("spacebar", "game_assets/ui/hud/spacebar.png");
+        this.load.image("key-one", "game_assets/ui/hud/key-one.png");
+        this.load.image("key-two", "game_assets/ui/hud/key-two.png");
+        this.load.image("key-three", "game_assets/ui/hud/key-three.png");
+
+        // Pause book pages
+        this.load.image("about1", "game_assets/ui/book/about1.png");
+        this.load.image("about2", "game_assets/ui/book/about2.png");
+        this.load.image("about3", "game_assets/ui/book/about3.png");
+        this.load.image("help", "game_assets/ui/book/help.png");
+        this.load.image("controls", "game_assets/ui/book/controls.png");
+        this.load.image("cheats", "game_assets/ui/book/cheats.png");
+        this.load.image("back-button", "game_assets/ui/menu/back-button.png");
+
+        // Audio
+        this.load.audio("TRANSACTION", "game_assets/sounds/buy-sell-item.wav");
+        this.load.audio("UNPICKUPPABLE", "game_assets/sounds/cant-pick-up.wav");
+        this.load.audio("PICKUP_COIN", "game_assets/sounds/coin-pickup.wav");
+        this.load.audio("PICKUP_ITEM", "game_assets/sounds/item-pickup.wav");
+        this.load.audio("DEATH", "game_assets/sounds/death.wav");
+        this.load.audio("ENEMY_DEATH", "game_assets/sounds/enemy-death.wav");
+        this.load.audio("HURT", "game_assets/sounds/hurt.wav");
+        this.load.audio("ENEMY_HURT", "game_assets/sounds/enemy-hit.wav");
+        this.load.audio("SPITBALL", "game_assets/sounds/shoot.wav");
+        this.load.audio("HEAL", "game_assets/sounds/heal.wav");
+        this.load.audio("SWING", "game_assets/sounds/swing-sword.wav");
+        this.load.audio("GUM", "game_assets/sounds/gum.wav");
+        this.load.audio("COKEPACK", "game_assets/sounds/jetpack.wav");
+        this.load.audio("TREASURE", "game_assets/sounds/open-treasure.wav");
+        this.load.audio("WAVE_START", "game_assets/sounds/wave-beginning.wav");
+        this.load.audio("WAVE_DEFEATED", "game_assets/sounds/wave-defeated.wav");
+        this.load.audio("BOSS_SPAWNED", "game_assets/sounds/boss-spawning.wav");
+        this.load.audio("BOSS_DEFEATED", "game_assets/sounds/boss-defeat.wav");
+        this.load.audio("TP_NEW_LEVEL", "game_assets/sounds/teleport-to-new-level.wav");
     }
 
     /**

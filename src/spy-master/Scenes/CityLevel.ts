@@ -48,6 +48,7 @@ import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
 import RaccoonBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
 import MainMenu from "./MainMenu";
 import GameOver from "./GameOver";
+import OceanLevel from "./OceanLevel";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Input from "../../Wolfie2D/Input/Input";
 import Arrow from "../GameSystems/HUD/LastEnemyArrow";
@@ -97,118 +98,25 @@ export default class CityLevel extends SMScene {
      * @see Scene.update()
      */
     public override loadScene() {
-        // Load the player and enemy spritesheets
-        this.load.spritesheet("player1", "game_assets/spritesheets/blob-fullsheet-manual.json");
+        this.loadSharedAssets();
 
-        // Load in the enemy sprites
+        // City-specific enemies + their projectile sprites
         this.load.spritesheet("rollermouse", "game_assets/spritesheets/scabbers2.json");
         this.load.spritesheet("pigeon", "game_assets/spritesheets/pigeon.json");
-        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");  
-
-        //Wave Alerts
-        this.load.spritesheet("wave_alerts", "game_assets/spritesheets/wave-alerts.json");
-
-        this.load.image("DumpsterSprite", "game_assets/spritesheets/dumpster.png");
-
-        // Load the tilemap
-        this.load.tilemap("level", "game_assets/tilemaps/city-map-revised.tmj");
-        this.load.image("tiles", "game_assets/tilemaps/city-tileset-completed.png");
-
-        // Load the enemy locations
-        this.load.object("red", "game_assets/data/enemies/red.json");
-        this.load.object("blue", "game_assets/data/enemies/blue.json");
-
-        this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
-
-        this.load.spritesheet("manhole", "game_assets/spritesheets/manhole.json");
-
-        // Load the healthpack and lasergun loactions
-        //this.load.object("healthpacks", "game_assets/data/items/healthpacks.json");
-        //this.load.object("laserguns", "game_assets/data/items/laserguns.json");
-        //this.load.object("equippables", "game_assets/data/items/equippables.json");
-
-        // Load the healthpack, inventory slot, and laser gun sprites
-        this.load.image("healthpack", "game_assets/sprites/healthpack.png");
-        this.load.image("inventorySlot", "game_assets/sprites/inventory.png");
-        this.load.image("laserGun", "game_assets/sprites/laserGun.png");
-        this.load.image("RedHat", "game_assets/sprites/red-hat.png");
-        this.load.image("Shield", "game_assets/sprites/cardboard-shield.png");
-        this.load.image("RaccoonTail", "game_assets/sprites/raccoon-tail.png");
-        this.load.image("JetPack", "game_assets/sprites/cokepack.png");
-        this.load.image("Gum", "game_assets/sprites/used-gum.png");
-        this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
-        this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
-        this.load.image("Crystal", "game_assets/sprites/crystal.png");
-
-        this.load.image("generic-shadow", "game_assets/sprites/shadow.png")
-
-        //raccoon bullets
+        this.load.spritesheet("raccoon", "game_assets/spritesheets/raccoon-all-sprites-finished.json");
         this.load.image("trash-paper", "game_assets/sprites/trash-paper.png");
         this.load.image("trash-banana", "game_assets/sprites/trash-banana.png");
-
         this.load.image("seed", "game_assets/sprites/seed.png");
 
-        //your bullets
-        this.load.image("spitball", "game_assets/sprites/spitball.png")
+        // City tileset image
+        this.load.image("tiles", "game_assets/tilemaps/city-tileset-completed.png");
 
-        // TODO: replace temp pages with final about/help/controls page assets when designed
-/*         this.load.image("about-page",    "game_assets/ui/menu/temp/tempabout.png");
-        this.load.image("help-page",     "game_assets/ui/menu/temp/temphelp.png");
-        this.load.image("controls-page", "game_assets/ui/menu/temp/tempcontrols.png"); */
-        this.load.image("about1",    "game_assets/ui/book/about1.png");
-        this.load.image("about2",    "game_assets/ui/book/about2.png");
-        this.load.image("about3",    "game_assets/ui/book/about3.png");
-        this.load.image("help",     "game_assets/ui/book/help.png");
-        this.load.image("controls", "game_assets/ui/book/controls.png");
-        this.load.image("cheats", "game_assets/ui/book/cheats.png");
+        // City treasure
+        this.load.image("DumpsterSprite", "game_assets/spritesheets/dumpster.png");
+        this.load.object("dumpster", "game_assets/data/enemies/dumpster.json");
 
-        this.load.image("back-button", "game_assets/ui/menu/back-button.png");
-
-        //New hud changes
-        this.load.spritesheet("healthbar", "game_assets/ui/hud/healthbar.json");
-        this.load.image("arrowSprite", "game_assets/sprites/last-enemy-arrow.png");
-        this.load.image("endArrowSprite", "game_assets/sprites/level-trans-arrow.png");
-        this.load.image("tray_red", "game_assets/ui/hud/tray-red.png");
-        this.load.image("tray_blue", "game_assets/ui/hud/tray-blue.png");
-        this.load.image("tray_gray", "game_assets/ui/hud/tray-gray.png");
-        this.load.image("tray_long", "game_assets/ui/hud/tray-long.png");
-        this.load.image("spacebar", "game_assets/ui/hud/spacebar.png");
-        this.load.image("key-one", "game_assets/ui/hud/key-one.png");
-        this.load.image("key-two", "game_assets/ui/hud/key-two.png");
-        this.load.image("key-three", "game_assets/ui/hud/key-three.png");
-
-        this.load.spritesheet("wave_crest", "game_assets/ui/hud/wave-crest.json");
-
-        this.load.spritesheet("merchant", "game_assets/spritesheets/demo_slime2.json");
-
-        //MUSIC
-        this.load.audio("CITY_MUSIC", "game_assets/sounds/songs/city-cleaned.mp3");
-
-        //SOUND STUFF
-        this.load.audio("TRANSACTION", "game_assets/sounds/buy-sell-item.wav");
-        this.load.audio("UNPICKUPPABLE", "game_assets/sounds/cant-pick-up.wav");
-        this.load.audio("PICKUP_COIN", "game_assets/sounds/coin-pickup.wav");
-        this.load.audio("PICKUP_ITEM", "game_assets/sounds/item-pickup.wav");
-
-        this.load.audio("DEATH", "game_assets/sounds/death.wav");
-        this.load.audio("ENEMY_DEATH", "game_assets/sounds/enemy-death.wav");
-        this.load.audio("HURT", "game_assets/sounds/hurt.wav");
-        this.load.audio("ENEMY_HURT", "game_assets/sounds/enemy-hit.wav");
-        
-        this.load.audio("SPITBALL", "game_assets/sounds/shoot.wav");
-        this.load.audio("HEAL", "game_assets/sounds/heal.wav");
-        this.load.audio("SWING", "game_assets/sounds/swing-sword.wav");
-        this.load.audio("GUM", "game_assets/sounds/gum.wav");
-        this.load.audio("COKEPACK", "game_assets/sounds/jetpack.wav");
-        this.load.audio("TREASURE", "game_assets/sounds/open-treasure.wav");
-
-        this.load.audio("WAVE_START", "game_assets/sounds/wave-beginning.wav");
-        this.load.audio("WAVE_DEFEATED", "game_assets/sounds/wave-defeated.wav");
-        this.load.audio("BOSS_SPAWNED", "game_assets/sounds/boss-spawning.wav");
-        this.load.audio("BOSS_DEFEATED", "game_assets/sounds/boss-defeat.wav");
-
-        this.load.audio("TP_NEW_LEVEL", "game_assets/sounds/teleport-to-new-level.wav");
-
+        // City end-level sprite (manhole)
+        this.load.spritesheet("manhole", "game_assets/spritesheets/manhole.json");
     }
     /**
      * @see Scene.startScene
@@ -422,7 +330,7 @@ export default class CityLevel extends SMScene {
         };
     }
 
-    public getNextLevel(): SceneCtor | null { return null; }
+    public getNextLevel(): SceneCtor | null { return OceanLevel; }
 
     public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
 }
