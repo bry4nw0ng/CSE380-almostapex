@@ -80,7 +80,7 @@ const BattlerGroups = {
     BLUE: 2
 } as const;
 
-export default class MainSMScene extends SMScene {
+export default class CityLevel extends SMScene {
 
     private treasure: { sprite: Sprite, stillCookin: boolean }[];
     private bases: BattlerBase[];
@@ -310,11 +310,97 @@ export default class MainSMScene extends SMScene {
 
     public getMusicPath(): string { return "game_assets/sounds/songs/city-cleaned.mp3"; }
 
-    public getEnemyTypes(): EnemyDef[] { return []; }
+    public getEnemyTypes(): EnemyDef[] {
+        return [
+            {
+                key: "rollermouse",
+                spritesheetKey: "rollermouse",
+                spritesheetPath: "game_assets/spritesheets/scabbers2.json",
+                health: 9,
+                maxHealth: 9,
+                speed: 50,
+                scale: new Vec2(0.25, 0.25),
+                battleGroup: 1,
+                hitbox: new AABB(Vec2.ZERO, new Vec2(4, 4)),
+                shadow: { offset: new Vec2(-3, 6), scale: new Vec2(0.5, 0.5), alpha: 0.8 },
+                ai: { ctor: GuardBehavior, opts: { range: 200 } },
+                crystalDrops: 1,
+            },
+            {
+                key: "pigeon",
+                spritesheetKey: "pigeon",
+                spritesheetPath: "game_assets/spritesheets/pigeon.json",
+                health: 20,
+                maxHealth: 20,
+                speed: 50,
+                scale: new Vec2(0.5, 0.5),
+                battleGroup: 1,
+                hitbox: new AABB(Vec2.ZERO, new Vec2(8, 8)),
+                shadow: { offset: new Vec2(-15, 25), scale: new Vec2(1, 0.75), alpha: 0.5 },
+                ai: { ctor: SeedSlingerBehavior, opts: { range: 75 } },
+                crystalDrops: 3,
+                shotSprites: ["seed"],
+            },
+        ];
+    }
 
-    public getBoss(): BossDef | null { return null; }
+    public getBoss(): BossDef | null {
+        return {
+            key: "raccoon",
+            spritesheetKey: "raccoon",
+            spritesheetPath: "game_assets/spritesheets/raccoon-all-sprites-finished.json",
+            health: 75,
+            maxHealth: 75,
+            speed: 0,
+            scale: new Vec2(1, 1),
+            battleGroup: 1,
+            hitbox: new AABB(Vec2.ZERO, new Vec2(40, 120)),
+            shadow: { offset: new Vec2(0, 0), scale: new Vec2(1, 1), alpha: 0 },
+            ai: { ctor: RaccoonBehavior, opts: { range: 750 } },
+            crystalDrops: 10,
+            shotSprites: ["trash-paper", "trash-banana"],
+            spawnTrigger: "after_final_wave",
+            spawnPosition: new Vec2(230, 1000),
+            deathDropItem: "RaccoonTail",
+        };
+    }
 
-    public getWaveConfig(): WaveDef[] { return []; }
+    public getWaveConfig(): WaveDef[] {
+        return [
+            {
+                count: 5,
+                types: [{ key: "rollermouse", count: 5 }],
+                delayMs: 1000,
+                alertKey: "WAVE_1",
+                crestKey: "WAVE_1",
+                startSfx: "WAVE_START",
+            },
+            {
+                count: 10,
+                types: [{ key: "rollermouse", count: 7 }, { key: "pigeon", count: 3 }],
+                delayMs: 700,
+                alertKey: "WAVE_2",
+                crestKey: "WAVE_2",
+                startSfx: "WAVE_START",
+            },
+            {
+                count: 30,
+                types: [{ key: "rollermouse", count: 24 }, { key: "pigeon", count: 6 }],
+                delayMs: 300,
+                alertKey: "WAVE_3",
+                crestKey: "WAVE_3",
+                startSfx: "WAVE_START",
+            },
+            {
+                count: 1000,
+                types: [{ key: "rollermouse", count: 1000 }],
+                delayMs: 3000,
+                alertKey: "BOSS",
+                crestKey: "WAVE_4",
+                startSfx: "BOSS_SPAWNED",
+            },
+        ];
+    }
 
     public getShopInventory(): Item[] { return []; }
 

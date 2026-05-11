@@ -30,7 +30,7 @@ import Inventory from "../../GameSystems/ItemSystem/Inventory";
 
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
-import MainSMScene from "../../Scenes/MainSMScene";
+import SMScene from "../../Scenes/SMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
@@ -178,7 +178,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
         }
         if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
-            if (!(this.scene instanceof MainSMScene)) {
+            if (!(this.scene instanceof SMScene)) {
                 return;
             }
             console.log("SHOOT");

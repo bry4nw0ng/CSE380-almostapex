@@ -32,9 +32,6 @@ import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import NPCActor from "../Actors/NPCActor";
 import PlayerActor from "../Actors/PlayerActor";
-import GuardBehavior from "../AI/NPC/NPCBehavior/GaurdBehavior";
-import RaccoonBehavior from "../AI/NPC/NPCBehavior/RaccoonBehavior";
-import SeedSlingerBehavior from "../AI/NPC/NPCBehavior/SeedSlingerBehavior";
 import PlayerController from "../AI/Player/PlayerController";
 import Battler from "../GameSystems/BattleSystem/Battler";
 import HealthbarHUD from "../GameSystems/HUD/HealthbarHUD";
@@ -75,6 +72,7 @@ export default abstract class SMScene extends Scene {
     protected battlers: (Battler & Actor & GameNode)[];
     protected healthbars: Map<Battler & Actor & GameNode, HealthbarHUD>;
     protected shadows: Map<Battler & Actor & GameNode, Sprite>;
+    protected enemyTypeMap: Map<Battler & Actor & GameNode, EnemyDef>;
 
     protected player: PlayerActor;
 
@@ -168,6 +166,7 @@ export default abstract class SMScene extends Scene {
         this.battlers = new Array<Battler & Actor & GameNode>();
         this.healthbars = new Map<Battler & Actor & GameNode, HealthbarHUD>();
         this.shadows = new Map<Battler & Actor & GameNode, Sprite>();
+        this.enemyTypeMap = new Map<Battler & Actor & GameNode, EnemyDef>();
         this.spawnableNodes = [];
 
         // Wave runner state + timers. Callbacks close over `this`; HUD refs
@@ -185,39 +184,32 @@ export default abstract class SMScene extends Scene {
 
         this.waveTweenTimer = new Timer(3000, () => this.startWave(this.curWave), false);
         this.waveDelayTimer = new Timer(4000, () => {
-            if (this.curWave == 0) {
-                this.waveAlerts.playWave1Incoming();
-                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
-            }
-            else if (this.curWave == 1) {
-                this.waveAlerts.playWave2Incoming();
-                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
-                this.waveCrestSprite.animation.playIfNotAlready("WAVE_2", true);
-            }
-            else if (this.curWave == 2) {
-                this.waveAlerts.playWave3Incoming();
-                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "WAVE_START", loop: false, holdReference: false });
-                this.waveCrestSprite.animation.playIfNotAlready("WAVE_3", true);
-            }
-            else if (this.curWave == 3) {
-                this.waveAlerts.playBossIncoming();
-                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "BOSS_SPAWNED", loop: false, holdReference: false });
-                this.waveCrestSprite.animation.playIfNotAlready("WAVE_4", true);
+            const waves = this.getWaveConfig();
+            if (this.curWave >= waves.length) return;
+            const wave = waves[this.curWave];
+            this.playWaveAlert(wave.alertKey);
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: wave.startSfx, loop: false, holdReference: false });
+            // Original behavior: crest animation only plays from wave 2 onward
+            if (this.curWave > 0 && this.waveCrestSprite) {
+                this.waveCrestSprite.animation.playIfNotAlready(wave.crestKey, true);
             }
             this.waveTweenTimer.start();
         }, false);
 
         this.spawnDelayTimer = new Timer(this.curDelay, () => {
             if (!this.bossDead && this.totSpawned < this.totInCurWave) {
-                if (this.curWave == 2 && ((this.totInCurWave - this.totSpawned) < 4)) {
-                    this.spawnEnemies("pigeon");
+                const waves = this.getWaveConfig();
+                const waveIdx = this.curWave - 1;
+                if (waveIdx < 0 || waveIdx >= waves.length) {
+                    this.spawnDelayTimer.pause();
+                    return;
                 }
-                else if (this.curWave == 3 && ((this.totInCurWave - this.totSpawned) < 7)) {
-                    this.spawnEnemies("pigeon");
+                const typeKey = SMScene.pickEnemyType(waves[waveIdx].types, this.totSpawned);
+                if (!typeKey) {
+                    this.spawnDelayTimer.pause();
+                    return;
                 }
-                else {
-                    this.spawnEnemies("rollermouse");
-                }
+                this.spawnEnemies(typeKey);
                 this.totSpawned += 1;
                 console.log("Total enemies left to spawn: ", this.totSpawned, "/", this.totInCurWave);
             }
@@ -243,19 +235,23 @@ export default abstract class SMScene extends Scene {
     }
 
     public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string): void {
-        const choice = Math.random();
-        let shotSprite: string;
-        if (shooter == "raccoon") {
-            shotSprite = choice > 0.5 ? "trash-paper" : "trash-banana";
-        }
-        else if (shooter == "pigeon") {
-            shotSprite = "seed";
-        }
+        const def = this.findDefByKey(shooter);
+        if (!def?.shotSprites?.length) return;
+        const shotSprite = def.shotSprites[Math.floor(Math.random() * def.shotSprites.length)];
 
         const trash = this.add.sprite(shotSprite, "primary");
         trash.position.set(position.x, position.y);
         trash.scale.set(1, 1);
         this.trash.push({ sprite: trash, velocity: direction.scaled(100), stillCookin: true });
+    }
+
+    /** Find an EnemyDef (or BossDef) by its key. */
+    protected findDefByKey(key: string): EnemyDef | null {
+        const enemy = this.getEnemyTypes().find(d => d.key === key);
+        if (enemy) return enemy;
+        const boss = this.getBoss();
+        if (boss?.key === key) return boss;
+        return null;
     }
 
     public updateSpitballs(deltaT: number): void {
@@ -329,16 +325,17 @@ export default abstract class SMScene extends Scene {
 
     public updateShadows(): void {
         this.shadows.forEach((shadow, battler) => {
-            // TODO: replace maxHealth-based identification with per-battler ShadowConfig from EnemyDef
-            if (battler.maxHealth == 20) {
-                shadow.position.set(battler.position.x - 15, battler.position.y + 25);
-            }
-            else if (battler.maxHealth == 9) {
-                shadow.position.set(battler.position.x - 3, battler.position.y + 6);
+            if (battler instanceof PlayerActor) {
+                shadow.position.set(battler.position.x - 4, battler.position.y + 13);
             }
             else {
-                // player
-                shadow.position.set(battler.position.x - 4, battler.position.y + 13);
+                const def = this.enemyTypeMap.get(battler);
+                if (def) {
+                    shadow.position.set(
+                        battler.position.x + def.shadow.offset.x,
+                        battler.position.y + def.shadow.offset.y,
+                    );
+                }
             }
 
             shadow.visible = battler.battlerActive;
@@ -911,126 +908,120 @@ export default abstract class SMScene extends Scene {
         for (const btn of this.pauseButtons) btn.visible = true;
     }
 
-    // TODO: drive from getWaveConfig() instead of hardcoded wave numbers
     public startWave(waveNum: number): void {
+        const waves = this.getWaveConfig();
+        if (waveNum < 0 || waveNum >= waves.length) return;
+        const wave = waves[waveNum];
+
+        console.log(`Wave ${waveNum + 1} starting`);
+        this.curWave = waveNum + 1;
         this.totSpawned = 0;
-        this.totInCurWave = 0;
-        if (waveNum == 0) {
-            console.log("Wave 1 starting");
-            this.curWave = 1;
-            this.leftInCurWave = 5;
-            this.totInCurWave = 5;
-            this.curDelay = 1000;
-            this.spawnDelayTimer.start(this.curDelay);
-        }
-        else if (waveNum == 1) {
-            console.log("Wave 2 starting");
-            this.curWave = 2;
-            this.leftInCurWave = 10;
-            this.totInCurWave = 10;
-            this.curDelay = 700;
-            this.spawnDelayTimer.start(this.curDelay);
-        }
-        else if (waveNum == 2) {
-            console.log("Wave 3 starting");
-            this.curWave = 3;
-            this.leftInCurWave = 30;
-            this.totInCurWave = 30;
-            this.curDelay = 300;
-            this.spawnDelayTimer.start(this.curDelay);
-        }
-        else if (waveNum == 3) {
-            console.log("Final wave starting");
-            this.curWave = 4;
-            this.leftInCurWave = 1000;
-            this.totInCurWave = 1000;
-            this.curDelay = 3000;
-            this.spawnDelayTimer.start(this.curDelay);
+        this.leftInCurWave = wave.count;
+        this.totInCurWave = wave.count;
+        this.curDelay = wave.delayMs;
+        this.spawnDelayTimer.start(this.curDelay);
+
+        const boss = this.getBoss();
+        if (boss && boss.spawnTrigger === "after_final_wave" && waveNum === waves.length - 1) {
             this.spawnBoss();
         }
     }
 
-    // TODO: drive from getBoss()
     public spawnBoss(): void {
-        const boss = this.add.animatedSprite(NPCActor, "raccoon", "primary");
-        boss.position.set(230, 1000);
-        boss.addPhysics(new AABB(Vec2.ZERO, new Vec2(40, 120)), null, false);
-        boss.scale.set(1, 1);
+        const def = this.getBoss();
+        if (!def) return;
 
-        const healthbar = new HealthbarHUD(this, boss, "primary", { size: boss.size.clone().scaled(1, 1 / 4), offset: boss.size.clone().scaled(0, -1 / 2) });
+        const boss = this.add.animatedSprite(NPCActor, def.spritesheetKey, "primary");
+        boss.position.copy(def.spawnPosition);
+        boss.addPhysics(def.hitbox, null, false);
+        boss.scale.copy(def.scale);
+
+        const healthbar = new HealthbarHUD(this, boss, "primary", {
+            size: boss.size.clone().scaled(1, 1 / 4),
+            offset: boss.size.clone().scaled(0, -1 / 2),
+        });
         this.healthbars.set(boss, healthbar);
         healthbar.visible = false;
 
-        boss.battleGroup = 1;
-        boss.speed = 0;
-        boss.health = 75;
-        boss.maxHealth = 75;
+        boss.battleGroup = def.battleGroup;
+        boss.speed = def.speed;
+        boss.health = def.health;
+        boss.maxHealth = def.maxHealth;
         boss.navkey = "navmesh";
-
-        boss.addAI(RaccoonBehavior, { target: this.player, range: 750 });
+        boss.addAI(def.ai.ctor, { ...def.ai.opts, target: this.player });
         boss.animation.play("IDLE");
 
         this.boss = boss;
         this.battlers.push(boss);
+        // Boss intentionally has no shadow (matches original behavior).
     }
 
-    // TODO: drive from getEnemyTypes() lookup keyed on `type`
-    public spawnEnemies(type: string): void {
-        const spawnPos = this.getRandomNodePosition();
-        let npc: NPCActor;
-        const npcShadow = this.add.sprite("generic-shadow", "shadow");
-        if (type == "rollermouse") {
-            console.log("spawned mouse");
-            npc = this.add.animatedSprite(NPCActor, "rollermouse", "primary");
-            npc.position.set(spawnPos.x, spawnPos.y);
-
-            npcShadow.position.copy(spawnPos);
-            npcShadow.position.set(spawnPos.x + 8, spawnPos.y + 6);
-            npcShadow.scale.set(0.5, 0.5);
-
-            npc.battleGroup = 1;
-            npc.speed = 50;
-            npc.health = 9;
-            npc.maxHealth = 9;
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(4, 4)), null, false);
-            npc.navkey = "navmesh";
-            npc.addAI(GuardBehavior, { target: this.player, range: 200 });
-            npc.scale.set(0.25, 0.25);
-            npcShadow.alpha = 0.8;
-        }
-        else if (type == "pigeon") {
-            console.log("spawned pigeon");
-            npc = this.add.animatedSprite(NPCActor, "pigeon", "primary");
-            npc.position.set(spawnPos.x, spawnPos.y);
-
-            npcShadow.position.copy(spawnPos);
-            npcShadow.position.set(spawnPos.x + 15, spawnPos.y + 20);
-            npcShadow.scale.set(1, 0.75);
-            npcShadow.alpha = 0.5;
-
-            npc.battleGroup = 1;
-            npc.speed = 50;
-            npc.health = 20;
-            npc.maxHealth = 20;
-            npc.addPhysics(new AABB(Vec2.ZERO, new Vec2(8, 8)), null, false);
-            npc.navkey = "navmesh";
-            npc.addAI(SeedSlingerBehavior, { target: this.player, range: 75 });
-            npc.scale.set(0.5, 0.5);
-        }
-        else {
-            console.error("DOOM ERROR, no idea what happened: Spawn type mismatch");
+    public spawnEnemies(typeKey: string): void {
+        const def = this.getEnemyTypes().find(d => d.key === typeKey);
+        if (!def) {
+            console.error(`spawnEnemies: no EnemyDef found for "${typeKey}"`);
             return;
         }
 
-        const healthbar = new HealthbarHUD(this, npc, "primary", { size: npc.size.clone().scaled(1, 1 / 4), offset: npc.size.clone().scaled(0, -1 / 2) });
+        const spawnPos = this.getRandomNodePosition();
+        const npc = this.add.animatedSprite(NPCActor, def.spritesheetKey, "primary");
+        npc.position.set(spawnPos.x, spawnPos.y);
+        npc.battleGroup = def.battleGroup;
+        npc.speed = def.speed;
+        npc.health = def.health;
+        npc.maxHealth = def.maxHealth;
+        npc.addPhysics(def.hitbox, null, false);
+        npc.navkey = "navmesh";
+        npc.addAI(def.ai.ctor, { ...def.ai.opts, target: this.player });
+        npc.scale.copy(def.scale);
+
+        const npcShadow = this.add.sprite("generic-shadow", "shadow");
+        npcShadow.position.set(spawnPos.x + def.shadow.offset.x, spawnPos.y + def.shadow.offset.y);
+        npcShadow.scale.copy(def.shadow.scale);
+        npcShadow.alpha = def.shadow.alpha;
+        npcShadow.visible = false;
+
+        const healthbar = new HealthbarHUD(this, npc, "primary", {
+            size: npc.size.clone().scaled(1, 1 / 4),
+            offset: npc.size.clone().scaled(0, -1 / 2),
+        });
         this.healthbars.set(npc, healthbar);
         this.shadows.set(npc, npcShadow);
+        this.enemyTypeMap.set(npc, def);
         healthbar.visible = false;
-        npcShadow.visible = false;
 
         npc.animation.play("WALK");
 
         this.battlers.push(npc);
+    }
+
+    /**
+     * Picks the enemy type to spawn at a given index within a wave, based on
+     * the cumulative distribution in WaveDef.types. Returns null if index
+     * exceeds the wave's total count.
+     */
+    protected static pickEnemyType(types: { key: string; count: number }[], spawnIndex: number): string | null {
+        let cumulative = 0;
+        for (const t of types) {
+            cumulative += t.count;
+            if (spawnIndex < cumulative) return t.key;
+        }
+        return null;
+    }
+
+    /**
+     * Plays the wave-incoming alert by key. Wave alerts are part of the HUD
+     * and use enumerated method names on WaveAlerts — this maps the key to
+     * the right call.
+     */
+    protected playWaveAlert(alertKey: string): void {
+        if (!this.waveAlerts) return;
+        switch (alertKey) {
+            case "WAVE_1": this.waveAlerts.playWave1Incoming(); break;
+            case "WAVE_2": this.waveAlerts.playWave2Incoming(); break;
+            case "WAVE_3": this.waveAlerts.playWave3Incoming(); break;
+            case "BOSS":   this.waveAlerts.playBossIncoming(); break;
+        }
     }
 
     public updateContactDamage(): void {
@@ -1780,23 +1771,16 @@ export default abstract class SMScene extends Scene {
                 console.log("Item dropped!");
             }
 
-            // TODO: drive crystal drop count from EnemyDef.crystalDrops
-            if (battler.maxHealth == 20) {
-                for (let i = 0; i < 3; i++) {
-                    const crystalSprite = this.add.sprite("Crystal", "primary");
-                    crystalSprite.scale.set(0.75, 0.75);
-                    const crystal = new Crystal(crystalSprite);
-                    crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
-                    this.sceneCrystals.push(crystal);
-                }
-            }
-            else {
+            const def = this.enemyTypeMap.get(battler);
+            const crystalCount = def?.crystalDrops ?? 1;
+            for (let i = 0; i < crystalCount; i++) {
                 const crystalSprite = this.add.sprite("Crystal", "primary");
                 crystalSprite.scale.set(0.75, 0.75);
                 const crystal = new Crystal(crystalSprite);
                 crystal.position.copy(deathSpot.clone().add(new Vec2(Math.random() * 15, Math.random() * 15)));
                 this.sceneCrystals.push(crystal);
             }
+            this.enemyTypeMap.delete(battler);
 
             if (this.leftInCurWave < 1 && this.totSpawned >= this.totInCurWave && !this.bossDead) {
                 this.waveAlerts.playWaveDefeated();

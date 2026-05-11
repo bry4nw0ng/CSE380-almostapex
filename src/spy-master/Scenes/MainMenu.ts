@@ -15,7 +15,7 @@ import PlayerActor from "../Actors/PlayerActor";
 import PlayerController from "../AI/Player/PlayerController";
 import { AAControls } from "../AAControls";
 import Scene from "../../Wolfie2D/Scene/Scene";
-import MainSMScene from "./MainSMScene";
+import CityLevel from "./CityLevel";
 import OceanScene from "./OceanScene";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
@@ -317,7 +317,7 @@ export default class MainMenu extends Scene {
                 if (Math.abs(mouse.x - this.CITY_POS.x) <= this.MAP_HIT &&
                     Math.abs(mouse.y - this.CITY_POS.y) <= this.MAP_HIT) {
                     this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
-                    this.sceneManager.changeToScene(MainSMScene);
+                    this.sceneManager.changeToScene(CityLevel);
                 }
                 if (Math.abs(mouse.x - this.OCEAN_POS.x) <= this.MAP_HIT &&
                     Math.abs(mouse.y - this.OCEAN_POS.y) <= this.MAP_HIT) {
