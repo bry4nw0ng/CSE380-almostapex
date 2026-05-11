@@ -25,7 +25,7 @@ import PlayerActor from "../../Actors/PlayerActor";
 
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
-import MainSMScene from "../../Scenes/MainSMScene";
+import SMScene from "../../Scenes/SMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
@@ -178,9 +178,8 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
-                let scene = this.owner.getScene() as MainSMScene;
                 let aim = this.faceDir;
-                scene.spawnSpitball(this.owner.position.clone(), aim);
+                this.scene.spawnSpitball(this.owner.position.clone(), aim);
                 this.owner.isWeaponTired = true;
                 this.weaponTiredGunTimer.start(400 / this.owner.fireRate);
             }

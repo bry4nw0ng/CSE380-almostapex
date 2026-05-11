@@ -17,7 +17,7 @@ import GoapAction from "../../../../Wolfie2D/AI/Goap/GoapAction";
 import GoapState from "../../../../Wolfie2D/AI/Goap/GoapState";
 import Battler from "../../../GameSystems/BattleSystem/Battler";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
+import SMScene from "../../../Scenes/SMScene";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import { BattlerEvent } from "../../../Events";
 
@@ -80,7 +80,7 @@ export default class RaccoonBehavior extends NPCBehavior {
 
     //Doesnt do nothin, trying to acclimate myself to GOAP in the shooter logic
     protected initializeActions(): void {
-        let scene = this.owner.getScene() as MainSMScene;
+        let scene = this.owner.getScene() as SMScene;
         let gitEm = new Idle(this, this.owner);
         gitEm.targets = [this.target];
         gitEm.targetFinder = new BasicFinder();
@@ -93,7 +93,7 @@ export default class RaccoonBehavior extends NPCBehavior {
         let dist = this.owner.position.distanceTo(this.target.position);
         console.log("Raccoon attack() fired, dist to player:", dist);
         
-        let scene = this.owner.getScene() as MainSMScene;
+        let scene = this.owner.getScene() as SMScene;
         if (this.owner.position.distanceTo(this.target.position) > 1000) {
             this.switchTimer.start();
             return;

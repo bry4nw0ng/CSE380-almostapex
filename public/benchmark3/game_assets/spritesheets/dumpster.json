@@ -1,0 +1,18 @@
+{
+  "name": "dumpster",
+  "spriteSheetImage": "dumpster.png",
+  "spriteWidth": 56,
+  "spriteHeight": 53,
+  "columns": 1,
+  "rows": 1,
+  "leftBuffer": 0,
+  "rightBuffer": 0,
+  "topBuffer": 0,
+  "bottomBuffer": 0,
+  "animations": [
+    {
+      "name": "Idle",
+      "repeat": true,
+      "frames": [{"index": 0, "duration": 1}]
+    }]
+}
