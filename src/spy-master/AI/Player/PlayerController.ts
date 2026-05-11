@@ -20,13 +20,8 @@ import { AAEvents, AbilityEvent, CheatEvent, ItemEvent } from "../../Events";
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
 
-import PlayerState from "./PlayerStates/PlayerState";
-import { PlayerAnimations } from "./PlayerAnimations";
 import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
 import PlayerActor from "../../Actors/PlayerActor";
-import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
-import Item from "../../GameSystems/ItemSystem/Item";
-import Inventory from "../../GameSystems/ItemSystem/Inventory";
 
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
@@ -34,7 +29,7 @@ import MainSMScene from "../../Scenes/MainSMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
-import MainMenu from "../../Scenes/MainMenu";
+import SMScene from "../../Scenes/SMScene";
 
 /**
  * The controller that controls the player.
@@ -178,7 +173,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
         }
         if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
-            if (this.scene instanceof MainMenu) {
+            if (!(this.scene instanceof SMScene)) {
                 return;
             }
             console.log("SHOOT");
@@ -187,7 +182,7 @@ export default class PlayerController extends StateMachineAI implements AI{
                 let aim = this.faceDir;
                 scene.spawnSpitball(this.owner.position.clone(), aim);
                 this.owner.isWeaponTired = true;
-                this.weaponTiredGunTimer.start();
+                this.weaponTiredGunTimer.start(400 / this.owner.fireRate);
             }
         }
         let abilityOpts = [...this.owner.abilities.items()];

@@ -131,17 +131,13 @@ export default class SharkBehavior extends NPCBehavior {
                 this.owner.position.x - this.target.position.x
             );
             this.curState = SharkState.ORBIT;
-            this.startAttackTimer = new Timer(this.newRandomAttackTime(), () => {
-                this.curState = SharkState.CHARGE;
-                this.chargeTimer.start();
-            }, false);
-            this.startAttackTimer.start();
+            this.startAttackTimer.start(this.newRandomAttackTime());
         }, false);
 
-        this.startAttackTimer = new Timer(this.startAttackTime, () => {
+/*         this.startAttackTimer = new Timer(this.startAttackTime, () => {
             this.curState = SharkState.CHARGE;
             this.chargeTimer.start();
-        }, false);
+        }, false); */
 
         this.coolingDown = false;
         
@@ -226,29 +222,9 @@ export default class SharkBehavior extends NPCBehavior {
                 let dirX = this.diveTo.x - this.owner.position.x;
                 let dirY = this.diveTo.y - this.owner.position.y;
 
-                //Had to reup my trig once again, class turning into a trig lecture for me
-                //let distToPlayer = Math.sqrt(dirX*dirX + dirY*dirY);
-
-/*                 if (distToPlayer < 50) {
-                    this.diveMissedTimer.pause();
-                    this.curAngle = Math.atan2(
-                        this.owner.position.y - this.target.position.y,
-                        this.owner.position.x - this.target.position.x
-                    );
-                    this.curState = SharkState.ORBIT;
-                    //kinda ugly but to change the time, make a new timer
-                    this.startAttackTimer = new Timer(this.newRandomAttackTime(), () => {
-                        this.curState = SharkState.CHARGE;
-                        this.chargeTimer.start();
-                    }, false);
-
-                    this.startAttackTimer.start();
-                }
-                else { */
-                    //DOOM: speed * dirX/distToPLayer (so slows down towards end like crab) * deltaT to smooth
-                    let distToDive = Math.sqrt(dirX*dirX + dirY*dirY);
-                    let scaledMoveDirection = new Vec2(this.diveSpeed * dirX / distToDive * deltaT, this.diveSpeed * dirY / distToDive * deltaT)
-                    this.owner.move(scaledMoveDirection);
+                let distToDive = Math.sqrt(dirX*dirX + dirY*dirY);
+                let scaledMoveDirection = new Vec2(this.diveSpeed * dirX / distToDive * deltaT, this.diveSpeed * dirY / distToDive * deltaT)
+                this.owner.move(scaledMoveDirection);
                 
                 //play dive ani
                 break;
@@ -299,9 +275,6 @@ export default class SharkBehavior extends NPCBehavior {
         let dist = this.owner.position.distanceTo(this.target.position);
         //Will have to change
         let scene = this.owner.getScene() as MainSMScene;
-
-
-
         //this.switchTimer.start();
         //this.owner.animation.play("ATTACK", false);
 

@@ -56,7 +56,8 @@ export enum AAEvents {
 export enum AbilityEvent {
     OPEN_TREASURE = "OPEN_TREASURE",
     USED_GUM = "USED_GUM",
-    USED_JETPACK = "USED_JETPACK"
+    USED_JETPACK = "USED_JETPACK",
+    SHARK_FIN = "SHARK_FIN"
 }
 
 export enum CheatEvent {

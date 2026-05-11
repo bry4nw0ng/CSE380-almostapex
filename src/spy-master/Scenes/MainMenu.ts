@@ -19,8 +19,8 @@ import Healthpack from "../GameSystems/ItemSystem/Items/Healthpack";
 import LaserGun from "../GameSystems/ItemSystem/Items/LaserGun";
 import { AAControls } from "../AAControls";
 import SMScene from "./SMScene";
+import Scene from "../../Wolfie2D/Scene/Scene";
 import MainSMScene from "./MainSMScene";
-import NPCActor from "../Actors/NPCActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import Navmesh from "../../Wolfie2D/Pathfinding/Navmesh";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
@@ -56,7 +56,8 @@ interface Zone {
     bounds: { x: [number, number]; y: [number, number] };
 }
 
-export default class MainMenu extends SMScene {
+//if something funky happens i turned this into regular scene and not smscene
+export default class MainMenu extends Scene {
 
     private player: PlayerActor;
     // private coordLabel: Label; // DEBUG: x/y position shown for zone bounds

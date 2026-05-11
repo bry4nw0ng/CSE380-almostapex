@@ -65,11 +65,15 @@ import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import EndArrow from "../GameSystems/HUD/NextLevelArrow";
-import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
-import PufferBehavior from "../AI/NPC/NPCBehavior/PufferBehavior";
 
-/* 
-const BattlerGroups = {
+//NEXT LEVEL
+//import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
+//import PufferBehavior from "../AI/NPC/NPCBehavior/PufferBehavior";
+import Coral from "../GameSystems/ItemSystem/Items/Coral";
+import Kelpstache from "../GameSystems/ItemSystem/Items/Kelpstache";
+import Sharkfin from "../GameSystems/ItemSystem/Items/SharkFin";
+
+/* const BattlerGroups = {
     RED: 1,
     BLUE: 2
 } as const; */
@@ -176,6 +180,9 @@ export default class MainSMScene extends SMScene {
     private sellables: Item[] = [];
     private forSale: Item[] = [];
 
+    private sharkfinActive: boolean;
+    private sharkfin: Sprite;
+
     private fadeOverlay: Rect;
 
     private manhole: AnimatedSprite;
@@ -250,6 +257,9 @@ export default class MainSMScene extends SMScene {
         this.closestEnemy = null;
         this.bossDead = false;
 
+        this.sharkfinActive = false;
+        this.sharkfin = null;
+
         this.shopState = "main";
 
     }
@@ -299,6 +309,11 @@ export default class MainSMScene extends SMScene {
         this.load.image("Gum", "game_assets/sprites/used-gum.png");
         this.load.image("DaNeedle", "game_assets/sprites/da-needle.png");
         this.load.image("Antennas", "game_assets/sprites/cockroach-antennas.png");
+
+        this.load.image("Coral", "game_assets/sprites/horn-coral.png");
+        this.load.image("Kelpstache", "game_assets/sprites/kelpstache.png");
+        this.load.image("Sharkfin", "game_assets/sprites/shark-fin.png");
+
         this.load.image("Crystal", "game_assets/sprites/crystal.png");
 
         this.load.image("generic-shadow", "game_assets/sprites/shadow.png")
@@ -619,6 +634,9 @@ export default class MainSMScene extends SMScene {
         this.relicTray.update(deltaT);
         this.actionSlots.update(deltaT);
 
+        if (this.sharkfinActive) {
+            this.sharkfin.position.copy(this.player.position);
+        }
         
         if (this.player.position.distanceTo(this.MERCHANT_LOCATION) < 30) {
             this.bmZoneLabel.visible = true;
@@ -742,7 +760,7 @@ export default class MainSMScene extends SMScene {
                             battler.health = battler.health - 500;
                         }
                         else {
-                            battler.health = battler.health - 2;
+                            battler.health = battler.health - 2 * this.player.damageIncrease;
                             this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "ENEMY_HURT", loop: false, holdReference: false});
                             //battler.animation.play("HURT", false, "WALK");                     
                         }
@@ -860,6 +878,10 @@ export default class MainSMScene extends SMScene {
                 this.handleUsedGum();
                 break;
             }
+            case AbilityEvent.SHARK_FIN: {
+                this.handleSharkFin();
+                break;
+            }
             case AbilityEvent.OPEN_TREASURE: {
                 this.handleUsedRaccoonTail();
                 break;
@@ -958,7 +980,7 @@ export default class MainSMScene extends SMScene {
         this.battlers.forEach(battler => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
-                    battler.health = battler.health - 0.1;
+                    battler.health = battler.health - 0.1 + this.player.damageIncrease;
                     //battler.animation.play("HURT", false, "WALK");
                 }
             }
@@ -974,6 +996,28 @@ export default class MainSMScene extends SMScene {
                 activeTimer.start();
             }
         });
+    }
+
+    protected handleSharkFin() {
+        this.player.visible = false;
+        this.sharkfinActive = true;
+        this.sharkfin.visible = true;
+        this.player.toggleInvincible(true);
+        let equippables = [...this.player.equippables.items()];
+        equippables.forEach(equippable => {
+            equippable.visible = false;
+        });
+        let sharkfinTimer = new Timer(5000, () => {
+            this.player.visible = true;
+            this.sharkfin.visible = false;
+            let equippables = [...this.player.equippables.items()];
+            equippables.forEach(equippable => {
+                equippable.visible = true;
+            });
+            this.sharkfinActive = false;
+            this.player.toggleInvincible(false);
+        }, false);
+        sharkfinTimer.start();
     }
 
     protected handleUsedRaccoonTail() {
@@ -1802,6 +1846,8 @@ export default class MainSMScene extends SMScene {
         }
         //this.spawnBoss();
 
+        this.sharkfin = this.add.sprite("Sharkfin", "equippables");
+        this.sharkfin.visible = false;
     }
     protected initTweenGraphics() {
         let alertSprite = this.add.animatedSprite(AnimatedSprite, "wave_alerts", "hud");
@@ -1866,6 +1912,22 @@ export default class MainSMScene extends SMScene {
         let antennas = new Antennas(antennaSprite);
         antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
         this.sceneEquippables.push(antennas);
+
+        let coralSprite = this.add.sprite("Coral", "primary");
+        let coral = new Coral(coralSprite);
+        coral.position.copy(new Vec2(playerAt.x + 200, playerAt.y - 100));
+        this.sceneEquippables.push(coral);
+
+        let sharkfinSprite = this.add.sprite("Sharkfin", "primary");
+        let sharkfin = new Sharkfin(sharkfinSprite);
+        sharkfin.position.copy(new Vec2(playerAt.x - 200, playerAt.y + 100));
+        this.sceneEquippables.push(sharkfin);
+
+        let kelpstacheSprite = this.add.sprite("Kelpstache", "primary");
+        let kelpstache = new Kelpstache(kelpstacheSprite);
+        kelpstache.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 100));
+        this.sceneEquippables.push(kelpstache);
+
     }
 
     public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string) {

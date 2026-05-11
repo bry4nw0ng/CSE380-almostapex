@@ -28,6 +28,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
     //Buffs
     protected _damageReduction: number;
+    protected _damageIncrease: number;
+    protected _fireRate: number;
     protected _luck: number;
     protected _invincible: boolean;
     protected iTimer: Timer;
@@ -49,6 +51,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._crystals = 500;
         
         this._damageReduction = 1;
+        this._damageIncrease = 1;
+        this._fireRate = 1;
         this._luck = 1;
         this._invincible = false;
         this._isCoolingDown = false;
@@ -119,6 +123,20 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     }
     set damageReduction(newDR: number) {
         this._damageReduction = newDR;
+    }
+
+    get damageIncrease(): number {
+        return this._damageIncrease;
+    }
+    set damageIncrease(newDR: number) {
+        this._damageIncrease = newDR;
+    }
+
+    get fireRate(): number {
+        return this._fireRate;
+    }
+    set fireRate(newDR: number) {
+        this._fireRate = newDR;
     }
 
     get luck(): number {
