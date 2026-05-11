@@ -88,7 +88,7 @@ export default class ShootEm extends NPCAction {
             this.actor.invertX = true;
         }
         let bloom = new Vec2(aim.x * (1 + Math.random() * 0.2), aim.y * (1 - Math.random() * 0.2))
-        scene.spawnEnemyShot(this.actor.position.clone(), bloom, "pigeon");
+        scene.spawnEnemyShot(this.actor.position.clone(), bloom, "pigeon", 100);
     }
 
     public onExit(): Record<string, any> {

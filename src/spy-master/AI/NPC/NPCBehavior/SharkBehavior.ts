@@ -64,7 +64,7 @@ export default class SharkBehavior extends NPCBehavior {
         this.range = options.range;
 
         this.orbitSpeed = 1.5;
-        this.radiusToPlayer = 200;
+        this.radiusToPlayer = 275;
         this.curAngle= 0;
 
         this.diveTo = Vec2.ZERO;
@@ -82,6 +82,7 @@ export default class SharkBehavior extends NPCBehavior {
             }
             let choice = Math.random();
             if (choice > 0.5) {
+                this.indieBubbleTimer.pause();
                 this.curState = SharkState.DIVE;
                 let dirToPlayer = this.owner.position.dirTo(this.target.position);
                 //diveTo the owner's position + direction to player + 2*rad (since i want him to dive to other end of orbit)
@@ -112,7 +113,7 @@ export default class SharkBehavior extends NPCBehavior {
             }, false);
 
             this.startAttackTimer.start();
-        });
+        }, false);
 
         this.indieBubbleTimer = new Timer(this.bubbleTime, () => {
             //Will have to change to ocean
@@ -120,7 +121,7 @@ export default class SharkBehavior extends NPCBehavior {
             let aim = this.owner.position.dirTo(this.target.position);
             let bloom = new Vec2(aim.x * (1 + Math.random() * 0.2), aim.y * (1 - Math.random() * 0.2))
             //IMPORTANT CHANGE FOR OCEAN
-            scene.spawnEnemyShot(this.owner.position.clone(), bloom, "raccoon");
+            scene.spawnEnemyShot(this.owner.position.clone(), bloom, "shark", 300);
         }, true);
 
         //If missed, restarts and goes back on orbit
@@ -134,10 +135,10 @@ export default class SharkBehavior extends NPCBehavior {
             this.startAttackTimer.start(this.newRandomAttackTime());
         }, false);
 
-/*         this.startAttackTimer = new Timer(this.startAttackTime, () => {
+        this.startAttackTimer = new Timer(this.startAttackTime, () => {
             this.curState = SharkState.CHARGE;
             this.chargeTimer.start();
-        }, false); */
+        }, false);
 
         this.coolingDown = false;
         
@@ -166,27 +167,27 @@ export default class SharkBehavior extends NPCBehavior {
     }
 
     public update(deltaT: number): void { //IMPORTANT
-        super.update(deltaT);
+        //super.update(deltaT);
 
-        if (this.phase == 1 && this.owner.health <= this.owner.maxHealth * 0.3) {
+        if (this.owner.health <= 0) {
+            this.curState = SharkState.DYING;
+        }
+        else if (this.phase == 1 && this.owner.health <= this.owner.maxHealth * 0.3) {
             this.phase++;
             this.diveSpeed = 500;
             this.chargeTime = 400;
             this.bubbleTime = 75;
             this.startAttackTime = 750;
         }
-        else if (this.phase == 2 && this.owner.health <= 0) {
-            //this..pause();
-            this.curState = SharkState.DYING;
-        }
 
         switch (this.curState) {
             case SharkState.ORBIT: {
+                this.owner.animation.playIfNotAlready("IDLE", true);
                 this.curAngle += this.orbitSpeed * deltaT;
 
                 //Finds loc to move to on orbit radius since we can't move like DaNeedle
-                let goTo = new Vec2(this.target.position.x + (
-                    this.radiusToPlayer * Math.cos(this.curAngle)),
+                let goTo = new Vec2(
+                    this.target.position.x + (this.radiusToPlayer * Math.cos(this.curAngle)),
                     this.target.position.y + (this.radiusToPlayer * Math.sin(this.curAngle))
                 )
 
@@ -199,49 +200,57 @@ export default class SharkBehavior extends NPCBehavior {
                 //Had to look up, said linear speed in point of circle = this.orbitSpeed * this.radiusToPlayer
                 this.owner.move(dirToMove.scaled(deltaT * this.orbitSpeed * this.radiusToPlayer));
 
-                let dirToPlayer = new Vec2(
-                    this.target.position.x - this.owner.position.x,
-                    this.target.position.y - this.owner.position.y,
-                );
-
-                this.owner.rotation = Math.atan2(dirToPlayer.y, dirToPlayer.x);
-
+                this.lookAtPlayer();
                 break;
             }
             case SharkState.CHARGE: {
-                let dirToPlayer = new Vec2(
-                    this.target.position.x - this.owner.position.x,
-                    this.target.position.y - this.owner.position.y
-                );
-                this.owner.rotation = Math.atan2(dirToPlayer.y, dirToPlayer.x);
-                //need charge ani
-                this.owner.animation.playIfNotAlready("IDLE", true);
+                this.owner.animation.play("CHARGE", true);
+                this.lookAtPlayer();
+                
                 break;
             }
             case SharkState.DIVE: {
+                this.owner.animation.play("DIVE", true);
                 let dirX = this.diveTo.x - this.owner.position.x;
                 let dirY = this.diveTo.y - this.owner.position.y;
 
                 let distToDive = Math.sqrt(dirX*dirX + dirY*dirY);
                 let scaledMoveDirection = new Vec2(this.diveSpeed * dirX / distToDive * deltaT, this.diveSpeed * dirY / distToDive * deltaT)
                 this.owner.move(scaledMoveDirection);
-                
+
+                if (dirX < 0) {
+                    this.owner.invertX = true;
+                    this.owner.invertY = false;
+                    // flip the direction and compute angle as if facing right
+                    this.owner.rotation = Math.atan2(-dirY, -dirX);
+                }
+                else {
+                    this.owner.invertX = false;
+                    this.owner.invertY = false;
+                    this.owner.rotation = -1 * Math.atan2(dirY, dirX);
+                }
+
                 //play dive ani
                 break;
             }
             case SharkState.SHOOT: {
-                let dirToPlayer = new Vec2(
-                    this.target.position.x - this.owner.position.x,
-                    this.target.position.y - this.owner.position.y
-                );
-                this.owner.rotation = Math.atan2(dirToPlayer.y, dirToPlayer.x);
+                this.owner.animation.play("SHOOT", true);
+                this.lookAtPlayer();
                 break;
             }
             case SharkState.DYING: {
-                this.owner.animation.playIfNotAlready("DYING", false);
+                this.indieBubbleTimer.pause();
+                this.shootingTimer.pause();
+                this.chargeTimer.pause();
+                this.startAttackTimer.pause();
+                this.diveMissedTimer.pause();
                 this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.owner.id});
+                this.curState = SharkState.DEAD;
                 this.owner.visible = false;
                 break;
+            }
+            case SharkState.DEAD: {
+                return;
             }
             default: {
                 return;
@@ -259,9 +268,26 @@ export default class SharkBehavior extends NPCBehavior {
         this.addStatus(SharkStatuses.GOAL, new FalseStatus());
     }
 
+    protected lookAtPlayer(): void {
+        let dirToPlayer = new Vec2(
+            this.target.position.x - this.owner.position.x,
+            this.target.position.y - this.owner.position.y,
+        );
+
+        if (dirToPlayer.x < 0) {
+            this.owner.invertX = true;
+            this.owner.invertY = false;
+            // flip the direction and compute angle as if facing right
+            this.owner.rotation = Math.atan2(-dirToPlayer.y, -dirToPlayer.x);
+        }
+        else {
+            this.owner.invertX = false;
+            this.owner.invertY = false;
+            this.owner.rotation = -1 * Math.atan2(dirToPlayer.y, dirToPlayer.x);
+        }
+    }
     //Doesnt do nothin, trying to acclimate myself to GOAP in the shooter logic
     protected initializeActions(): void {
-        let scene = this.owner.getScene() as SMScene;
         let gitEm = new Idle(this, this.owner);
         gitEm.targets = [this.target];
         gitEm.targetFinder = new BasicFinder();
@@ -271,25 +297,20 @@ export default class SharkBehavior extends NPCBehavior {
     }
 
     //For this attack will be the shoot state
-    public shoot() {
-        let dist = this.owner.position.distanceTo(this.target.position);
-        //Will have to change
+    p/* ublic shoot() {
         let scene = this.owner.getScene() as SMScene;
-        //this.switchTimer.start();
-        //this.owner.animation.play("ATTACK", false);
-
-        if (this.curState = SharkState.DIVE) {
+        if (this.curState == SharkState.DIVE) {
             for (let i = 0; i <= 20; i++) {
                 let angle = Math.random() * Math.PI * 2;
                 let aim = new Vec2(Math.cos(angle), Math.sin(angle));
-                scene.spawnEnemyShot(this.owner.position.clone(), aim, "raccoon");
+                scene.spawnEnemyShot(this.owner.position.clone(), aim, "shark");
             }
         }
-        else if (this.curState = SharkState.SHOOT) {
+        else if (this.curState == SharkState.SHOOT) {
             let aim = this.owner.position.dirTo(this.target.position);
             for (let i = 0; i <= 10; i++) {
                 let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 - Math.random() * 0.1))
-                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "raccoon");
+                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "shark");
             }
 
         }
@@ -297,7 +318,7 @@ export default class SharkBehavior extends NPCBehavior {
             console.log("DOOMERROR: Attack type invalid")
         }
 
-    }
+    } */
 
     public override addState(stateName: SharkAction, state: GoapAction): void {
         super.addState(stateName, state);
@@ -313,7 +334,8 @@ const SharkState = {
     SHOOT: "SHOOT",
     CHARGE: "CHARGE",
     DIVE: "DIVE",
-    DYING: "DYING"
+    DYING: "DYING",
+    DEAD: "DEAD"
 } as const;
 
 //I wont actually be using any of these for time's sake

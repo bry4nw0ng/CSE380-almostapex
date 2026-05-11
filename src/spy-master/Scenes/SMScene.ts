@@ -163,6 +163,8 @@ export default abstract class SMScene extends Scene {
     protected sceneEquippables: Item[] = [];
     protected sharkfin: AnimatedSprite;
 
+    protected treasure: { sprite: Sprite, stillCookin: boolean }[];
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
         this.battlers = new Array<Battler & Actor & GameNode>();
@@ -170,6 +172,7 @@ export default abstract class SMScene extends Scene {
         this.shadows = new Map<Battler & Actor & GameNode, Sprite>();
         this.enemyTypeMap = new Map<Battler & Actor & GameNode, EnemyDef>();
         this.spawnableNodes = [];
+        this.treasure = [];
 
         // Wave runner state + timers. Callbacks close over `this`; HUD refs
         // (waveAlerts, waveCrestSprite) get populated in startScene before
@@ -240,7 +243,7 @@ export default abstract class SMScene extends Scene {
         this.spitballs.push({ sprite: spitball, velocity: direction.scaled(120), stillCookin: true });
     }
 
-    public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string): void {
+    public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string, speed: number): void {
         const def = this.findDefByKey(shooter);
         if (!def?.shotSprites?.length) return;
         const shotSprite = def.shotSprites[Math.floor(Math.random() * def.shotSprites.length)];
@@ -248,7 +251,7 @@ export default abstract class SMScene extends Scene {
         const trash = this.add.sprite(shotSprite, "primary");
         trash.position.set(position.x, position.y);
         trash.scale.set(1, 1);
-        this.trash.push({ sprite: trash, velocity: direction.scaled(100), stillCookin: true });
+        this.trash.push({ sprite: trash, velocity: direction.scaled(speed), stillCookin: true });
     }
 
     /** Find an EnemyDef (or BossDef) by its key. */
@@ -1898,7 +1901,8 @@ export default abstract class SMScene extends Scene {
             deathTimer.start();
         }
         else if (battler == this.boss) {
-            this.dropOrChooseItem(deathSpot, 999, 200)
+            let drop = this.curBossDrop();
+            this.dropOrChooseItem(deathSpot, 999, drop)
 
             for (let i = 0; i < 10; i++) {
                 const crystalSprite = this.add.sprite("Crystal", "primary");
@@ -1993,6 +1997,13 @@ export default abstract class SMScene extends Scene {
                     return;
                 }
             }
+            if (closestItem.isAbility) {
+                let abilityCount = [...this.player.abilities.items()].length;
+                if (abilityCount >= 3) {
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "UNPICKUPPABLE", loop: false, holdReference: false });
+                    return;
+                }
+            }
             this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "PICKUP_ITEM", loop: false, holdReference: false });
             player.equip(closestItem);
             if (closestItem instanceof DaNeedle) {
@@ -2072,5 +2083,10 @@ export default abstract class SMScene extends Scene {
 
     public getSharkFin(): AnimatedSprite | null {
         return this.sharkfin;
+    }
+
+    //default the raccoon
+    protected curBossDrop(): number | null {
+        return 200;
     }
 }
