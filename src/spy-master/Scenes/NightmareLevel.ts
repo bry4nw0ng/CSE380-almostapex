@@ -28,12 +28,15 @@ import {
 } from "./LevelTypes";
 
 export default class NightmareLevel extends SMScene {
+    private static readonly FIRST_WAVE_DELAY_MS = 5000;
+    private static readonly WAVE_INTERVAL_MS = 15000;
+
     private nightmareWaveTimer: Timer;
     private nightmareNextWave: number = 1;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
-        this.nightmareWaveTimer = new Timer(10000, () => this.spawnTimedNightmareWave(), false);
+        this.nightmareWaveTimer = new Timer(NightmareLevel.FIRST_WAVE_DELAY_MS, () => this.spawnTimedNightmareWave(), false);
     }
 
     public override loadScene(): void {
@@ -141,7 +144,7 @@ export default class NightmareLevel extends SMScene {
         this.waveTweenTimer.pause();
         this.spawnDelayTimer.pause();
         this.nightmareNextWave = 1;
-        this.nightmareWaveTimer.start(10000);
+        this.nightmareWaveTimer.start(NightmareLevel.FIRST_WAVE_DELAY_MS);
     }
 
     private spawnTimedNightmareWave(): void {
@@ -172,7 +175,7 @@ export default class NightmareLevel extends SMScene {
 
         this.nightmareNextWave += 1;
         if (this.nightmareNextWave <= 10) {
-            this.nightmareWaveTimer.start(10000);
+            this.nightmareWaveTimer.start(NightmareLevel.WAVE_INTERVAL_MS);
         }
     }
 
