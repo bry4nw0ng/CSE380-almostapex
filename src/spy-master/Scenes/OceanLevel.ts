@@ -23,6 +23,7 @@ import {
 import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
 import PlayerActor from "../Actors/PlayerActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
+import CrabBehavior from "../AI/NPC/NPCBehavior/CrabBehavior";
 
 
 export default class OceanLevel extends SMScene {
@@ -34,6 +35,7 @@ export default class OceanLevel extends SMScene {
     public override loadScene(): void {
         this.loadSharedAssets();
         this.load.spritesheet("puffer", "game_assets/spritesheets/puffer.json");
+        this.load.spritesheet("crab", "game_assets/spritesheets/crab.json");
         this.load.image("spike", "game_assets/sprites/puffer-spike.png");
         this.load.image("small_bubble", "game_assets/sprites/bubble-small.png");
         this.load.image("large_bubble", "game_assets/sprites/bubble-large.png");
@@ -88,7 +90,6 @@ export default class OceanLevel extends SMScene {
         }
     }
 
-    
     public getEnemyTypes(): EnemyDef[] { return [
         {
             key: "puffer",
@@ -100,10 +101,24 @@ export default class OceanLevel extends SMScene {
             scale: new Vec2(0.5, 0.5),
             battleGroup: 1,
             hitbox: new AABB(Vec2.ZERO, new Vec2(8, 8)),
-            shadow: { offset: new Vec2(-15, 25), scale: new Vec2(1, 0.75), alpha: 0.5 },
+            shadow: { offset: new Vec2(-10, 17), scale: new Vec2(1, 0.75), alpha: 0.5 },
             ai: { ctor: PufferBehavior, opts: { range: 75 } },
             crystalDrops: 3,
             shotSprites: ["spike"],
+        },
+        {
+            key: "crab",
+            spritesheetKey: "crab",
+            spritesheetPath: "game_assets/spritesheets/crab.json",
+            health: 15,
+            maxHealth: 15,
+            speed: 40,
+            scale: new Vec2(0.5, 0.5),
+            battleGroup: 1,
+            hitbox: new AABB(Vec2.ZERO, new Vec2(8, 8)),
+            shadow: { offset: new Vec2(-3, 6), scale: new Vec2(0.5, 0.5), alpha: 0.8 },
+            ai: { ctor: CrabBehavior, opts: { range: 75 } },
+            crystalDrops: 2,
         }
     ]; }
     public getBoss(): BossDef | null { 
@@ -128,13 +143,37 @@ export default class OceanLevel extends SMScene {
     }
 
     public getWaveConfig(): WaveDef[] { return [
-                {
+        {
             count: 5,
-            types: [{ key: "puffer", count: 5 }],
+            types: [{ key: "crab", count: 5 }],
             delayMs: 1000,
             alertKey: "WAVE_1",
             crestKey: "WAVE_1",
             startSfx: "WAVE_START",
+        },
+        {
+            count: 10,
+            types: [{ key: "crab", count: 8 }, { key: "puffer", count: 2 }],
+            delayMs: 1000,
+            alertKey: "WAVE_2",
+            crestKey: "WAVE_2",
+            startSfx: "WAVE_START",
+        },
+        {
+            count: 15,
+            types: [{ key: "crab", count: 10 }, { key: "puffer", count: 5 }],
+            delayMs: 750,
+            alertKey: "WAVE_3",
+            crestKey: "WAVE_3",
+            startSfx: "WAVE_START",
+        },
+        {
+            count: 1000,
+            types: [{ key: "crab", count: 1000 }],
+            delayMs: 3000,
+            alertKey: "BOSS",
+            crestKey: "WAVE_4",
+            startSfx: "BOSS_SPAWNED",
         }
     ]; }
 

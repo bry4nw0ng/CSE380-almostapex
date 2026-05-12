@@ -91,7 +91,6 @@ export default class RaccoonBehavior extends NPCBehavior {
 
     public attack() {
         let dist = this.owner.position.distanceTo(this.target.position);
-        console.log("Raccoon attack() fired, dist to player:", dist);
         
         let scene = this.owner.getScene() as SMScene;
         if (this.owner.position.distanceTo(this.target.position) > 1000) {
