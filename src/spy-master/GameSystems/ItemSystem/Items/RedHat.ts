@@ -12,6 +12,7 @@ export default class RedHat extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isPassive = true;
+        this.equippableOffset = new Vec2(6, 0)
         this._description = "Increases luck by 10%";
         this._luckBoost = 1.1;
         this.value = 200;

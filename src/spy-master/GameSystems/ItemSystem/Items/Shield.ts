@@ -12,15 +12,15 @@ export default class Shield extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isPassive = true;
-        this._description = "Reduces damage taken by 20%";
-        this._damageReduction = 0.8;
+        this._description = "Reduces damage taken by 15%";
+        this._damageReduction = 0.85;
         this.value = 300;
         this.equippableOffset = new Vec2(12, 7);
         this._maxStack = 10;
     }
 
-    public get luckBoost(): number { return this._damageReduction; }
-    public set luckBoost(boost: number) { this._damageReduction = boost; }
+    public get damageReduction(): number { return this._damageReduction; }
+    public set damageReduction(boost: number) { this._damageReduction = boost; }
 
     public override applyBuff(player: PlayerActor) {
         player.damageReduction *= this._damageReduction;

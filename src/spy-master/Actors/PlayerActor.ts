@@ -12,6 +12,9 @@ import SMScene from "../Scenes/SMScene";
 import Item from "../GameSystems/ItemSystem/Item";
 import Timer from "../../Wolfie2D/Timing/Timer";
 import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
+import { DAMAGE_FLASH_SHADER } from "../Shaders/DamageFlashShaderType";
+
+const FLASH_DECAY_PER_SEC = 4;
 
 export default class PlayerActor extends AnimatedSprite implements Battler {
 
@@ -28,6 +31,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
     //Buffs
     protected _damageReduction: number;
+    protected _damageIncrease: number;
+    protected _fireRate: number;
     protected _luck: number;
     protected _invincible: boolean;
     protected iTimer: Timer;
@@ -36,10 +41,15 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
 
+    protected _sharkfinActive: boolean;
+
     protected _hasNeedle: boolean;
 
     public equippables: Inventory = new Inventory(20);
     public abilities: Inventory = new Inventory(3);
+
+    public flashAmount: number = 0;
+    public flashColor: Float32Array = new Float32Array([1.0, 0.0, 0.0]);
 
     constructor(sheet: Spritesheet) {
         super(sheet);
@@ -47,8 +57,10 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.targetable = new BasicTargetable(this);
 
         this._crystals = 500;
-        
+
         this._damageReduction = 1;
+        this._damageIncrease = 1;
+        this._fireRate = 1;
         this._luck = 1;
         this._invincible = false;
         this._isCoolingDown = false;
@@ -56,6 +68,16 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this.iTimer = new Timer(750, () => this.toggleInvincible(false), false);
 
         this._hasNeedle = false;
+        this._sharkfinActive = false;
+
+        this.useCustomShader(DAMAGE_FLASH_SHADER);
+    }
+
+    public override update(deltaT: number): void {
+        super.update(deltaT);
+        if (this.flashAmount > 0) {
+            this.flashAmount = Math.max(0, this.flashAmount - FLASH_DECAY_PER_SEC * deltaT);
+        }
     }
 
     get battlerActive(): boolean {
@@ -89,7 +111,11 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         return this.battler.health;
     }
     set health(value: number) {
+        const prev = this.battler.health;
         this.battler.health = value;
+        if (value < prev) {
+            this.flashAmount = 1;
+        }
         if (this.health <= 0) {
             this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.id});
         }
@@ -121,6 +147,20 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._damageReduction = newDR;
     }
 
+    get damageIncrease(): number {
+        return this._damageIncrease;
+    }
+    set damageIncrease(newDR: number) {
+        this._damageIncrease = newDR;
+    }
+
+    get fireRate(): number {
+        return this._fireRate;
+    }
+    set fireRate(newDR: number) {
+        this._fireRate = newDR;
+    }
+
     get luck(): number {
         return this._luck;
     }
@@ -134,6 +174,14 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
     get invincible(): boolean {
         return this._invincible;
+    }
+
+    get sharkfinActive(): boolean {
+        return this._sharkfinActive;
+    }
+
+    set sharkfinActive(isOn: boolean) {
+        this._sharkfinActive = isOn;
     }
 
     set isCoolingDown(isOn: boolean) {
@@ -174,6 +222,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     public unEquip(equippable: Item): void {
         this.equippables.remove(equippable.id);
         if (equippable.isAbility) {
+            equippable.stopCooldownTimer();
             this.abilities.remove(equippable.id);
         }
         equippable.removeBuff(this);

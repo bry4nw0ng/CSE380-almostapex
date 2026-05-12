@@ -20,21 +20,16 @@ import { AAEvents, AbilityEvent, CheatEvent, ItemEvent } from "../../Events";
 import Timer from "../../../Wolfie2D/Timing/Timer";
 import AI from "../../../Wolfie2D/DataTypes/Interfaces/AI";
 
-import PlayerState from "./PlayerStates/PlayerState";
-import { PlayerAnimations } from "./PlayerAnimations";
 import { AAPlayerStates } from "./PlayerStates/AAPlayerStates";
 import PlayerActor from "../../Actors/PlayerActor";
-import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
-import Item from "../../GameSystems/ItemSystem/Item";
-import Inventory from "../../GameSystems/ItemSystem/Inventory";
 
 import DaNeedle from "../../GameSystems/ItemSystem/Items/DaNeedle";
 //Could be circular,idk yet
-import MainSMScene from "../../Scenes/MainSMScene";
+import SMScene from "../../Scenes/SMScene";
 import Scene from "../../../Wolfie2D/Scene/Scene";
 
 import { GameEventType } from "../../../Wolfie2D/Events/GameEventType";
-import MainMenu from "../../Scenes/MainMenu";
+
 
 /**
  * The controller that controls the player.
@@ -63,6 +58,9 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected cooldownTimer: Timer;
     protected weaponTiredTimer: Timer;
     protected weaponTiredGunTimer: Timer;
+
+    public jetpackActive: boolean = false;
+    protected jetpackTimer: Timer;
 
     protected cheats: string[];
 
@@ -100,9 +98,7 @@ export default class PlayerController extends StateMachineAI implements AI{
 
         this.cheats = [
             "CHEAT_CITY",
-            "CHEAT_MOUNTAIN",
             "CHEAT_OCEAN",
-            "CHEAT_TOP_LEVEL",
             "CHEAT_INVINCIBLE",
             "CHEAT_POW_CANNON",
             "CHEAT_GIVE_ITEMS",
@@ -128,9 +124,9 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     public handleJetPackTriggered() {
         this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
-        this.speed = this.speed * 2;
-        let activeTimer = new Timer(5000, () => this.speed = this.speed / 2, false);
-        activeTimer.start();
+        this.jetpackActive = true;
+        this.jetpackTimer = new Timer(5000, () => this.jetpackActive = false, false);
+        this.jetpackTimer.start();
     }
 
     /** 
@@ -177,31 +173,39 @@ export default class PlayerController extends StateMachineAI implements AI{
             }
         }
         if (Input.isJustPressed(AAControls.ATTACK) || Input.isMousePressed()) {
-            if (this.scene instanceof MainMenu) {
+            if (!(this.scene instanceof SMScene)) {
                 return;
             }
             console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
-                let scene = this.owner.getScene() as MainSMScene;
                 let aim = this.faceDir;
-                scene.spawnSpitball(this.owner.position.clone(), aim);
+                this.scene.spawnSpitball(this.owner.position.clone(), aim);
                 this.owner.isWeaponTired = true;
-                this.weaponTiredGunTimer.start();
+                this.weaponTiredGunTimer.start(400 / this.owner.fireRate);
             }
         }
         let abilityOpts = [...this.owner.abilities.items()];
         let abilityKeys = [AAControls.ABILITY1, AAControls.ABILITY2, AAControls.ABILITY3];
         for (let i = 0; i < 3; i++) {
             if (Input.isJustPressed(abilityKeys[i])) {
-                let ab = abilityOpts[i];
-                if (ab && !ab.isCoolingDown) {
-                    ab.useAbility(this.owner);
-                    ab.startCooldown();
-                }
+                const ab = abilityOpts[i];
+                if (ab) {
+                    if (Input.isPressed(AAControls.DROP_ITEM)) {
+                        this.owner.unEquip(ab);
+                        let scene = this.owner.getScene() as SMScene;
+                        scene.dropOrChooseItem(this.owner.position.clone(), 999, ab);
+                        
+                    }
+                    else if (!ab.isCoolingDown) {
+                        ab.useAbility(this.owner);
+                        ab.startCooldown();
+                    }
+                } 
             }
         }
         
            //Reset position of items each update
+        if (!this.owner.sharkfinActive) {
             for (let equippable of this.owner.equippables.items()) {
                 if (this.playerFacingDir == -1) {
                     equippable.getSprite().invertX = true;
@@ -219,6 +223,20 @@ export default class PlayerController extends StateMachineAI implements AI{
                     );
                 }
             };
+        }
+        else {
+            let scene = this.owner.getScene() as SMScene;
+            let sharkfin = scene.getSharkFin();
+            if (sharkfin) {
+                if (this.playerFacingDir == 1) {
+                    sharkfin.invertX = false;
+                }
+                else if (this.playerFacingDir == -1) {
+                    sharkfin.invertX = true;
+                }
+            }
+
+        }
         
         for (const cheat of this.cheats) {
             if (Input.isJustPressed(AAControls[cheat])) {

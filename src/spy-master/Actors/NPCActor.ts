@@ -13,7 +13,9 @@ import { TargetableEntity } from "../GameSystems/Targeting/TargetableEntity";
 import { TargetingEntity } from "../GameSystems/Targeting/TargetingEntity";
 import BasicBattler from "../GameSystems/BattleSystem/BasicBattler";
 import Timer from "../../Wolfie2D/Timing/Timer";
+import { DAMAGE_FLASH_SHADER } from "../Shaders/DamageFlashShaderType";
 
+const FLASH_DECAY_PER_SEC = 4;
 
 export default class NPCActor extends AnimatedSprite implements Battler, TargetingEntity {
 
@@ -31,6 +33,9 @@ export default class NPCActor extends AnimatedSprite implements Battler, Targeti
 
     protected _targeting: TargetingEntity
 
+    public flashAmount: number = 0;
+    public flashColor: Float32Array = new Float32Array([1.0, 0.0, 0.0]);
+
     public constructor(sheet: Spritesheet) {
         super(sheet);
         this._navkey = "navkey";
@@ -39,6 +44,15 @@ export default class NPCActor extends AnimatedSprite implements Battler, Targeti
         this.invincibleTimer = new Timer(1000);
 
         this.receiver.subscribe("use-hpack");
+
+        this.useCustomShader(DAMAGE_FLASH_SHADER);
+    }
+
+    public override update(deltaT: number): void {
+        super.update(deltaT);
+        if (this.flashAmount > 0) {
+            this.flashAmount = Math.max(0, this.flashAmount - FLASH_DECAY_PER_SEC * deltaT);
+        }
     }
 
     /** The TargetingEntity interface */
@@ -76,7 +90,11 @@ export default class NPCActor extends AnimatedSprite implements Battler, Targeti
 
     public get health(): number { return this.battler.health; }
     public set health(health: number) { 
+        const prev = this.battler.health;
         this.battler.health = health; 
+        if (health < prev) {
+            this.flashAmount = 1;
+        }
         if (this.health <= 0 && this.battlerActive) {
             this.emitter.fireEvent(BattlerEvent.BATTLER_KILLED, {id: this.id});
         }

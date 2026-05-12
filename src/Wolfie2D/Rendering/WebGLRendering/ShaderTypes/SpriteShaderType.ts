@@ -24,6 +24,8 @@ export default class SpriteShaderType extends QuadShaderType {
 		const texture = this.resourceManager.getTexture(options.imageKey);
 
 		gl.useProgram(program);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
 
 		const vertexData = this.getVertices(options.size.x, options.size.y, options.scale);
 
@@ -46,13 +48,15 @@ export default class SpriteShaderType extends QuadShaderType {
 		// Get transformation matrix
 		// We want a square for our rendering space, so get the maximum dimension of our quad
 		let maxDimension = Math.max(options.size.x, options.size.y);
+		let zoom = options.zoom === undefined ? 1 : options.zoom;
+		let scaledMaxDimension = maxDimension * zoom;
 
 		// The size of the rendering space will be a square with this maximum dimension
-		let size = new Vec2(maxDimension, maxDimension).scale(2/options.worldSize.x, 2/options.worldSize.y);
+		let size = new Vec2(scaledMaxDimension, scaledMaxDimension).scale(2/options.worldSize.x, 2/options.worldSize.y);
 
 		// Center our translations around (0, 0)
-		const translateX = (options.position.x - options.origin.x - options.worldSize.x/2)/maxDimension;
-		const translateY = -(options.position.y - options.origin.y - options.worldSize.y/2)/maxDimension;
+		const translateX = ((options.position.x - options.origin.x)*zoom - options.worldSize.x/2)/scaledMaxDimension;
+		const translateY = -((options.position.y - options.origin.y)*zoom - options.worldSize.y/2)/scaledMaxDimension;
 
 		// Create our transformation matrix
 		this.translation.translate(new Float32Array([translateX, translateY]));
@@ -66,7 +70,10 @@ export default class SpriteShaderType extends QuadShaderType {
 
 		// Set up our sampler with our assigned texture unit
 		const u_Sampler = gl.getUniformLocation(program, "u_Sampler");
-		gl.uniform1i(u_Sampler, texture);
+		gl.uniform1i(u_Sampler, 0);
+
+		const u_Alpha = gl.getUniformLocation(program, "u_Alpha");
+		gl.uniform1f(u_Alpha, options.alpha === undefined ? 1 : options.alpha);
 
 		// Pass in texShift
 		const u_texShift = gl.getUniformLocation(program, "u_texShift");
@@ -112,22 +119,30 @@ export default class SpriteShaderType extends QuadShaderType {
 	getOptions(sprite: Sprite): Record<string, any> {
 		let texShift;
 		let texScale;
+		let image = this.resourceManager.getImage(sprite.imageId);
 
 		if(sprite instanceof AnimatedSprite){
 			let animationIndex = sprite.animation.getIndexAndAdvanceAnimation();
 			let offset = sprite.getAnimationOffset(animationIndex);
-			texShift = new Float32Array([offset.x / (sprite.cols * sprite.size.x), offset.y / (sprite.rows * sprite.size.y)]);
-			texScale = new Float32Array([1/(sprite.cols), 1/(sprite.rows)]);
+			texShift = new Float32Array([
+				(sprite.imageOffset.x + offset.x) / image.width,
+				(sprite.imageOffset.y + offset.y) / image.height
+			]);
+			texScale = new Float32Array([sprite.size.x / image.width, sprite.size.y / image.height]);
 		} else {
-			texShift = new Float32Array([0, 0]);
-			texScale = new Float32Array([1, 1]);
+			texShift = new Float32Array([sprite.imageOffset.x / image.width, sprite.imageOffset.y / image.height]);
+			texScale = new Float32Array([sprite.size.x / image.width, sprite.size.y / image.height]);
 		}
+
+		let scale = sprite.scale.toArray();
+		scale[0] *= sprite.invertX ? -1 : 1;
+		scale[1] *= sprite.invertY ? -1 : 1;
 
 		let options: Record<string, any> = {
 			position: sprite.position,
 			rotation: sprite.rotation,
 			size: sprite.size,
-			scale: sprite.scale.toArray(),
+			scale: scale,
 			imageKey: sprite.imageId,
 			texShift,
 			texScale

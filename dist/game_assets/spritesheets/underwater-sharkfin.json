@@ -1,0 +1,6 @@
+{"name":"underwater-sharkfin",
+"spriteSheetImage":"underwater-sharkfin.png",
+"spriteWidth":59,"spriteHeight":44,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":2,"rows":1,
+"animations":[
+    {"name":"MOVING","repeat":true, "frames":[{"index":0,"duration":14},{"index":1,"duration":14}]}
+]}

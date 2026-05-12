@@ -8,7 +8,7 @@ import NPCBehavior from "../NPCBehavior";
 import NPCAction from "./NPCAction";
 import { ItemEvent } from "../../../Events";
 import Timer from "../../../../Wolfie2D/Timing/Timer";
-import MainSMScene from "../../../Scenes/MainSMScene";
+import SMScene from "../../../Scenes/SMScene";
 
 export default class ShootEm extends NPCAction {
 
@@ -79,7 +79,7 @@ export default class ShootEm extends NPCAction {
     }
 
     public attack() {
-        let scene = this.actor.getScene() as MainSMScene;
+        let scene = this.actor.getScene() as SMScene;
         let aim = this.actor.position.dirTo(this.target.position);
         if (aim.x < 0) {
             this.actor.invertX = false;
@@ -88,7 +88,7 @@ export default class ShootEm extends NPCAction {
             this.actor.invertX = true;
         }
         let bloom = new Vec2(aim.x * (1 + Math.random() * 0.2), aim.y * (1 - Math.random() * 0.2))
-        scene.spawnEnemyShot(this.actor.position.clone(), bloom, "pigeon");
+        scene.spawnEnemyShot(this.actor.position.clone(), bloom, "pigeon", 100);
     }
 
     public onExit(): Record<string, any> {

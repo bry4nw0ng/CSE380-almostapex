@@ -14,7 +14,6 @@ import Timer from "../../../Wolfie2D/Timing/Timer";
 import Updateable from "../../../Wolfie2D/DataTypes/Interfaces/Updateable";
 import NPCActor from "../../Actors/NPCActor";
 
-//Change to reflect goo shot, etc can reuse if lack of time
 export default class Arrow {
 
     protected _arrow: Sprite;

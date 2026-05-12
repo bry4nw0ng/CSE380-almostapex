@@ -31,6 +31,7 @@ export default abstract class Item implements Unique, TargetableEntity {
     protected _isPassive: boolean = false;
     protected _description: string = "";
     protected _cooldownDuration: number = 0;
+    protected _cooldownTimer: Timer | null
     protected _isCoolingDown: boolean = false;
     protected _cooldownStartTime: number = 0;
 
@@ -53,6 +54,8 @@ export default abstract class Item implements Unique, TargetableEntity {
 
         this._curStack = 1;
         this._maxStack = 1;
+
+        this._cooldownTimer = null;
     }
 
     getTargeting(): TargetingEntity[] { 
@@ -150,9 +153,21 @@ export default abstract class Item implements Unique, TargetableEntity {
         if (this._cooldownDuration > 0) {
             this._isCoolingDown = true;
             this._cooldownStartTime = Date.now();
-            let timer = new Timer(this._cooldownDuration, () => this._isCoolingDown = false, false);
-            timer.start();
+            this._cooldownTimer = new Timer(this._cooldownDuration, () => {
+                this._isCoolingDown = false;
+                this._cooldownTimer = null;
+            }, false);
+            this._cooldownTimer.start();
         }
+    }
+
+    //For unequip
+    public stopCooldownTimer(): void {
+        if (this._cooldownTimer) {
+            this._cooldownTimer.pause();
+            this._cooldownTimer = null;
+        }
+        this._isCoolingDown = false;
     }
 
 }
