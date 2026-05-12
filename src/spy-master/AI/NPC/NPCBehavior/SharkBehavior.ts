@@ -20,6 +20,8 @@ import Timer from "../../../../Wolfie2D/Timing/Timer";
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import { BattlerEvent } from "../../../Events";
 import SMScene from "../../../Scenes/SMScene";
+import { GameEventType } from "../../../../Wolfie2D/Events/GameEventType";
+import { AudioChannelType } from "../../../../Wolfie2D/Sound/AudioManager";
 
 //Mainly copied from raccoon behavior (which was copied from guardbehavior lol)
 export default class SharkBehavior extends NPCBehavior {
@@ -84,6 +86,7 @@ export default class SharkBehavior extends NPCBehavior {
             if (choice > 0.5) {
                 this.indieBubbleTimer.pause();
                 this.curState = SharkState.DIVE;
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "DIVING", loop: false, holdReference: false, channel: AudioChannelType.CUSTOM_2 });
                 let dirToPlayer = this.owner.position.dirTo(this.target.position);
                 //diveTo the owner's position + direction to player + 2*rad (since i want him to dive to other end of orbit)
                 this.diveTo = new Vec2(
@@ -95,6 +98,7 @@ export default class SharkBehavior extends NPCBehavior {
             }
             else {
                 this.curState = SharkState.SHOOT;
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "BUBBLES", loop: false, holdReference: false});
                 this.indieBubbleTimer.start();
                 this.shootingTimer.start();
             }
@@ -108,6 +112,7 @@ export default class SharkBehavior extends NPCBehavior {
             this.curState = SharkState.ORBIT;
 
             this.startAttackTimer = new Timer(this.newRandomAttackTime(), () => {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "CHARGING", loop: false, holdReference: false});
                 this.curState = SharkState.CHARGE;
                 this.chargeTimer.start();
             }, false);
@@ -136,6 +141,7 @@ export default class SharkBehavior extends NPCBehavior {
         }, false);
 
         this.startAttackTimer = new Timer(this.startAttackTime, () => {
+            this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "CHARGING", loop: false, holdReference: false});
             this.curState = SharkState.CHARGE;
             this.chargeTimer.start();
         }, false);
@@ -295,30 +301,6 @@ export default class SharkBehavior extends NPCBehavior {
         gitEm.cost = 1;
         this.addState(SharkActions.SPIN, gitEm);
     }
-
-    //For this attack will be the shoot state
-    p/* ublic shoot() {
-        let scene = this.owner.getScene() as SMScene;
-        if (this.curState == SharkState.DIVE) {
-            for (let i = 0; i <= 20; i++) {
-                let angle = Math.random() * Math.PI * 2;
-                let aim = new Vec2(Math.cos(angle), Math.sin(angle));
-                scene.spawnEnemyShot(this.owner.position.clone(), aim, "shark");
-            }
-        }
-        else if (this.curState == SharkState.SHOOT) {
-            let aim = this.owner.position.dirTo(this.target.position);
-            for (let i = 0; i <= 10; i++) {
-                let bloom = new Vec2(aim.x * (1 + Math.random() * 0.1), aim.y * (1 - Math.random() * 0.1))
-                scene.spawnEnemyShot(this.owner.position.clone(), bloom, "shark");
-            }
-
-        }
-        else {
-            console.log("DOOMERROR: Attack type invalid")
-        }
-
-    } */
 
     public override addState(stateName: SharkAction, state: GoapAction): void {
         super.addState(stateName, state);

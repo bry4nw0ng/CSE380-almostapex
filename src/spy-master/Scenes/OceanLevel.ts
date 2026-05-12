@@ -131,7 +131,7 @@ export default class OceanLevel extends SMScene {
             speed: 100,
             scale: new Vec2(1, 1),
             battleGroup: 1,
-            hitbox: new AABB(Vec2.ZERO, new Vec2(90, 40)),
+            hitbox: new AABB(Vec2.ZERO, new Vec2(20, 20)),
             shadow: { offset: new Vec2(0, 0), scale: new Vec2(1, 1), alpha: 0 },
             ai: { ctor: SharkBehavior, opts: { range: 750 } },
             crystalDrops: 20,
