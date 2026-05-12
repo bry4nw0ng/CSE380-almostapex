@@ -1559,7 +1559,7 @@ export default abstract class SMScene extends Scene {
             this.arrow.visible = false;
         }
 
-        if (this.bossDead && this.player.position.distanceTo(exitPos) > 100) {
+        if (this.bossDead && this.player.position.distanceTo(exitPos) > 100 && this.curBossDrop() == 200) {
             this.endArrow.update(deltaT, exitPos);
         }
         else {
