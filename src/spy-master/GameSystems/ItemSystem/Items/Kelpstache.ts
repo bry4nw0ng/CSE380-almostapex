@@ -11,8 +11,8 @@ export default class Kelpstache extends Item {
     public constructor(sprite: Sprite) {
         super(sprite);
         this._isPassive = true;
-        this._description = "Increases Damage Dealt by 10%";
-        this._damageIncrease = 1.1;
+        this._description = "Increases Damage Dealt by 20%";
+        this._damageIncrease = 1.2;
         this.value = 300;
         this.equippableOffset = new Vec2(12, 7);
         this._maxStack = 10;

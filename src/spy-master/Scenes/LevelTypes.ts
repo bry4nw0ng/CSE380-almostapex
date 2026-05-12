@@ -6,7 +6,7 @@ import type SMScene from "./SMScene";
 
 export type ItemKey =
     | "Shield" | "RedHat" | "JetPack" | "Healthpack"
-    | "Gum" | "DaNeedle" | "Antennas" | "RaccoonTail" | "Coral" | "Kelpstache" | "Sharkfin" | "Crystal";
+    | "Gum" | "DaNeedle" | "Antennas" | "RaccoonTail" | "Coral" | "SlimeStorage" | "ShellSpecs" | "Kelpstache" | "Sharkfin" | "Crystal";
 
 export type BehaviorCtor = new (...args: any[]) => NPCBehavior;
 
