@@ -66,9 +66,12 @@ import {
     EnemyDef,
     ItemKey,
     LayerDepthMap,
+    PlayerSnapshot,
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
+
+export const PLAYER_SNAPSHOT_INIT_KEY = "playerSnapshot";
 
 export default abstract class SMScene extends Scene {
     protected battlers: (Battler & Actor & GameNode)[];
@@ -86,8 +89,7 @@ export default abstract class SMScene extends Scene {
     protected navmesh: Navmesh;
     protected spawnableNodes: number[];
 
-    // ─── Projectiles + damage ──────────────────────────────────────────────
-
+    // Projectiles + damage
     protected trash: { sprite: Sprite; velocity: Vec2; stillCookin: boolean }[] = [];
     protected spitballs: { sprite: Sprite; velocity: Vec2; stillCookin: boolean }[] = [];
     protected sceneCrystals: Crystal[] = [];
@@ -98,8 +100,7 @@ export default abstract class SMScene extends Scene {
     protected CHEATINVINCIBLE: boolean = false;
     protected CHEATPOWGUN: boolean = false;
 
-    // ─── Wave runner state ─────────────────────────────────────────────────
-
+    // Wave runner state
     protected curWave: number;
     protected leftInCurWave: number;
     protected totSpawned: number;
@@ -118,8 +119,7 @@ export default abstract class SMScene extends Scene {
     protected waveAlerts: WaveAlerts;
     protected waveCrestSprite: AnimatedSprite | null = null;
 
-    // ─── HUD ───────────────────────────────────────────────────────────────
-
+    // HUD
     protected inventoryHud: InventoryHUD;
     protected relicTray: RelicTrayHUD;
     protected actionSlots: ActionSlotsHUD;
@@ -131,8 +131,7 @@ export default abstract class SMScene extends Scene {
     protected fadeOverlay: Rect;
     protected endLevelSprite: AnimatedSprite;
 
-    // ─── Pause menu state ──────────────────────────────────────────────────
-
+    // Pause menu state
     protected paused: boolean = false;
     protected pauseDim: Graphic;
     protected pauseTitle: Button;
@@ -147,8 +146,7 @@ export default abstract class SMScene extends Scene {
 
     protected readonly PAUSE_CLOSE_HIT = 25;
 
-    // ─── Shop state (field declarations only; methods stay in subclass for now) ───
-
+    // Shop state
     protected shopOpen: boolean = false;
     protected shopState: string;
     protected shopTitle: Button;
@@ -164,6 +162,8 @@ export default abstract class SMScene extends Scene {
     protected sharkfin: AnimatedSprite;
 
     protected treasure: { sprite: Sprite, stillCookin: boolean }[];
+
+    protected pendingSnapshot: PlayerSnapshot | null = null;
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -227,6 +227,13 @@ export default abstract class SMScene extends Scene {
                 this.spawnDelayTimer.pause();
             }
         }, true);
+    }
+
+    public override initScene(init: Record<string, any>): void {
+        super.initScene(init);
+        if (init && init[PLAYER_SNAPSHOT_INIT_KEY]) {
+            this.pendingSnapshot = init[PLAYER_SNAPSHOT_INIT_KEY] as PlayerSnapshot;
+        }
     }
 
     public toggleCheatPow(): void { this.CHEATPOWGUN = !this.CHEATPOWGUN; }
@@ -576,6 +583,93 @@ export default abstract class SMScene extends Scene {
         }
         else if (item instanceof Sharkfin) {
             return 100;
+        }
+    }
+
+    /**
+     * Construct a fresh Item (with a new sprite on the equippables layer) for
+     * a given ItemKey. Used when restoring a player's inventory from a
+     * cross-level snapshot. Mirrors the construction logic in
+     * dropOrChooseItem but keyed by string so snapshots stay serializable.
+     */
+    private makeItemFromKey(key: ItemKey): Item | null {
+        let sprite: Sprite;
+        switch (key) {
+            case "Shield":
+                sprite = this.add.sprite("Shield", "equippables");
+                return new Shield(sprite);
+            case "RedHat":
+                sprite = this.add.sprite("RedHat", "equippables");
+                return new RedHat(sprite);
+            case "JetPack":
+                sprite = this.add.sprite("JetPack", "equippables");
+                return new JetPack(sprite);
+            case "Gum":
+                sprite = this.add.sprite("Gum", "equippables");
+                return new Gum(sprite);
+            case "DaNeedle":
+                sprite = this.add.sprite("DaNeedle", "equippables");
+                return new DaNeedle(sprite);
+            case "Antennas":
+                sprite = this.add.sprite("Antennas", "equippables");
+                return new Antennas(sprite);
+            case "RaccoonTail":
+                sprite = this.add.sprite("RaccoonTail", "equippables");
+                return new RaccoonTail(sprite);
+            case "Coral":
+                sprite = this.add.sprite("Coral", "equippables");
+                sprite.scale.set(0.75, 0.75);
+                return new Coral(sprite);
+            case "Sharkfin":
+                sprite = this.add.sprite("Sharkfin", "equippables");
+                sprite.rotation = Math.PI / 8;
+                sprite.scale.set(0.5, 0.5);
+                return new Sharkfin(sprite);
+            case "Kelpstache":
+                sprite = this.add.sprite("Kelpstache", "equippables");
+                return new Kelpstache(sprite);
+            default:
+                return null;
+        }
+    }
+
+    private getItemKey(item: Item): ItemKey | null {
+        if (item instanceof Shield) return "Shield";
+        if (item instanceof RedHat) return "RedHat";
+        if (item instanceof JetPack) return "JetPack";
+        if (item instanceof Gum) return "Gum";
+        if (item instanceof DaNeedle) return "DaNeedle";
+        if (item instanceof Antennas) return "Antennas";
+        if (item instanceof RaccoonTail) return "RaccoonTail";
+        if (item instanceof Coral) return "Coral";
+        if (item instanceof Sharkfin) return "Sharkfin";
+        if (item instanceof Kelpstache) return "Kelpstache";
+        return null;
+    }
+
+    protected buildPlayerSnapshot(): PlayerSnapshot {
+        const equippables: PlayerSnapshot["equippables"] = [];
+        for (const item of this.player.equippables.items()) {
+            const key = this.getItemKey(item);
+            if (key !== null) {
+                equippables.push({ key, stack: item.curStack });
+            }
+        }
+        return {
+            health: this.player.health,
+            crystals: this.player.crystals,
+            equippables,
+        };
+    }
+
+    protected applyPlayerSnapshot(player: PlayerActor, snapshot: PlayerSnapshot): void {
+        player.health = Math.min(snapshot.health, player.maxHealth);
+        player.crystals = snapshot.crystals;
+        for (const entry of snapshot.equippables) {
+            const item = this.makeItemFromKey(entry.key);
+            if (item === null) continue;
+            item.curStack = entry.stack;
+            player.equip(item);
         }
     }
 
@@ -1222,7 +1316,7 @@ export default abstract class SMScene extends Scene {
 
     public abstract getNextLevel(): SceneCtor | null;
 
-    // ─── Optional level overrides (with defaults) ──────────────────────────
+    // Optional level overrides
 
     /**
      * Position of the merchant. Subclasses override to enable shop interaction.
@@ -1308,6 +1402,11 @@ export default abstract class SMScene extends Scene {
 
         this.player = player;
 
+        if (this.pendingSnapshot !== null) {
+            this.applyPlayerSnapshot(player, this.pendingSnapshot);
+            this.pendingSnapshot = null;
+        }
+
         const arrowSprite = this.add.sprite("arrowSprite", "arrowLayer");
         const endArrowSprite = this.add.sprite("endArrowSprite", "arrowLayer");
         this.arrow = new Arrow(arrowSprite, this.player);
@@ -1327,7 +1426,7 @@ export default abstract class SMScene extends Scene {
         this.relicTray.update(deltaT);
         this.actionSlots.update(deltaT);
 
-        // ── Merchant proximity (only if level has a merchant) ─────────────
+        // Merchant proximity
         const merchantPos = this.getMerchantPosition();
         if (merchantPos) {
             if (this.player.position.distanceTo(merchantPos) < 30) {
@@ -1342,7 +1441,7 @@ export default abstract class SMScene extends Scene {
             }
         }
 
-        // ── End-level proximity (only if level has an exit sprite) ────────
+        // End-level proximity
         const exitPos = this.getEndLevelLocation();
         const exitSpec = this.getEndLevelSprite();
         if (this.endLevelSprite) {
@@ -1357,7 +1456,9 @@ export default abstract class SMScene extends Scene {
                     const next = this.getNextLevel();
                     if (next) {
                         this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
-                        this.sceneManager.changeToScene(next);
+                        this.sceneManager.changeToScene(next, {
+                            [PLAYER_SNAPSHOT_INIT_KEY]: this.buildPlayerSnapshot(),
+                        });
                     }
                 }
             }
@@ -1610,7 +1711,7 @@ export default abstract class SMScene extends Scene {
     }
 
     public override startScene(): void {
-        // ── Tilemap + walls ───────────────────────────────────────────────
+        // Tilemap + walls
         const tilemapLayers = this.add.tilemap(this.getTilemapKey());
         const depths = this.getLayerDepthMap();
 
@@ -1644,13 +1745,13 @@ export default abstract class SMScene extends Scene {
             this.walls.size.y * 2,
         );
 
-        // ── Audio ─────────────────────────────────────────────────────────
+        // Audio
         AudioManager.setVolume(AudioChannelType.SFX, 0.05);
         AudioManager.setVolume(AudioChannelType.CUSTOM_1, 3);
 
         this.viewport.setZoomLevel(2);
 
-        // ── Layers + HUD scaffolding ──────────────────────────────────────
+        // Layers + HUD scaffolding
         this.initLayers();
         this.initTweenGraphics();
         this.initializeNavmesh(new PositionGraph(), [this.walls, this.wallsNC]);
@@ -1659,7 +1760,7 @@ export default abstract class SMScene extends Scene {
         const player = this.initializePlayer();
         this.initLevelContent(player);
 
-        // ── Receiver subscriptions ────────────────────────────────────────
+        // Receiver subscriptions
         this.receiver.subscribe("enemyDied");
         this.receiver.subscribe(ItemEvent.ITEM_REQUEST);
         this.receiver.subscribe(AbilityEvent.OPEN_TREASURE);
@@ -1696,7 +1797,7 @@ export default abstract class SMScene extends Scene {
         this.initShopMenu();
         this.initLevelEnd();
 
-        // ── Zone labels (visible when player is near merchant / exit) ────
+        // Zone labels
         this.bmZoneLabel = <Label>this.add.uiElement(UIElementType.LABEL, "hud", {
             position: new Vec2(256, 275),
             text: "[E] To Speak",
@@ -1713,10 +1814,10 @@ export default abstract class SMScene extends Scene {
         this.elZoneLabel.fontSize = 24;
         this.elZoneLabel.visible = false;
 
-        // ── Music ─────────────────────────────────────────────────────────
+        // Music
         this.emitter.fireEvent(GameEventType.PLAY_MUSIC, { key: this.getMusicKey(), loop: true, holdReference: true });
 
-        // ── Fade-in overlay ───────────────────────────────────────────────
+        // Fade-in overlay
         this.fadeOverlay = <Rect>this.add.graphic(GraphicType.RECT, "fade", {
             position: new Vec2(this.viewport.getHalfSize().x, this.viewport.getHalfSize().x),
             size: new Vec2(this.viewport.getHalfSize().x * 2, this.viewport.getHalfSize().y * 2),
@@ -1758,8 +1859,7 @@ export default abstract class SMScene extends Scene {
         alertSprite.animation.playIfNotAlready("WAVE_1");
     }
 
-    // ─── Event dispatcher ─────────────────────────────────────────────────
-
+    // Event dispatcher
     public handleEvent(event: GameEvent): void {
         if (this.handleLevelEvent(event)) {
             return;
