@@ -92,9 +92,6 @@ export default class CityLevel extends SMScene {
         super(viewport, sceneManager, renderingManager, options);
     }
 
-    /**
-     * @see Scene.update()
-     */
     public override loadScene() {
         this.loadSharedAssets();
 
@@ -116,9 +113,6 @@ export default class CityLevel extends SMScene {
         // City end-level sprite (manhole)
         this.load.spritesheet("manhole", "game_assets/spritesheets/manhole.json");
     }
-    /**
-     * @see Scene.startScene
-     */
     protected override initLevelContent(player: PlayerActor): void {
         this.initializeNPCs(player);
     }
@@ -141,9 +135,6 @@ export default class CityLevel extends SMScene {
         }
     }
 
-    /**
-     * Initialize the NPCs
-     */
     protected initializeNPCs(player: PlayerActor): void {
         console.log("spawned merchant");
         let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");

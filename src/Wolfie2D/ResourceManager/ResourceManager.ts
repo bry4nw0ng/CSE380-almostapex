@@ -83,7 +83,7 @@ export default class ResourceManager {
 
     private gl_ShaderPrograms: Map<WebGLProgramType>;
 
-    private gl_Textures: Map<number>;
+    private gl_Textures: Map<WebGLTexture>;
     private gl_NextTextureID: number;
     private gl_Buffers: Map<WebGLBuffer>; 
 
@@ -718,7 +718,7 @@ export default class ResourceManager {
 
     /* ########## WEBGL SPECIFIC FUNCTIONS ########## */
 
-    public getTexture(key: string): number {
+    public getTexture(key: string): WebGLTexture {
         return this.gl_Textures.get(key);
     }
 
@@ -731,21 +731,17 @@ export default class ResourceManager {
     }
 
     private createWebGLTexture(imageKey: string, image: HTMLImageElement): void {
-        // Get the texture ID
-        const textureID = this.getTextureID(this.gl_NextTextureID);
-
         // Create the texture
         const texture = this.gl.createTexture();
 
         // Set up the texture
-        // Enable texture0
-        this.gl.activeTexture(textureID);
+        this.gl.activeTexture(this.gl.TEXTURE0);
 
-        // Bind our texture to texture 0
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
         // Set the texture parameters
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
 
@@ -753,7 +749,7 @@ export default class ResourceManager {
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
 
         // Add the texture to our map with the same key as the image
-        this.gl_Textures.add(imageKey, this.gl_NextTextureID);
+        this.gl_Textures.add(imageKey, texture);
 
         // Increment the key
         this.gl_NextTextureID += 1;

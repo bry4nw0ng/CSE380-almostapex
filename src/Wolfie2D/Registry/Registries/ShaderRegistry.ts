@@ -4,6 +4,7 @@ import LabelShaderType from "../../Rendering/WebGLRendering/ShaderTypes/LabelSha
 import PointShaderType from "../../Rendering/WebGLRendering/ShaderTypes/PointShaderType";
 import RectShaderType from "../../Rendering/WebGLRendering/ShaderTypes/RectShaderType";
 import SpriteShaderType from "../../Rendering/WebGLRendering/ShaderTypes/SpriteShaderType";
+import DamageFlashShaderType, { DAMAGE_FLASH_SHADER } from "../../../spy-master/Shaders/DamageFlashShaderType";
 import ResourceManager from "../../ResourceManager/ResourceManager";
 import Registry from "./Registry";
 
@@ -17,6 +18,7 @@ export default class ShaderRegistry extends Registry<ShaderType> {
 	public static RECT_SHADER = "rect";
 	public static SPRITE_SHADER = "sprite";
 	public static LABEL_SHADER = "label";
+	public static DAMAGE_FLASH_SHADER = DAMAGE_FLASH_SHADER;
 
 	private registryItems: Array<ShaderRegistryItem> = new Array();
 
@@ -28,16 +30,19 @@ export default class ShaderRegistry extends Registry<ShaderType> {
 		const rm = ResourceManager.getInstance();
 
 		// Queue a load for the point shader
-		this.registerAndPreloadItem(ShaderRegistry.POINT_SHADER, PointShaderType, "builtin/shaders/point.vshader", "builtin/shaders/point.fshader");
+		this.registerAndPreloadItem(ShaderRegistry.POINT_SHADER, PointShaderType, "game_assets/shaders/point.vshader", "game_assets/shaders/point.fshader");
 
 		// Queue a load for the rect shader
-		this.registerAndPreloadItem(ShaderRegistry.RECT_SHADER, RectShaderType, "builtin/shaders/rect.vshader", "builtin/shaders/rect.fshader");
+		this.registerAndPreloadItem(ShaderRegistry.RECT_SHADER, RectShaderType, "game_assets/shaders/rect.vshader", "game_assets/shaders/rect.fshader");
 
 		// Queue a load for the sprite shader
-		this.registerAndPreloadItem(ShaderRegistry.SPRITE_SHADER, SpriteShaderType, "builtin/shaders/sprite.vshader", "builtin/shaders/sprite.fshader");
+		this.registerAndPreloadItem(ShaderRegistry.SPRITE_SHADER, SpriteShaderType, "game_assets/shaders/sprite.vshader", "game_assets/shaders/sprite.fshader");
 	
 		// Queue a load for the label shader
-		this.registerAndPreloadItem(ShaderRegistry.LABEL_SHADER, LabelShaderType, "builtin/shaders/label.vshader", "builtin/shaders/label.fshader");
+		this.registerAndPreloadItem(ShaderRegistry.LABEL_SHADER, LabelShaderType, "game_assets/shaders/label.vshader", "game_assets/shaders/label.fshader");
+
+		// Queue a load for the damage flash shader
+		this.registerAndPreloadItem(ShaderRegistry.DAMAGE_FLASH_SHADER, DamageFlashShaderType, "game_assets/shaders/damageFlash.vshader", "game_assets/shaders/damageFlash.fshader");
 
 		// Queue a load for any preloaded items
 		for(let item of this.registryItems){

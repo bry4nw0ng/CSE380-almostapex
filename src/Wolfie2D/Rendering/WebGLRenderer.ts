@@ -10,6 +10,7 @@ import Rect from "../Nodes/Graphics/Rect";
 import AnimatedSprite from "../Nodes/Sprites/AnimatedSprite";
 import Sprite from "../Nodes/Sprites/Sprite";
 import Tilemap from "../Nodes/Tilemap";
+import IsometricTilemap from "../Nodes/Tilemaps/IsometricTilemap";
 import UIElement from "../Nodes/UIElement";
 import Label from "../Nodes/UIElements/Label";
 import ShaderRegistry from "../Registry/Registries/ShaderRegistry";
@@ -47,7 +48,7 @@ export default class WebGLRenderer extends RenderingManager {
 		this.gl.disable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-        this.gl.enable(this.gl.CULL_FACE);
+        this.gl.disable(this.gl.CULL_FACE);
 
 		// Tell the resource manager we're using WebGL
 		ResourceManager.getInstance().useWebGL(true, this.gl);
@@ -65,13 +66,57 @@ export default class WebGLRenderer extends RenderingManager {
 	}
 
 	render(visibleSet: CanvasNode[], tilemaps: Tilemap[], uiLayers: Map<UILayer>): void {
-		for(let node of visibleSet){
-			this.renderNode(node);
+		visibleSet.sort((a, b) => {
+			if(a.getLayer().getDepth() === b.getLayer().getDepth()){
+				return (a.boundary.bottom) - (b.boundary.bottom);
+			} else {
+				return a.getLayer().getDepth() - b.getLayer().getDepth();
+			}
+		});
+
+		let tilemapIndex = 0;
+		let tilemapLength = tilemaps.length;
+
+		let visibleSetIndex = 0;
+		let visibleSetLength = visibleSet.length;
+
+		while(tilemapIndex < tilemapLength || visibleSetIndex < visibleSetLength){
+			if(tilemapIndex >= tilemapLength){
+				let node = visibleSet[visibleSetIndex++];
+				if(node.visible){
+					this.renderNode(node);
+				}
+				continue;
+			}
+
+			if(visibleSetIndex >= visibleSetLength){
+				this.renderTilemap(tilemaps[tilemapIndex++]);
+				continue;
+			}
+
+			if(tilemaps[tilemapIndex].getLayer().getDepth() <= visibleSet[visibleSetIndex].getLayer().getDepth()){
+				this.renderTilemap(tilemaps[tilemapIndex++]);
+			} else {
+				let node = visibleSet[visibleSetIndex++];
+				if(node.visible){
+					this.renderNode(node);
+				}
+			}
 		}
 
-		uiLayers.forEach(key => {
-			if(!uiLayers.get(key).isHidden())
-				uiLayers.get(key).getItems().forEach(node => this.renderNode(<CanvasNode>node))
+		let sortedUILayers = new Array<UILayer>();
+
+		uiLayers.forEach(key => sortedUILayers.push(uiLayers.get(key)));
+
+		sortedUILayers = sortedUILayers.sort((ui1, ui2) => ui1.getDepth() - ui2.getDepth());
+
+		sortedUILayers.forEach(uiLayer => {
+			if(!uiLayer.isHidden())
+				uiLayer.getItems().forEach(node => {
+					if((<CanvasNode>node).visible){
+						this.renderNode(<CanvasNode>node)
+					}
+				})
 		});
 	}
 
@@ -131,7 +176,85 @@ export default class WebGLRenderer extends RenderingManager {
 	}
 
 	protected renderTilemap(tilemap: Tilemap): void {
-		throw new Error("Method not implemented.");
+		if(!tilemap.visible){
+			return;
+		}
+
+		this.origin = this.scene.getViewTranslation(tilemap);
+		this.zoom = this.scene.getViewScale();
+
+		let minColRow = tilemap.getMinColRow(this.scene.getViewport().getView());
+		let maxColRow = tilemap.getMaxColRow(this.scene.getViewport().getView());
+
+		let minSum = minColRow.x + minColRow.y;
+		let maxSum = maxColRow.x + maxColRow.y;
+
+		for(let sum = minSum; sum <= maxSum; sum++){
+			for(let col = minColRow.x; col <= maxColRow.x; col++){
+				let row = sum - col;
+				if(row < minColRow.y || row > maxColRow.y) continue;
+
+				let tile = tilemap.getTile(col, row);
+				if(tile === 0) continue;
+
+				const mask = 0xF0000000;
+				const rotFlip = ((tile & mask) >>> 28) & 0xF;
+				tile = tile & ~mask;
+
+				for(let tileset of tilemap.getTilesets()){
+					if(tileset.hasTile(tile)){
+						this.renderTile(tilemap, tileset, tile, col, row, rotFlip);
+					}
+				}
+			}
+		}
+	}
+
+	protected renderTile(tilemap: Tilemap, tileset: any, tileIndex: number, col: number, row: number, rotFlip: number): void {
+		let imageKey = tileset.getImageKey();
+		let image = this.resourceManager.getImage(imageKey);
+		let tileSize = tileset.getTileSize();
+		let imageOffset = tileset.getImageOffsetForTile(tileIndex);
+		let position = tilemap.getWorldPosition(col, row);
+
+		if(tilemap instanceof IsometricTilemap){
+			position = new Vec2(
+				position.x + tileSize.x*tilemap.scale.x/2,
+				position.y + (tilemap.getTileSize().y - tileSize.y)*tilemap.scale.y/2
+			);
+		} else {
+			position = new Vec2(
+				position.x + tileSize.x*tilemap.scale.x/2,
+				position.y + tileSize.y*tilemap.scale.y/2
+			);
+		}
+
+		let texShiftX = imageOffset.x / image.width;
+		let texShiftY = imageOffset.y / image.height;
+		let texScaleX = tileSize.x / image.width;
+		let texScaleY = tileSize.y / image.height;
+
+		if(rotFlip & 8){
+			texShiftX += texScaleX;
+			texScaleX *= -1;
+		}
+		if(rotFlip & 4){
+			texShiftY += texScaleY;
+			texScaleY *= -1;
+		}
+
+		let options: Record<string, any> = {
+			position,
+			rotation: 0,
+			size: tileSize,
+			scale: tilemap.scale.toArray(),
+			imageKey,
+			texShift: new Float32Array([texShiftX, texShiftY]),
+			texScale: new Float32Array([texScaleX, texScaleY])
+		};
+
+		let shader = RegistryManager.shaders.get(ShaderRegistry.SPRITE_SHADER);
+		shader.render(this.gl, this.addOptions(options, tilemap));
 	}
 
 	protected renderUIElement(uiElement: UIElement): void {
@@ -166,6 +289,8 @@ export default class WebGLRenderer extends RenderingManager {
 	protected addOptions(options: Record<string, any>, node: CanvasNode): Record<string, any> {
 		// Give the shader access to the world size
 		options.worldSize = this.worldSize;
+		options.zoom = this.zoom;
+		options.alpha = node.alpha !== undefined ? node.alpha : node.getLayer().getAlpha();
 
 		// Adjust the origin position to the parallax
 		let layer = node.getLayer();
