@@ -70,6 +70,8 @@ import {
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
+import SlimeStorage from "../GameSystems/ItemSystem/Items/SlimeStorage";
+import ShellSpecs from "../GameSystems/ItemSystem/Items/ShellSpecs";
 
 export const PLAYER_SNAPSHOT_INIT_KEY = "playerSnapshot";
 
@@ -245,9 +247,9 @@ export default abstract class SMScene extends Scene {
         }
         const spitball = this.add.sprite("spitball", "primary");
         spitball.position.set(position.x, position.y);
-        spitball.scale.set(1, 1);
+        spitball.scale.set(this.player.shotSize, this.player.shotSize);
         this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "SPITBALL", loop: false, holdReference: false });
-        this.spitballs.push({ sprite: spitball, velocity: direction.scaled(120), stillCookin: true });
+        this.spitballs.push({ sprite: spitball, velocity: direction.scaled(120 * this.player.shotSpeed), stillCookin: true });
     }
 
     public spawnEnemyShot(position: Vec2, direction: Vec2, shooter: string, speed: number): void {
@@ -274,7 +276,7 @@ export default abstract class SMScene extends Scene {
         this.spitballs.forEach((shot) => {
             if (shot.stillCookin) {
                 this.battlers.forEach((battler) => {
-                    if (battler instanceof NPCActor && shot.sprite.position.distanceTo(battler.position) < 20) {
+                    if (battler instanceof NPCActor && shot.sprite.position.distanceTo(battler.position) < 20 * this.player.shotSize) {
                         if (this.CHEATPOWGUN) {
                             battler.health = battler.health - 500;
                         }
@@ -554,6 +556,15 @@ export default abstract class SMScene extends Scene {
                 sprite = this.add.sprite("Coral", "equippables");
                 newOb = new Coral(sprite);
                 break;
+            case 9:
+                sprite = this.add.sprite("SlimeStorage", "equippables");
+                newOb = new SlimeStorage(sprite);
+                sprite.scale.set(0.75, 0.75);
+                break;
+            case 10:
+                sprite = this.add.sprite("ShellSpecs", "equippables");
+                newOb = new ShellSpecs(sprite);
+                break;
             //Make sure random never reaches the boss items, just for drop mechanics
             case 100:
                 sprite = this.add.sprite("Sharkfin", "equippables");
@@ -622,6 +633,13 @@ export default abstract class SMScene extends Scene {
                 sprite = this.add.sprite("Coral", "equippables");
                 sprite.scale.set(0.75, 0.75);
                 return new Coral(sprite);
+            case "SlimeStorage":
+                sprite = this.add.sprite("SlimeStorage", "equippables");
+                sprite.scale.set(0.75, 0.75);
+                return new SlimeStorage(sprite);
+            case "ShellSpecs":
+                sprite = this.add.sprite("ShellSpecs", "equippables");
+                return new ShellSpecs(sprite);
             case "Sharkfin":
                 sprite = this.add.sprite("Sharkfin", "equippables");
                 sprite.rotation = Math.PI / 8;
@@ -644,6 +662,8 @@ export default abstract class SMScene extends Scene {
         if (item instanceof Antennas) return "Antennas";
         if (item instanceof RaccoonTail) return "RaccoonTail";
         if (item instanceof Coral) return "Coral";
+        if (item instanceof SlimeStorage) return "SlimeStorage";
+        if (item instanceof ShellSpecs) return "ShellSpecs";
         if (item instanceof Sharkfin) return "Sharkfin";
         if (item instanceof Kelpstache) return "Kelpstache";
         return null;
@@ -1212,27 +1232,62 @@ export default abstract class SMScene extends Scene {
                 return;
             }
 
-            if (this.player.health > 0 && !(this.player.invincible) && distToPlayer < 20) {
-                const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
-                if (antennas) {
-                    if (antennas.curStack > 1) {
-                        antennas.curStack -= 1;
-                    }
-                    else {
-                        this.player.equippables.remove(antennas.id);
-                        antennas.visible = false;
-                    }
-                    this.player.startIFrames();
-                }
-                else {
-                    if (battler.health > 0) {
-                        this.player.health = this.player.health - 3 * this.player.damageReduction;
-                        this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false });
-                        this.player.animation.play("DAMAGE", false);
+            if (this.player.health > 0 && !(this.player.invincible)) {
+
+                if (distToPlayer < 20) {
+                    const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                    if (antennas) {
+                        if (antennas.curStack > 1) {
+                            antennas.curStack -= 1;
+                        }
+                        else {
+                            this.player.equippables.remove(antennas.id);
+                            antennas.visible = false;
+                        }
                         this.player.startIFrames();
                     }
+                    else {
+                        if (battler.health > 0) {
+                            this.player.health = this.player.health - 3 * this.player.damageReduction;
+                            this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false });
+                            this.player.animation.play("DAMAGE", false);
+                            this.player.startIFrames();
+                        }
+                    }
                 }
-            }
+                //Very ugly and copy and pasted from above, but last second 
+                else if (battler == this.boss && battler.health > 0 && this.curBossDrop() == 100) {
+                    let playerBox = this.player.collisionShape.getBoundingRect();
+                    let headBox = battler.collisionShape.getBoundingRect();
+                    
+                    //Offsetting the aabb to his head so only head is checked, couldnt get to spin lol
+                    let lookDir = this.boss.invertX ? -1 : 1; //Made to follow is he is inverted or not in that moment (otherwise the tail was getting it on right side)
+                    headBox.center.x = headBox.center.x  + Math.cos(this.boss.rotation) * lookDir * 25;
+                    headBox.center.y = headBox.center.y + Math.sin(this.boss.rotation) * lookDir * 25;
+
+                    if (headBox.overlaps(playerBox) && this.player.health > 0 && !this.player.invincible && !this.CHEATINVINCIBLE) {
+                        const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                        if (antennas) {
+                            if (antennas.curStack > 1) {
+                                antennas.curStack -= 1;
+                            }
+                            else {
+                                this.player.equippables.remove(antennas.id);
+                                antennas.visible = false;
+                            }
+                            this.player.startIFrames();
+                        }
+                        else {
+                            if (battler.health > 0) {
+                                this.player.health = this.player.health - 3 * this.player.damageReduction;
+                                this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false });
+                                this.player.animation.play("DAMAGE", false);
+                                this.player.startIFrames();
+                            }
+                        }
+                    }
+                }
+        }
         });
     }
 
@@ -1642,6 +1697,8 @@ export default abstract class SMScene extends Scene {
         this.load.image("Coral", "game_assets/sprites/horn-coral.png");
         this.load.image("Sharkfin", "game_assets/sprites/shark-fin.png");
         this.load.image("Kelpstache", "game_assets/sprites/kelpstache.png");
+        this.load.image("SlimeStorage", "game_assets/sprites/slime-storage.png");
+        this.load.image("ShellSpecs", "game_assets/sprites/shell-specs.png");
 
         this.load.image("Crystal", "game_assets/sprites/crystal.png");
 
@@ -1691,6 +1748,9 @@ export default abstract class SMScene extends Scene {
         this.load.audio("BOSS_SPAWNED", "game_assets/sounds/boss-spawning.wav");
         this.load.audio("BOSS_DEFEATED", "game_assets/sounds/boss-defeat.wav");
         this.load.audio("TP_NEW_LEVEL", "game_assets/sounds/teleport-to-new-level.wav");
+        this.load.audio("BUBBLES", "game_assets/sounds/bubbles.wav");
+        this.load.audio("CHARGING", "game_assets/sounds/charging.wav");
+        this.load.audio("DIVING", "game_assets/sounds/diving.wav");
     }
 
     /**
@@ -1750,6 +1810,7 @@ export default abstract class SMScene extends Scene {
         // Audio
         AudioManager.setVolume(AudioChannelType.SFX, 0.05);
         AudioManager.setVolume(AudioChannelType.CUSTOM_1, 3);
+        AudioManager.setVolume(AudioChannelType.CUSTOM_2, 5);
 
         this.viewport.setZoomLevel(2);
 
@@ -2044,7 +2105,7 @@ export default abstract class SMScene extends Scene {
                     this.dropOrChooseItem(deathSpot, 999, null);
                 }
                 else if (this.curBossDrop() == 100) {
-                    this.dropOrChooseItem(deathSpot, 999, Math.floor(Math.random() * 9));
+                    this.dropOrChooseItem(deathSpot, 999, Math.floor(Math.random() * 11));
                 }
                 console.log("Item dropped!");
             }
@@ -2183,6 +2244,17 @@ export default abstract class SMScene extends Scene {
         let kelpstache = new Kelpstache(kelpstacheSprite);
         kelpstache.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 100));
         this.sceneEquippables.push(kelpstache);
+
+        let slimeStorageSprite = this.add.sprite("SlimeStorage", "equippables");
+        let slimeStorage = new SlimeStorage(slimeStorageSprite);
+        slimeStorageSprite.scale.set(0.75, 0.75);
+        slimeStorage.position.copy(new Vec2(playerAt.x, playerAt.y - 100));
+        this.sceneEquippables.push(slimeStorage);
+
+        let shellSpecsSprite = this.add.sprite("ShellSpecs", "equippables");
+        let shellSpecs = new ShellSpecs(shellSpecsSprite);
+        shellSpecs.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 200));
+        this.sceneEquippables.push(shellSpecs);
     }
 
     /**

@@ -48,7 +48,7 @@ export default class DiveAtEm extends NPCAction {
         this.diving = false;
         this.diveTo = Vec2.ZERO;
 
-        this.diveLeft = 800;
+        this.diveLeft = 1000;
     }
 
     public performAction(target: TargetableEntity): void {
@@ -85,8 +85,8 @@ export default class DiveAtEm extends NPCAction {
         } */
         if (this.diving) {
             //To make deltaT in ms to decrement to diveLeft
-            this.diveLeft -= deltaT * 1000;
-            let curDiveSpeed = this.diveLeft / 800;
+            this.diveLeft -= deltaT * 1100;
+            let curDiveSpeed = this.diveLeft / 1000;
             //Scaled by deltaT and slows down with time so stops at end
             this.actor.move(this.diveTo.clone().scaled(deltaT * 200 * curDiveSpeed));
             if (this.diveLeft <= 0) {
@@ -114,7 +114,7 @@ export default class DiveAtEm extends NPCAction {
     }
 
     public attack() {
-        this.diveLeft = 800;
+        this.diveLeft = 1000;
         //Locks in at start cuz if he were to dive and follow at that speed, it would be horrifying, also overshoots x1.5
         this.diveTo = this.actor.position.dirTo(this.target.position).scaled(1.5);
 

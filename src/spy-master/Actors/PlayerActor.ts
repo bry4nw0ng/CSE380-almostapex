@@ -40,6 +40,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     protected _isCoolingDown: boolean;
     protected _isWeaponTired: boolean;
     protected jPMultiplier: number;
+    protected _shotSize: number;
+    protected _shotSpeed: number;
 
     protected _sharkfinActive: boolean;
 
@@ -60,6 +62,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
         this._damageReduction = 1;
         this._damageIncrease = 1;
+        this._shotSize = 1;
+        this._shotSpeed = 1;
         this._fireRate = 1;
         this._luck = 1;
         this._invincible = false;
@@ -145,6 +149,20 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     }
     set damageReduction(newDR: number) {
         this._damageReduction = newDR;
+    }
+
+    get shotSize(): number {
+        return this._shotSize;
+    }
+    set shotSize(boost: number) {
+        this._shotSize = boost;
+    }
+
+    get shotSpeed(): number {
+        return this._shotSpeed;
+    }
+    set shotSpeed(boost: number) {
+        this._shotSpeed = boost;
     }
 
     get damageIncrease(): number {
