@@ -18,6 +18,7 @@ import { AAControls } from "../AAControls";
 import Scene from "../../Wolfie2D/Scene/Scene";
 import CityLevel from "./CityLevel";
 import OceanLevel from "./OceanLevel";
+import NightmareLevel from "./NightmareLevel";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
@@ -85,7 +86,6 @@ export default class MainMenu extends Scene {
     private tableArrowDismissed: boolean = false;
     private readonly TABLE_ARROW_TARGET = new Vec2(310, 690);
 
-    private readonly BED_DREAM_EVENT = "bed_dream";
     private readonly BED_NIGHTMARE_EVENT = "bed_nightmare";
     private readonly BED_CLOSE_EVENT = "bed_close";
 
@@ -337,7 +337,6 @@ export default class MainMenu extends Scene {
         this.bedTitle.visible = false;
 
         const bedButtonDefs: [string, string][] = [
-            ["DREAM",           this.BED_DREAM_EVENT],
             ["NIGHTMARE LEVEL", this.BED_NIGHTMARE_EVENT],
             ["Back",            this.BED_CLOSE_EVENT],
         ];
@@ -363,7 +362,6 @@ export default class MainMenu extends Scene {
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
-        this.receiver.subscribe(this.BED_DREAM_EVENT);
         this.receiver.subscribe(this.BED_NIGHTMARE_EVENT);
         this.receiver.subscribe(this.BED_CLOSE_EVENT);
         this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "MENU", loop: true, holdReference: true});
@@ -572,13 +570,10 @@ export default class MainMenu extends Scene {
                 this.openHelp();
                 break;
             case Zones.BED:        this.openBed(); break;
-            case this.BED_DREAM_EVENT:
-                // TODO: play DREAM trailer
-                this.closeBed();
-                break;
             case this.BED_NIGHTMARE_EVENT:
-                // TODO: start NIGHTMARE LEVEL
                 this.closeBed();
+                this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
+                this.sceneManager.changeToScene(NightmareLevel);
                 break;
             case this.BED_CLOSE_EVENT:
                 this.closeBed();
