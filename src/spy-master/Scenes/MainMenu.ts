@@ -6,6 +6,7 @@ import Input from "../../Wolfie2D/Input/Input";
 import Color from "../../Wolfie2D/Utils/Color";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import Label from "../../Wolfie2D/Nodes/UIElements/Label";
+import Button from "../../Wolfie2D/Nodes/UIElements/Button";
 import Sprite from "../../Wolfie2D/Nodes/Sprites/Sprite";
 import Graphic from "../../Wolfie2D/Nodes/Graphic";
 import RenderingManager from "../../Wolfie2D/Rendering/RenderingManager";
@@ -17,11 +18,13 @@ import { AAControls } from "../AAControls";
 import Scene from "../../Wolfie2D/Scene/Scene";
 import CityLevel from "./CityLevel";
 import OceanLevel from "./OceanLevel";
+import NightmareLevel from "./NightmareLevel";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
+import EndArrow from "../GameSystems/HUD/NextLevelArrow";
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -74,6 +77,18 @@ export default class MainMenu extends Scene {
     private helpNext: Sprite;
     private helpPrev: Sprite;
 
+    private bedOpen: boolean = false;
+    private bedDim: Graphic;
+    private bedTitle: Button;
+    private bedButtons: Button[] = [];
+
+    private tableArrow: EndArrow | null = null;
+    private tableArrowDismissed: boolean = false;
+    private readonly TABLE_ARROW_TARGET = new Vec2(310, 690);
+
+    private readonly BED_NIGHTMARE_EVENT = "bed_nightmare";
+    private readonly BED_CLOSE_EVENT = "bed_close";
+
     private playerShadow: Sprite;
 
     private fadeOverlay: Rect;
@@ -107,6 +122,7 @@ export default class MainMenu extends Scene {
         this.load.image("back-button", "game_assets/ui/menu/back-button.png");
 
         this.load.image("generic-shadow", "game_assets/sprites/shadow.png");
+        this.load.image("endArrowSprite", "game_assets/sprites/level-trans-arrow.png");
 
         this.load.audio("MENU", "game_assets/sounds/songs/home-cleaned.mp3");
     }
@@ -123,6 +139,7 @@ export default class MainMenu extends Scene {
         this.addLayer("shadow", 2);
         this.addLayer("player", 3);
         this.addLayer("debug", 4);
+        this.addLayer("arrowLayer", 5);
         this.addLayer("fade", 10);
         this.addUILayer("popup");
         this.addUILayer("popupOverlay");
@@ -199,6 +216,11 @@ export default class MainMenu extends Scene {
         this.viewport.setCenter(center.x, center.y);
         this.viewport.setZoomLevel(2);
         this.viewport.follow(this.player);
+
+        if (!this.tableArrowDismissed) {
+            const arrowSprite = this.add.sprite("endArrowSprite", "arrowLayer");
+            this.tableArrow = new EndArrow(arrowSprite, this.player);
+        }
 
         // DEBUG: uncomment to show x/y readout for tuning zone bounds
         // this.coordLabel = <Label>this.add.uiElement(UIElementType.LABEL, "ui", {
@@ -292,9 +314,56 @@ export default class MainMenu extends Scene {
         this.helpPrev.scale.set(4, 4);
         this.helpPrev.visible = false;
 
+        // bed popup
+        this.bedDim = this.add.graphic(GraphicType.RECT, "popup", {
+            position: new Vec2(center.x, center.y),
+            size: new Vec2(1024, 1024)
+        });
+        this.bedDim.color = new Color(0, 0, 0, 0.7);
+        this.bedDim.visible = false;
+
+        const bedCx = center.x;
+        const bedCy = center.y;
+
+        this.bedTitle = <Button>this.add.uiElement(UIElementType.BUTTON, "popupOverlay", {
+            position: new Vec2(bedCx, bedCy - 130),
+            text: "SLEEP",
+        });
+        this.bedTitle.size.set(300, 40);
+        this.bedTitle.borderWidth = 0;
+        this.bedTitle.backgroundColor = new Color(0, 0, 0, 0);
+        this.bedTitle.textColor = Color.WHITE;
+        this.bedTitle.fontSize = 28;
+        this.bedTitle.visible = false;
+
+        const bedButtonDefs: [string, string][] = [
+            ["NIGHTMARE LEVEL", this.BED_NIGHTMARE_EVENT],
+            ["Back",            this.BED_CLOSE_EVENT],
+        ];
+        const bedStartY = bedCy - 10;
+        const bedSpacing = 80;
+        for (let i = 0; i < bedButtonDefs.length; i++) {
+            const [label, eventId] = bedButtonDefs[i];
+            const btn = <Button>this.add.uiElement(UIElementType.BUTTON, "popupOverlay", {
+                position: new Vec2(bedCx, bedStartY + i * bedSpacing),
+                text: label,
+            });
+            btn.size.set(360, 55);
+            btn.borderWidth = 2;
+            btn.borderColor = Color.WHITE;
+            btn.backgroundColor = new Color(60, 60, 60, 200);
+            btn.textColor = Color.WHITE;
+            btn.fontSize = 20;
+            btn.onClickEventId = eventId;
+            btn.visible = false;
+            this.bedButtons.push(btn);
+        }
+
         this.receiver.subscribe(Zones.WALL_MAP);
         this.receiver.subscribe(Zones.BED);
         this.receiver.subscribe(Zones.BOOK_TABLE);
+        this.receiver.subscribe(this.BED_NIGHTMARE_EVENT);
+        this.receiver.subscribe(this.BED_CLOSE_EVENT);
         this.emitter.fireEvent(GameEventType.PLAY_MUSIC, {key: "MENU", loop: true, holdReference: true});
         
         this.fadeOverlay.tweens.play("fadeIn");
@@ -303,6 +372,7 @@ export default class MainMenu extends Scene {
     public updateScene(_deltaT: number): void {
         if (this.popupOpen) {
             this.viewport.setZoomLevel(1);
+            if (this.tableArrow) this.tableArrow.visible = false;
             if (Input.isKeyJustPressed("escape")) {
                 this.closePopup();
                 return;
@@ -316,11 +386,13 @@ export default class MainMenu extends Scene {
                 }
                 if (Math.abs(mouse.x - this.CITY_POS.x) <= this.MAP_HIT &&
                     Math.abs(mouse.y - this.CITY_POS.y) <= this.MAP_HIT) {
+                    this.dismissTableArrow();
                     this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
                     this.sceneManager.changeToScene(CityLevel);
                 }
                 if (Math.abs(mouse.x - this.OCEAN_POS.x) <= this.MAP_HIT &&
                     Math.abs(mouse.y - this.OCEAN_POS.y) <= this.MAP_HIT) {
+                    this.dismissTableArrow();
                     this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
                     this.sceneManager.changeToScene(OceanLevel);
                 }
@@ -329,7 +401,20 @@ export default class MainMenu extends Scene {
             return;
         }
 
+        if (this.bedOpen) {
+            this.viewport.setZoomLevel(1);
+            if (this.tableArrow) this.tableArrow.visible = false;
+            if (Input.isKeyJustPressed("escape")) {
+                this.closeBed();
+            }
+            while (this.receiver.hasNextEvent()) {
+                this.handleEvent(this.receiver.getNextEvent());
+            }
+            return;
+        }
+
         if (this.helpOpen) {
+            if (this.tableArrow) this.tableArrow.visible = false;
             if (Input.isKeyJustPressed("escape")) {
                 this.closeHelp();
                 return;
@@ -366,6 +451,14 @@ export default class MainMenu extends Scene {
         this.playerShadow.position.set(this.player.position.x + 12, this.player.position.y + 26);
         this.constrainPlayerToFloor();
         this.checkZoneProximity();
+
+        if (this.tableArrow) {
+            if (this.activeZone && this.activeZone.event === Zones.BOOK_TABLE) {
+                this.tableArrow.visible = false;
+            } else {
+                this.tableArrow.update(_deltaT, this.TABLE_ARROW_TARGET);
+            }
+        }
 
         // const x = Math.round(this.player.position.x);
         // const y = Math.round(this.player.position.y);
@@ -472,9 +565,46 @@ export default class MainMenu extends Scene {
                 // for (const r of this.popupHitboxDebug) r.visible = true;
                 this.zoneLabel.visible = false;
                 break;
-            case Zones.BOOK_TABLE: this.openHelp(); break;
-            case Zones.BED:        break; // TODO: exit game
+            case Zones.BOOK_TABLE:
+                this.dismissTableArrow();
+                this.openHelp();
+                break;
+            case Zones.BED:        this.openBed(); break;
+            case this.BED_NIGHTMARE_EVENT:
+                this.closeBed();
+                this.emitter.fireEvent(GameEventType.STOP_SOUND, {key: "MENU", loop: true, holdReference: true});
+                this.sceneManager.changeToScene(NightmareLevel);
+                break;
+            case this.BED_CLOSE_EVENT:
+                this.closeBed();
+                break;
         }
+    }
+
+    private dismissTableArrow(): void {
+        if (this.tableArrowDismissed) return;
+        this.tableArrowDismissed = true;
+        if (this.tableArrow) {
+            this.tableArrow.visible = false;
+            this.tableArrow = null;
+        }
+    }
+
+    private openBed(): void {
+        this.bedOpen = true;
+        this.bedDim.visible = true;
+        this.bedTitle.visible = true;
+        for (const btn of this.bedButtons) btn.visible = true;
+        this.zoneLabel.visible = false;
+        this.viewport.setZoomLevel(1);
+    }
+
+    private closeBed(): void {
+        this.bedOpen = false;
+        this.bedDim.visible = false;
+        this.bedTitle.visible = false;
+        for (const btn of this.bedButtons) btn.visible = false;
+        this.viewport.setZoomLevel(2);
     }
 
 }

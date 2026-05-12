@@ -18,7 +18,11 @@ export default class PointShaderType extends ShaderType {
 	}
 
 	render(gl: WebGLRenderingContext, options: Record<string, any>): void {
-		let position = RenderingUtils.toWebGLCoords(options.position, options.origin, options.worldSize);
+		let zoom = options.zoom === undefined ? 1 : options.zoom;
+		let position = new Float32Array([
+			((options.position.x - options.origin.x)*zoom/options.worldSize.x)*2 - 1,
+			1 - ((options.position.y - options.origin.y)*zoom/options.worldSize.y)*2
+		]);
 		let color = RenderingUtils.toWebGLColor(options.color);
 
 		const program = this.resourceManager.getShaderProgram(this.programKey);
@@ -44,7 +48,7 @@ export default class PointShaderType extends ShaderType {
 		gl.uniform4fv(u_Color, color);
 
 		const u_PointSize = gl.getUniformLocation(program, "u_PointSize");
-		gl.uniform1f(u_PointSize, options.pointSize);
+		gl.uniform1f(u_PointSize, options.pointSize*zoom);
 
 		gl.drawArrays(gl.POINTS, 0, 1);
 	}

@@ -85,9 +85,13 @@ export interface StartingPlayerStats {
     battleGroup: number;
 }
 
+export interface SerializedItem {
+    key: ItemKey;
+    stack: number;
+}
+
 export interface PlayerSnapshot {
     health: number;
     crystals: number;
-    equippables: string[];
-    abilities: string[];
+    equippables: SerializedItem[];
 }

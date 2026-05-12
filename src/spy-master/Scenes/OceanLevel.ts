@@ -43,9 +43,6 @@ export default class OceanLevel extends SMScene {
 
         this.load.image("ChestSprite", "game_assets/sprites/chest.png");
         this.load.object("chest", "game_assets/data/enemies/chest.json");
-    
-        // Ocean-specific enemies (crab/pufferfish/shark) to be added later.
-        // Ocean tileset image auto-loads from ocean.tmj.
     }
 
     
@@ -56,8 +53,6 @@ export default class OceanLevel extends SMScene {
         this.sharkfin.scale.set(0.75,0.75);
         this.sharkfin.visible = false;
     }
-    
-    // startScene + updateScene inherited from SMScene.
 
     public getLevelKey(): string { return "ocean"; }
 
@@ -69,7 +64,6 @@ export default class OceanLevel extends SMScene {
         return 100;
     }
 
-    /** Spawn at the center of the map until a real walkable tile is picked. */
     public getSpawnPosition(): Vec2 {
         if (!this.walls) return Vec2.ZERO;
         const dim = this.walls.getDimensions();

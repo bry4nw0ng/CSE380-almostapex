@@ -59,6 +59,9 @@ export default class PlayerController extends StateMachineAI implements AI{
     protected weaponTiredTimer: Timer;
     protected weaponTiredGunTimer: Timer;
 
+    public jetpackActive: boolean = false;
+    protected jetpackTimer: Timer;
+
     protected cheats: string[];
 
     public initializeAI(owner: PlayerActor, options: Record<string, any>){
@@ -121,10 +124,9 @@ export default class PlayerController extends StateMachineAI implements AI{
 
     public handleJetPackTriggered() {
         this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "COKEPACK", loop: false, holdReference: false});
-        let temp = this.speed;
-        this.speed = this.speed * 2;
-        let activeTimer = new Timer(5000, () => this.speed = temp, false);
-        activeTimer.start();
+        this.jetpackActive = true;
+        this.jetpackTimer = new Timer(5000, () => this.jetpackActive = false, false);
+        this.jetpackTimer.start();
     }
 
     /** 

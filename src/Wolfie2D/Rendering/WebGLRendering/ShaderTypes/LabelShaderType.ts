@@ -48,12 +48,17 @@ export default class LabelShaderType extends QuadShaderType {
         const u_BorderColor = gl.getUniformLocation(program, "u_BorderColor");
 		gl.uniform4fv(u_BorderColor, borderColor);
 
+        const u_Alpha = gl.getUniformLocation(program, "u_Alpha");
+		gl.uniform1f(u_Alpha, options.alpha === undefined ? 1 : options.alpha);
+
         const u_MaxSize = gl.getUniformLocation(program, "u_MaxSize");
         gl.uniform2f(u_MaxSize, -vertexData[0], vertexData[1]);
 
 		// Get transformation matrix
 		// We want a square for our rendering space, so get the maximum dimension of our quad
 		let maxDimension = Math.max(options.size.x, options.size.y);
+		let zoom = options.zoom === undefined ? 1 : options.zoom;
+		let scaledMaxDimension = maxDimension * zoom;
 
         const u_BorderWidth = gl.getUniformLocation(program, "u_BorderWidth");
 		gl.uniform1f(u_BorderWidth, options.borderWidth/maxDimension);
@@ -62,11 +67,11 @@ export default class LabelShaderType extends QuadShaderType {
 		gl.uniform1f(u_BorderRadius, options.borderRadius/maxDimension);
 
 		// The size of the rendering space will be a square with this maximum dimension
-		let size = new Vec2(maxDimension, maxDimension).scale(2/options.worldSize.x, 2/options.worldSize.y);
+		let size = new Vec2(scaledMaxDimension, scaledMaxDimension).scale(2/options.worldSize.x, 2/options.worldSize.y);
 
 		// Center our translations around (0, 0)
-		const translateX = (options.position.x - options.origin.x - options.worldSize.x/2)/maxDimension;
-		const translateY = -(options.position.y - options.origin.y - options.worldSize.y/2)/maxDimension;
+		const translateX = ((options.position.x - options.origin.x)*zoom - options.worldSize.x/2)/scaledMaxDimension;
+		const translateY = -((options.position.y - options.origin.y)*zoom - options.worldSize.y/2)/scaledMaxDimension;
 
 		// Create our transformation matrix
 		this.translation.translate(new Float32Array([translateX, translateY]));
