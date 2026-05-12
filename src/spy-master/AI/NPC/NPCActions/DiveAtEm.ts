@@ -39,7 +39,7 @@ export default class DiveAtEm extends NPCAction {
             this.charging = false;
             this.diving = true;
             this.attack();
-            this.actor.animation.play("ATTACKING_RIGHT", false);
+            this.actor.animation.play("ATTACK", false);
             this.actor.animation.queue("WALK", true);
         }, false);
 
@@ -105,7 +105,7 @@ export default class DiveAtEm extends NPCAction {
             this.charging = true;
             this.chargeTimer.start();
             //Add some sort of charging animation
-            this.actor.animation.play("IDLE", false);
+            this.actor.animation.play("WALK", false);
         }
         else if (!this.charging && this.actor.position.distanceTo(this.target.position) > 150) {
             this.finished();

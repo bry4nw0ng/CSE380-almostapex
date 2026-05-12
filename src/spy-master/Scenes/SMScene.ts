@@ -2066,7 +2066,6 @@ export default abstract class SMScene extends Scene {
         sharkfinSprite.scale.set(0.5, 0.5);
         let sharkfin = new Sharkfin(sharkfinSprite);
         sharkfin.position.copy(new Vec2(playerAt.x - 200, playerAt.y + 100));
-
         this.sceneEquippables.push(sharkfin);
 
         let kelpstacheSprite = this.add.sprite("Kelpstache", "equippables");
