@@ -586,12 +586,6 @@ export default abstract class SMScene extends Scene {
         }
     }
 
-    /**
-     * Construct a fresh Item (with a new sprite on the equippables layer) for
-     * a given ItemKey. Used when restoring a player's inventory from a
-     * cross-level snapshot. Mirrors the construction logic in
-     * dropOrChooseItem but keyed by string so snapshots stay serializable.
-     */
     private makeItemFromKey(key: ItemKey): Item | null {
         let sprite: Sprite;
         switch (key) {
@@ -924,7 +918,7 @@ export default abstract class SMScene extends Scene {
 
         const buttonDefs: [string, string][] = [
             ["Resume",          "resume"],
-            ["Return to Menu",  "pause_mainmenu"],
+            ["RESET to menu",   "pause_mainmenu"],
             ["Controls",        "pause_controls"],
             ["About",           "pause_about"],
             ["Help",            "pause_help"],
@@ -1953,6 +1947,10 @@ export default abstract class SMScene extends Scene {
                 break;
             }
             case "pause_mainmenu": {
+                TimerManager.getInstance().unpauseAllTimers();
+                this.paused = false;
+                this.pendingSnapshot = null;
+                this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
                 this.sceneManager.changeToScene(MainMenu);
                 break;
             }
