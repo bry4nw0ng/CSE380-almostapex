@@ -546,6 +546,14 @@ export default abstract class SMScene extends Scene {
                 sprite = this.add.sprite("Antennas", "equippables");
                 newOb = new Antennas(sprite);
                 break;
+            case 7:
+                sprite = this.add.sprite("Kelpstache", "equippables");
+                newOb = new Kelpstache(sprite);
+                break;
+            case 8:
+                sprite = this.add.sprite("Coral", "equippables");
+                newOb = new Coral(sprite);
+                break;
             //Make sure random never reaches the boss items, just for drop mechanics
             case 100:
                 sprite = this.add.sprite("Sharkfin", "equippables");
@@ -2032,7 +2040,12 @@ export default abstract class SMScene extends Scene {
             this.shadows.delete(battler);
             this.battlers = this.battlers.filter(b => b.id !== id);
             if (Math.random() * this.player.luck >= 0.85) {
-                this.dropOrChooseItem(deathSpot, 999, null);
+                if (this.curBossDrop() == 200) {
+                    this.dropOrChooseItem(deathSpot, 999, null);
+                }
+                else if (this.curBossDrop() == 100) {
+                    this.dropOrChooseItem(deathSpot, 999, Math.floor(Math.random() * 9));
+                }
                 console.log("Item dropped!");
             }
 
