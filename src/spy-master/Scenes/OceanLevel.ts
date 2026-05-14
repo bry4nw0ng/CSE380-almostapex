@@ -28,6 +28,8 @@ import CrabBehavior from "../AI/NPC/NPCBehavior/CrabBehavior";
 
 export default class OceanLevel extends SMScene {
 
+    private readonly MERCHANT_LOCATION = new Vec2(50, 500);
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
     }
@@ -78,6 +80,18 @@ export default class OceanLevel extends SMScene {
     public getMusicPath(): string { return "game_assets/sounds/songs/water.mp3"; }
 
     protected initializeNPCs(): void {
+        console.log("spawned merchant");
+        let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
+        merchant.position.copy(this.MERCHANT_LOCATION);
+        let merchantShadow = this.add.sprite("generic-shadow", "shadow");
+        merchantShadow.position.set(this.MERCHANT_LOCATION.x - 4, this.MERCHANT_LOCATION.y + 13);
+        merchantShadow.scale.set(1.15, 1);
+        merchantShadow.alpha = 0.8;
+        merchantShadow.visible = true;
+
+        merchant.scale.set(0.25, 0.25);
+        merchant.animation.play("Idle", true);
+
         let chest = this.load.getObject("chest");
 
         for (let i = 0; i < chest.chests.length; i++) {
@@ -87,6 +101,16 @@ export default class OceanLevel extends SMScene {
 
             this.treasure.push({sprite: treasure, stillCookin: true});
 
+        }
+    }
+
+    public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
+
+    protected override setBuyItems(): void {
+        const oceanItemChoices = [7, 8, 9, 10];
+        for (let i = 0; i < 3; i++) {
+            const choice = oceanItemChoices[Math.floor(Math.random() * oceanItemChoices.length)];
+            this.dropOrChooseItem(new Vec2(0, 0), i, choice);
         }
     }
 
