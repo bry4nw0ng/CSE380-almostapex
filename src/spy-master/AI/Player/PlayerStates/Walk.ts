@@ -38,9 +38,9 @@ export default class Walk extends PlayerState {
 		} 
         // Otherwise, move the player
         else {
-            let speed = this.parent.speed * (this.parent.jetpackActive ? 2 : 1);
-            this.parent.velocity.x = dir.x * speed
-            this.parent.velocity.y = dir.y * speed
+            let speed = this.parent.speed * (this.parent.jetpackActive ? 2 : 1) * this.parent.getOwner().speedBoost;;
+            this.parent.velocity.x = dir.x * speed;
+            this.parent.velocity.y = dir.y * speed;
             this.owner.move(this.parent.velocity.scaled(deltaT));
         }
 

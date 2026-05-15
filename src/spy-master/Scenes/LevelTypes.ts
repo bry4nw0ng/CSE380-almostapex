@@ -5,7 +5,7 @@ import Item from "../GameSystems/ItemSystem/Item";
 import type Scene from "../../Wolfie2D/Scene/Scene";
 
 export type ItemKey =
-    | "Shield" | "RedHat" | "JetPack" | "Healthpack"
+    | "Shield" | "RedHat" | "JetPack" | "Healthpack" | "PetFish"
     | "Gum" | "DaNeedle" | "Antennas" | "RaccoonTail" | "Coral" | "SlimeStorage" | "ShellSpecs" | "Kelpstache" | "Sharkfin" | "Crystal";
 
 export type BehaviorCtor = new (...args: any[]) => NPCBehavior;

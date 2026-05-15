@@ -8,6 +8,7 @@ import Updateable from "../../../Wolfie2D/DataTypes/Interfaces/Updateable";
 import Inventory from "../ItemSystem/Inventory";
 import Item from "../ItemSystem/Item";
 import PlayerActor from "../../Actors/PlayerActor";
+import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
 
 interface ActionSlotsOptions {
     /** X position of the first box's left edge */
@@ -252,15 +253,18 @@ export default class ActionSlotsHUD implements Updateable {
         this.tooltip.visible = tooltipVisible;
         if (tooltipVisible) {
             this.tooltip.text = tooltipText;
-            this.tooltip.position.copy(tooltipPos);
+            //this.tooltip.position.copy(tooltipPos);
+            this.tooltip.size.set(tooltipText.length * 12 + 20, 36);
+            let fixedX = MathUtils.clamp(tooltipPos.x, this.tooltip.size.x / 2, 570 - this.tooltip.size.x / 2);
+            this.tooltip.position.set(fixedX, tooltipPos.y);
         }
 
         this.countdownLabels[4].text = `x${this.player.crystals}`;
         if (this.countdownLabels[4]["isEntered"]) {
             this.tooltip.visible = true;
             this.tooltip.text = "Maybe there is someone who values these highly...";
-            this.tooltip.size.set(400, 36);
-            this.tooltip.position.set(150, 480);
+            this.tooltip.size.set(600, 36);
+            this.tooltip.position.set(200, 480);
         }
         else if (!tooltipVisible) {
             this.tooltip.visible = false;
