@@ -21,6 +21,7 @@ import {
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
+
 import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
 import PlayerActor from "../Actors/PlayerActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
@@ -31,13 +32,10 @@ import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
 
 export default class OceanLevel extends SMScene {
 
-<<<<<<< HEAD
     protected toadfish: { sprite: AnimatedSprite, provoked: boolean, goingToHide: boolean}[];
-=======
     private readonly MERCHANT_LOCATION = new Vec2(50, 500);
     private readonly END_LEVEL_LOCATION = new Vec2(900, 1400);
 
->>>>>>> 2c06d2aeae14abce14e62c279eec2fe7f06cda0e
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
 
@@ -56,13 +54,10 @@ export default class OceanLevel extends SMScene {
         this.load.image("ChestSprite", "game_assets/sprites/chest.png");
         this.load.object("chest", "game_assets/data/enemies/chest.json");
 
-<<<<<<< HEAD
         this.load.spritesheet("ToadfishSprite", "game_assets/spritesheets/toadfish.json");
         this.load.object("toadfish", "game_assets/data/enemies/toadfish.json");
-=======
         // Ocean end-level sprite (coral pipe -> main menu)
         this.load.spritesheet("coral-pipe", "game_assets/spritesheets/coral-pipe.json");
->>>>>>> 2c06d2aeae14abce14e62c279eec2fe7f06cda0e
     }
 
     
@@ -321,13 +316,6 @@ export default class OceanLevel extends SMScene {
             toadfish.provoked = false;
             toadfish.goingToHide = false;
             toadfish.sprite.alpha = 0.35;
-/*             let hideTimer = new Timer(1000, () => {
-                toadfish.provoked = false;
-                toadfish.goingToHide = false;
-                toadfish.sprite.animation.play("IDLE", true);
-                toadfish.sprite.alpha = 0.5;
-            }, false);
-            hideTimer.start(); */
         }        
     });
         
