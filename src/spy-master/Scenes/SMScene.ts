@@ -384,7 +384,7 @@ export default abstract class SMScene extends Scene {
         this.battlers.forEach((battler) => {
             if (battler instanceof NPCActor) {
                 if (battler.position.distanceTo(needlePosition) < 70) {
-                    battler.health = battler.health - 0.1 + (this.player.damageIncrease - 1);
+                    battler.health = battler.health - 0.1 * (this.player.damageIncrease);
                 }
             }
         });
@@ -558,6 +558,7 @@ export default abstract class SMScene extends Scene {
                 break;
             case 8:
                 sprite = this.add.sprite("Coral", "equippables");
+                sprite.scale.set(0.75, 0.75);
                 newOb = new Coral(sprite);
                 break;
             case 9:

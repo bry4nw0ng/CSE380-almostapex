@@ -176,7 +176,6 @@ export default class PlayerController extends StateMachineAI implements AI{
             if (!(this.scene instanceof SMScene)) {
                 return;
             }
-            console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
                 let aim = this.faceDir;
                 this.scene.spawnSpitball(this.owner.position.clone(), aim);

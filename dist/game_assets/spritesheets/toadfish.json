@@ -1,0 +1,9 @@
+{"name":"toadfish",
+"spriteSheetImage":"toadfish.png",
+"spriteWidth":35,"spriteHeight":35,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":5,"rows":1,
+"animations":[
+    {"name":"IDLE","repeat":true, "frames":[{"index":0,"duration":5}]},
+    {"name":"ATTACK","repeat":false, "frames":[{"index":3,"duration":12},{"index":4,"duration":12}]},
+    {"name":"RISING","repeat":false, "frames":[{"index":1,"duration":6},{"index":2,"duration":6}]},
+    {"name":"BACK","repeat":false, "frames":[{"index":2,"duration":6},{"index":1,"duration":6}]}
+]}
