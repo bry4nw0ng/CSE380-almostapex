@@ -10,6 +10,7 @@ import { CheatEvent } from "../Events";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import CityLevel from "./CityLevel";
+import MainMenu from "./MainMenu";
 
 import {
     BossDef,
@@ -30,7 +31,13 @@ import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
 
 export default class OceanLevel extends SMScene {
 
+<<<<<<< HEAD
     protected toadfish: { sprite: AnimatedSprite, provoked: boolean, goingToHide: boolean}[];
+=======
+    private readonly MERCHANT_LOCATION = new Vec2(50, 500);
+    private readonly END_LEVEL_LOCATION = new Vec2(900, 1400);
+
+>>>>>>> 2c06d2aeae14abce14e62c279eec2fe7f06cda0e
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
 
@@ -49,8 +56,13 @@ export default class OceanLevel extends SMScene {
         this.load.image("ChestSprite", "game_assets/sprites/chest.png");
         this.load.object("chest", "game_assets/data/enemies/chest.json");
 
+<<<<<<< HEAD
         this.load.spritesheet("ToadfishSprite", "game_assets/spritesheets/toadfish.json");
         this.load.object("toadfish", "game_assets/data/enemies/toadfish.json");
+=======
+        // Ocean end-level sprite (coral pipe -> main menu)
+        this.load.spritesheet("coral-pipe", "game_assets/spritesheets/coral-pipe.json");
+>>>>>>> 2c06d2aeae14abce14e62c279eec2fe7f06cda0e
     }
 
     
@@ -86,6 +98,18 @@ export default class OceanLevel extends SMScene {
     public getMusicPath(): string { return "game_assets/sounds/songs/water.mp3"; }
 
     protected initializeNPCs(): void {
+        console.log("spawned merchant");
+        let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
+        merchant.position.copy(this.MERCHANT_LOCATION);
+        let merchantShadow = this.add.sprite("generic-shadow", "shadow");
+        merchantShadow.position.set(this.MERCHANT_LOCATION.x - 4, this.MERCHANT_LOCATION.y + 13);
+        merchantShadow.scale.set(1.15, 1);
+        merchantShadow.alpha = 0.8;
+        merchantShadow.visible = true;
+
+        merchant.scale.set(0.25, 0.25);
+        merchant.animation.play("Idle", true);
+
         let chest = this.load.getObject("chest");
 
         for (let i = 0; i < chest.chests.length; i++) {
@@ -108,6 +132,16 @@ export default class OceanLevel extends SMScene {
 
             this.toadfish.push({sprite: fish, provoked: false, goingToHide: false});
 
+        }
+    }
+
+    public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
+
+    protected override setBuyItems(): void {
+        const oceanItemChoices = [7, 8, 9, 10];
+        for (let i = 0; i < 3; i++) {
+            const choice = oceanItemChoices[Math.floor(Math.random() * oceanItemChoices.length)];
+            this.dropOrChooseItem(new Vec2(0, 0), i, choice);
         }
     }
 
@@ -201,13 +235,19 @@ export default class OceanLevel extends SMScene {
     public getShopInventory(): Item[] { return []; }
     public getDropItemPool(): ItemKey[] { return []; }
 
-    public getEndLevelLocation(): Vec2 { return Vec2.ZERO; }
-    public getEndLevelLabel(): string { return ""; }
+    public getEndLevelLocation(): Vec2 { return this.END_LEVEL_LOCATION; }
+    public getEndLevelLabel(): string { return "[E] Return to Main Menu"; }
     public getEndLevelSprite(): EndLevelSpriteDef {
-        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "", closing: "" };
+        return {
+            spritesheetKey: "coral-pipe",
+            idleClosed: "IDLE_CLOSE",
+            opening: "OPEN",
+            idleOpen: "IDLE_OPEN",
+            closing: "CLOSE",
+        };
     }
 
-    public getNextLevel(): SceneCtor | null { return null; }
+    public getNextLevel(): SceneCtor | null { return MainMenu; }
 
     public override updateScene(deltaT: number): void {
         super.updateScene(deltaT);
