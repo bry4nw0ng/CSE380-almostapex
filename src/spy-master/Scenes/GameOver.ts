@@ -6,10 +6,12 @@ import { UIElementType } from "../../Wolfie2D/Nodes/UIElements/UIElementTypes";
 import Scene from "../../Wolfie2D/Scene/Scene";
 import Color from "../../Wolfie2D/Utils/Color";
 import MainMenu from "./MainMenu";
+import SMScene from "./SMScene";
 
 export default class GameOver extends Scene {
 
     startScene() {
+        SMScene.savedSnapshot = null;
         const center = this.viewport.getCenter();
 
         this.addUILayer("primary");
