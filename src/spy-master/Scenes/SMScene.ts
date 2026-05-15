@@ -76,6 +76,8 @@ import ShellSpecs from "../GameSystems/ItemSystem/Items/ShellSpecs";
 export const PLAYER_SNAPSHOT_INIT_KEY = "playerSnapshot";
 
 export default abstract class SMScene extends Scene {
+    public static savedSnapshot: PlayerSnapshot | null = null;
+
     protected battlers: (Battler & Actor & GameNode)[];
     protected healthbars: Map<Battler & Actor & GameNode, HealthbarHUD>;
     protected shadows: Map<Battler & Actor & GameNode, Sprite>;
@@ -235,6 +237,8 @@ export default abstract class SMScene extends Scene {
         super.initScene(init);
         if (init && init[PLAYER_SNAPSHOT_INIT_KEY]) {
             this.pendingSnapshot = init[PLAYER_SNAPSHOT_INIT_KEY] as PlayerSnapshot;
+        } else if (SMScene.savedSnapshot) {
+            this.pendingSnapshot = SMScene.savedSnapshot;
         }
     }
 
@@ -685,13 +689,16 @@ export default abstract class SMScene extends Scene {
     }
 
     protected applyPlayerSnapshot(player: PlayerActor, snapshot: PlayerSnapshot): void {
-        player.health = Math.min(snapshot.health, player.maxHealth);
+        player.health = player.maxHealth;
         player.crystals = snapshot.crystals;
         for (const entry of snapshot.equippables) {
             const item = this.makeItemFromKey(entry.key);
             if (item === null) continue;
             item.curStack = entry.stack;
             player.equip(item);
+            if (item instanceof DaNeedle) {
+                this.needle = item;
+            }
         }
     }
 
@@ -1512,9 +1519,11 @@ export default abstract class SMScene extends Scene {
                 if (Input.isJustPressed(AAControls.INTERACT) && this.bossDead) {
                     const next = this.getNextLevel();
                     if (next) {
+                        const snapshot = this.buildPlayerSnapshot();
+                        SMScene.savedSnapshot = snapshot;
                         this.emitter.fireEvent(GameEventType.STOP_SOUND, { key: this.getMusicKey() });
                         this.sceneManager.changeToScene(next, {
-                            [PLAYER_SNAPSHOT_INIT_KEY]: this.buildPlayerSnapshot(),
+                            [PLAYER_SNAPSHOT_INIT_KEY]: snapshot,
                         });
                     }
                 }
@@ -1559,7 +1568,7 @@ export default abstract class SMScene extends Scene {
             this.arrow.visible = false;
         }
 
-        if (this.bossDead && this.player.position.distanceTo(exitPos) > 100 && this.curBossDrop() == 200) {
+        if (this.bossDead && this.endLevelSprite && this.player.position.distanceTo(exitPos) > 100) {
             this.endArrow.update(deltaT, exitPos);
         }
         else {
