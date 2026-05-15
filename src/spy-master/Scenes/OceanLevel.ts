@@ -10,6 +10,7 @@ import { CheatEvent } from "../Events";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import CityLevel from "./CityLevel";
+import MainMenu from "./MainMenu";
 
 import {
     BossDef,
@@ -20,16 +21,25 @@ import {
     SceneCtor,
     WaveDef,
 } from "./LevelTypes";
+
 import SharkBehavior from "../AI/NPC/NPCBehavior/SharkBehavior";
 import PlayerActor from "../Actors/PlayerActor";
 import AnimatedSprite from "../../Wolfie2D/Nodes/Sprites/AnimatedSprite";
 import CrabBehavior from "../AI/NPC/NPCBehavior/CrabBehavior";
+import Timer from "../../Wolfie2D/Timing/Timer";
+import Antennas from "../GameSystems/ItemSystem/Items/Antennas";
 
 
 export default class OceanLevel extends SMScene {
 
+    protected toadfish: { sprite: AnimatedSprite, provoked: boolean, goingToHide: boolean}[];
+    private readonly MERCHANT_LOCATION = new Vec2(50, 500);
+    private readonly END_LEVEL_LOCATION = new Vec2(900, 1400);
+
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
+
+        this.toadfish = [];
     }
 
     public override loadScene(): void {
@@ -43,6 +53,11 @@ export default class OceanLevel extends SMScene {
 
         this.load.image("ChestSprite", "game_assets/sprites/chest.png");
         this.load.object("chest", "game_assets/data/enemies/chest.json");
+
+        this.load.spritesheet("ToadfishSprite", "game_assets/spritesheets/toadfish.json");
+        this.load.object("toadfish", "game_assets/data/enemies/toadfish.json");
+        // Ocean end-level sprite (coral pipe -> main menu)
+        this.load.spritesheet("coral-pipe", "game_assets/spritesheets/coral-pipe.json");
     }
 
     
@@ -53,7 +68,7 @@ export default class OceanLevel extends SMScene {
         this.sharkfin.scale.set(0.75,0.75);
         this.sharkfin.visible = false;
     }
-
+    
     public getLevelKey(): string { return "ocean"; }
 
     public getTilemapKey(): string { return "ocean"; }
@@ -78,6 +93,18 @@ export default class OceanLevel extends SMScene {
     public getMusicPath(): string { return "game_assets/sounds/songs/water.mp3"; }
 
     protected initializeNPCs(): void {
+        console.log("spawned merchant");
+        let merchant = this.add.animatedSprite(AnimatedSprite, "merchant", "primary");
+        merchant.position.copy(this.MERCHANT_LOCATION);
+        let merchantShadow = this.add.sprite("generic-shadow", "shadow");
+        merchantShadow.position.set(this.MERCHANT_LOCATION.x - 4, this.MERCHANT_LOCATION.y + 13);
+        merchantShadow.scale.set(1.15, 1);
+        merchantShadow.alpha = 0.8;
+        merchantShadow.visible = true;
+
+        merchant.scale.set(0.25, 0.25);
+        merchant.animation.play("Idle", true);
+
         let chest = this.load.getObject("chest");
 
         for (let i = 0; i < chest.chests.length; i++) {
@@ -87,6 +114,30 @@ export default class OceanLevel extends SMScene {
 
             this.treasure.push({sprite: treasure, stillCookin: true});
 
+        }
+
+        let toadfish = this.load.getObject("toadfish");
+
+
+        for (let i = 0; i < toadfish.toadfishes.length; i++) {
+            let fish = this.add.animatedSprite(AnimatedSprite, "ToadfishSprite", "shadow");
+            fish.alpha = 0.35;
+            fish.position.set(toadfish.toadfishes[i][0], toadfish.toadfishes[i][1]);
+            fish.scale.set(1.5, 1.5);
+            fish.animation.play("IDLE", true);
+
+            this.toadfish.push({sprite: fish, provoked: false, goingToHide: false});
+
+        }
+    }
+
+    public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
+
+    protected override setBuyItems(): void {
+        const oceanItemChoices = [7, 8, 9, 10, 11];
+        for (let i = 0; i < 3; i++) {
+            const choice = oceanItemChoices[Math.floor(Math.random() * oceanItemChoices.length)];
+            this.dropOrChooseItem(new Vec2(0, 0), i, choice);
         }
     }
 
@@ -175,18 +226,29 @@ export default class OceanLevel extends SMScene {
             crestKey: "WAVE_4",
             startSfx: "BOSS_SPAWNED",
         }
-    ]; }
+    ];}
 
     public getShopInventory(): Item[] { return []; }
     public getDropItemPool(): ItemKey[] { return []; }
 
-    public getEndLevelLocation(): Vec2 { return Vec2.ZERO; }
-    public getEndLevelLabel(): string { return ""; }
+    public getEndLevelLocation(): Vec2 { return this.END_LEVEL_LOCATION; }
+    public getEndLevelLabel(): string { return "[E] Return to Main Menu"; }
     public getEndLevelSprite(): EndLevelSpriteDef {
-        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "", closing: "" };
+        return {
+            spritesheetKey: "coral-pipe",
+            idleClosed: "IDLE_CLOSE",
+            opening: "OPEN",
+            idleOpen: "IDLE_OPEN",
+            closing: "CLOSE",
+        };
     }
 
-    public getNextLevel(): SceneCtor | null { return null; }
+    public getNextLevel(): SceneCtor | null { return MainMenu; }
+
+    public override updateScene(deltaT: number): void {
+        super.updateScene(deltaT);
+        this.handleToadFish();
+    }
 
     protected override handleLevelEvent(event: GameEvent): boolean {
         switch(event.type) {
@@ -218,6 +280,46 @@ export default class OceanLevel extends SMScene {
         if (!opened) {
             this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "UNPICKUPPABLE", loop: false, holdReference: false });
         }
+    }
+
+    protected handleToadFish(): void {
+        this.toadfish.forEach((toadfish) => {
+            let curDist = this.player.position.distanceTo(toadfish.sprite.position);
+            if (!toadfish.provoked && curDist < 40) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TOADBITE", loop: false, holdReference: false});
+                toadfish.provoked = true;
+                toadfish.goingToHide = false;
+                toadfish.sprite.alpha = 1;
+                toadfish.sprite.animation.play("RISING", false);
+                toadfish.sprite.animation.queue("ATTACK", true);
+                if (this.CHEATINVINCIBLE) return;
+                const antennas = this.player.equippables.find((equippable) => equippable instanceof Antennas);
+                if (antennas) {
+                    if (antennas.curStack > 1) {
+                        antennas.curStack -= 1;
+                    }
+                    else {
+                        this.player.equippables.remove(antennas.id);
+                        antennas.visible = false;
+                    }
+                    this.player.startIFrames();
+                }
+                else {
+                    this.player.health = this.player.health - 6 * this.player.damageReduction;
+                    this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "HURT", loop: false, holdReference: false });
+                    this.player.animation.play("DAMAGE", false);
+                    this.player.startIFrames();
+                }
+            }
+            else if (toadfish.provoked && !toadfish.goingToHide && curDist >= 50) {
+                toadfish.goingToHide = true;
+                toadfish.sprite.animation.play("BACK", false);
+                toadfish.sprite.animation.queue("IDLE", true); 
+                toadfish.provoked = false;
+                toadfish.goingToHide = false;
+                toadfish.sprite.alpha = 0.35;
+            }        
+        });
     }
 }
 

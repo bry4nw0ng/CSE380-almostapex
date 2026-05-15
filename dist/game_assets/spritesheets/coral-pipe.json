@@ -1,0 +1,10 @@
+{"name":"coral-pipe",
+"spriteSheetImage":"coral-pipe.png",
+"spriteWidth":64,"spriteHeight":64,"leftBuffer":0,"rightBuffer":0,"topBuffer":0,"bottomBuffer":0,"columns":1,"rows":1,
+"durationType": "time",
+"animations":[
+    {"name":"OPEN","repeat":false,"frames":[{"index":0,"duration":10}]},
+    {"name":"CLOSE","repeat":false,"frames":[{"index":0,"duration":10}]},
+    {"name":"IDLE_OPEN","repeat":true,"frames":[{"index":0,"duration":10}]},
+    {"name":"IDLE_CLOSE","repeat":true,"frames":[{"index":0,"duration":10}]}
+]}

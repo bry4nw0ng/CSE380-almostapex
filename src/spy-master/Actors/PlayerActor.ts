@@ -29,6 +29,8 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
 
     protected _crystals: number;
 
+    protected _speedBoost: number;
+
     //Buffs
     protected _damageReduction: number;
     protected _damageIncrease: number;
@@ -66,6 +68,7 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
         this._shotSpeed = 1;
         this._fireRate = 1;
         this._luck = 1;
+        this._speedBoost = 1;
         this._invincible = false;
         this._isCoolingDown = false;
         this._isWeaponTired = false;
@@ -139,6 +142,13 @@ export default class PlayerActor extends AnimatedSprite implements Battler {
     }
     set speed(value: number) {
         this.battler.speed = value;
+    }
+    
+    get speedBoost(): number {
+        return this._speedBoost;
+    }
+    set speedBoost(value: number) {
+        this._speedBoost = value;
     }
     get inventory(): Inventory {
         return this.battler.inventory;

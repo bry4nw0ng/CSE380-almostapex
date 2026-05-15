@@ -7,6 +7,7 @@ import Sprite from "../../../Wolfie2D/Nodes/Sprites/Sprite";
 import Updateable from "../../../Wolfie2D/DataTypes/Interfaces/Updateable";
 import Item from "../ItemSystem/Item";
 import Inventory from "../ItemSystem/Inventory";
+import MathUtils from "../../../Wolfie2D/Utils/MathUtils";
 
 interface RelicTrayOptions {
     position: Vec2;
@@ -194,7 +195,10 @@ export default class RelicTrayHUD implements Updateable {
         this.tooltip.visible = tooltipVisible;
         if (tooltipVisible) {
             this.tooltip.text = tooltipText;
-            this.tooltip.position.copy(tooltipPos);
+            //this.tooltip.position.copy(tooltipPos);
+            this.tooltip.size.set(tooltipText.length * 10 + 20, 36);
+            let fixedX = MathUtils.clamp(tooltipPos.x, this.tooltip.size.x / 2, 550 - this.tooltip.size.x / 2);
+            this.tooltip.position.set(fixedX, tooltipPos.y);
         }
     }
 }

@@ -15,7 +15,7 @@ export default class ShellSpecs extends Item {
         this._description = "Increases Spitball Velocity by 20%";
         this._shotSpeed = 1.2;
         this.value = 300;
-        this.equippableOffset = new Vec2(11, 5);
+        this.equippableOffset = new Vec2(8, 2);
         this._maxStack = 10;
     }
 

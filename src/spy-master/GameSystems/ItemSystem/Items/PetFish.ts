@@ -1,26 +1,24 @@
 import Vec2 from "../../../../Wolfie2D/DataTypes/Vec2";
 import Sprite from "../../../../Wolfie2D/Nodes/Sprites/Sprite";
+import SMScene from "../../../Scenes/SMScene";
 import Item from "../Item";
 import PlayerActor from "../../../Actors/PlayerActor";
-import { AbilityEvent } from "../../../Events";
 
-//Gives ability to dive underwater and become invinicble for a time
-//BOSS ITEM
-export default class Sharkfin extends Item {
+export default class PetFish extends Item {
     
     protected _speedBoost: number;
 
     public constructor(sprite: Sprite) {
         super(sprite);
-        this._speedBoost = 1.1;
-        this._isAbility = true;
-        this._description = "Dive Ability + 10% speed";
-        this._cooldownDuration = 15000;
-        this.equippableOffset = new Vec2(-10, -4);
-        this.value = 3000;
+        this._isPassive = true;
+        this._description = "Increase Player Speed by 15%";
+        this._speedBoost = 1.15;
+        this.value = 400;
+        this.equippableOffset = new Vec2(18, -8);
+        this._maxStack = 10;
     }
 
-    public get speedBoost(): number { return this._speedBoost;}
+    public get speedBoost(): number { return this._speedBoost; }
     public set speedBoost(boost: number) { this._speedBoost = boost; }
 
     public override applyBuff(player: PlayerActor) {
@@ -28,9 +26,5 @@ export default class Sharkfin extends Item {
     }
     public override removeBuff(player: PlayerActor) {
         player.speedBoost /= this._speedBoost;
-    }
-
-    public override useAbility(player: PlayerActor): void {
-        this.emitter.fireEvent(AbilityEvent.SHARK_FIN);
     }
 }

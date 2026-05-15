@@ -2,15 +2,15 @@ import Vec2 from "../../Wolfie2D/DataTypes/Vec2";
 import AABB from "../../Wolfie2D/DataTypes/Shapes/AABB";
 import NPCBehavior from "../AI/NPC/NPCBehavior";
 import Item from "../GameSystems/ItemSystem/Item";
-import type SMScene from "./SMScene";
+import type Scene from "../../Wolfie2D/Scene/Scene";
 
 export type ItemKey =
-    | "Shield" | "RedHat" | "JetPack" | "Healthpack"
+    | "Shield" | "RedHat" | "JetPack" | "Healthpack" | "PetFish"
     | "Gum" | "DaNeedle" | "Antennas" | "RaccoonTail" | "Coral" | "SlimeStorage" | "ShellSpecs" | "Kelpstache" | "Sharkfin" | "Crystal";
 
 export type BehaviorCtor = new (...args: any[]) => NPCBehavior;
 
-export type SceneCtor = new (...args: any[]) => SMScene;
+export type SceneCtor = new (...args: any[]) => Scene;
 
 export interface ShadowConfig {
     offset: Vec2;

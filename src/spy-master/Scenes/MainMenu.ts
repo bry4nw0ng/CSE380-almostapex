@@ -25,6 +25,36 @@ import Rect from "../../Wolfie2D/Nodes/Graphics/Rect";
 import { TweenableProperties } from "../../Wolfie2D/Nodes/GameNode";
 import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import EndArrow from "../GameSystems/HUD/NextLevelArrow";
+import SMScene from "./SMScene";
+import { ItemKey } from "./LevelTypes";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
+
+interface ItemVisual {
+    asset: string;
+    path: string;
+    offset: Vec2;
+    scale?: Vec2;
+    rotation?: number;
+}
+
+// Mirrors the equippableOffset / scale / rotation set in each Item subclass.
+// Used to render the player's carried items on the main menu after they
+// return via the ocean coral pipe.
+const ITEM_VISUALS: Partial<Record<ItemKey, ItemVisual>> = {
+    Shield:       { asset: "Shield",       path: "game_assets/sprites/cardboard-shield.png",   offset: new Vec2(12, 7) },
+    RedHat:       { asset: "RedHat",       path: "game_assets/sprites/red-hat.png",            offset: new Vec2(6, 0) },
+    JetPack:      { asset: "JetPack",      path: "game_assets/sprites/cokepack.png",           offset: new Vec2(-12, 6) },
+    Gum:          { asset: "Gum",          path: "game_assets/sprites/used-gum.png",           offset: new Vec2(3, 4) },
+    DaNeedle:     { asset: "DaNeedle",     path: "game_assets/sprites/da-needle.png",          offset: new Vec2(20, 10), scale: new Vec2(2, 2), rotation: -1 * Math.PI / 1.8},
+    Antennas:     { asset: "Antennas",     path: "game_assets/sprites/cockroach-antennas.png", offset: new Vec2(5, -6) },
+    RaccoonTail:  { asset: "RaccoonTail",  path: "game_assets/sprites/raccoon-tail.png",       offset: new Vec2(-28, 5) },
+    Coral:        { asset: "Coral",        path: "game_assets/sprites/horn-coral.png",         offset: new Vec2(-15, 4), scale: new Vec2(0.75, 0.75) },
+    SlimeStorage: { asset: "SlimeStorage", path: "game_assets/sprites/slime-storage.png",      offset: new Vec2(-7, 7),  scale: new Vec2(0.75, 0.75) },
+    ShellSpecs:   { asset: "ShellSpecs",   path: "game_assets/sprites/shell-specs.png",        offset: new Vec2(8, 2) },
+    Sharkfin:     { asset: "Sharkfin",     path: "game_assets/sprites/shark-fin.png",          offset: new Vec2(-10, -4), scale: new Vec2(0.5, 0.5), rotation: Math.PI / 8 },
+    Kelpstache:   { asset: "Kelpstache",   path: "game_assets/sprites/kelpstache.png",         offset: new Vec2(12, 7) },
+    PetFish:   { asset: "PetFish",   path: "game_assets/sprites/pet-fish.png",        offset: new Vec2(18, -8) },
+};
 
 const Zones = {
     WALL_MAP:   "zone_map",
@@ -91,6 +121,8 @@ export default class MainMenu extends Scene {
 
     private playerShadow: Sprite;
 
+    private carriedItemSprites: { sprite: Sprite; offset: Vec2 }[] = [];
+
     private fadeOverlay: Rect;
     
     private readonly CLOSE_POS = new Vec2(55, 55); // top-left of popup
@@ -125,6 +157,11 @@ export default class MainMenu extends Scene {
         this.load.image("endArrowSprite", "game_assets/sprites/level-trans-arrow.png");
 
         this.load.audio("MENU", "game_assets/sounds/songs/home-cleaned.mp3");
+
+        for (const key of Object.keys(ITEM_VISUALS) as ItemKey[]) {
+            const visual = ITEM_VISUALS[key];
+            if (visual) this.load.image(visual.asset, visual.path);
+        }
     }
 
     public startScene(): void {
@@ -138,6 +175,7 @@ export default class MainMenu extends Scene {
         this.addLayer("home", 1);
         this.addLayer("shadow", 2);
         this.addLayer("player", 3);
+        this.addLayer("menu-equippables", 4);
         this.addLayer("debug", 4);
         this.addLayer("arrowLayer", 5);
         this.addLayer("fade", 10);
@@ -212,6 +250,8 @@ export default class MainMenu extends Scene {
         this.playerShadow.scale.set(2.5, 2);
         this.playerShadow.alpha = 0.6;
         this.playerShadow.visible = true;
+
+        this.spawnCarriedItems();
 
         this.viewport.setCenter(center.x, center.y);
         this.viewport.setZoomLevel(2);
@@ -450,6 +490,7 @@ export default class MainMenu extends Scene {
 
         this.playerShadow.position.set(this.player.position.x + 12, this.player.position.y + 26);
         this.constrainPlayerToFloor();
+        this.updateCarriedItemPositions();
         this.checkZoneProximity();
 
         if (this.tableArrow) {
@@ -519,6 +560,36 @@ export default class MainMenu extends Scene {
         }
         this.helpNext.visible = page < this.helpPages.length - 1;
         this.helpPrev.visible = page > 0;
+    }
+
+    private spawnCarriedItems(): void {
+        //this._needle.rotation = -1 * Math.PI / 1.8;
+        const snapshot = SMScene.savedSnapshot;
+        if (!snapshot) return;
+        const seen = new Set<ItemKey>();
+        for (const entry of snapshot.equippables) {
+            if (seen.has(entry.key)) continue;
+            seen.add(entry.key);
+            const visual = ITEM_VISUALS[entry.key];
+            if (!visual) continue;
+            const sprite = this.add.sprite(visual.asset, "menu-equippables");
+            sprite.scale.copy(visual.scale ?? new Vec2(1, 1));
+            sprite.rotation = visual.rotation ?? 0;
+            sprite.scale.scale(2);
+            this.carriedItemSprites.push({ sprite, offset: visual.offset });
+        }
+    }
+
+    private updateCarriedItemPositions(): void {
+        if (this.carriedItemSprites.length === 0) return;
+        const facingSign = this.player.invertX ? -1 : 1;
+        for (const { sprite, offset } of this.carriedItemSprites) {
+            sprite.invertX = this.player.invertX;
+            sprite.position.set(
+                this.player.position.x + offset.x * facingSign * 2,
+                this.player.position.y + offset.y * 2,
+            );
+        }
     }
 
     // box player in

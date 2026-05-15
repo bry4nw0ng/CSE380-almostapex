@@ -160,7 +160,7 @@ export default class PlayerController extends StateMachineAI implements AI{
             this.owner.invertX = true;
         }
 
-        if (Input.isJustPressed(AAControls.PICKUP_ITEM)) {
+        if (Input.isPressed(AAControls.PICKUP_ITEM)) {
             this.emitter.fireEvent(ItemEvent.ITEM_REQUEST, {player: this.owner, inventory: this.owner.equippables });
         }
         if (Input.isJustPressed(AAControls.MEELEE)) {
@@ -176,7 +176,6 @@ export default class PlayerController extends StateMachineAI implements AI{
             if (!(this.scene instanceof SMScene)) {
                 return;
             }
-            console.log("SHOOT");
             if (!(this.owner.isWeaponTired)) {
                 let aim = this.faceDir;
                 this.scene.spawnSpitball(this.owner.position.clone(), aim);
@@ -289,5 +288,8 @@ export default class PlayerController extends StateMachineAI implements AI{
 
 }
 
+    public getOwner(): PlayerActor {
+        return this.owner;
+    }
 
 }
