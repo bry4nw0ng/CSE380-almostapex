@@ -72,6 +72,7 @@ import {
 } from "./LevelTypes";
 import SlimeStorage from "../GameSystems/ItemSystem/Items/SlimeStorage";
 import ShellSpecs from "../GameSystems/ItemSystem/Items/ShellSpecs";
+import PetFish from "../GameSystems/ItemSystem/Items/PetFish";
 
 export const PLAYER_SNAPSHOT_INIT_KEY = "playerSnapshot";
 
@@ -249,7 +250,7 @@ export default abstract class SMScene extends Scene {
         if (this.player.sharkfinActive) {
             return;
         }
-        const spitball = this.add.sprite("spitball", "primary");
+        const spitball = this.add.sprite("spitball", "shadow");
         spitball.position.set(position.x, position.y);
         spitball.scale.set(this.player.shotSize, this.player.shotSize);
         this.emitter.fireEvent(GameEventType.PLAY_SFX, { key: "SPITBALL", loop: false, holdReference: false });
@@ -570,6 +571,10 @@ export default abstract class SMScene extends Scene {
                 sprite = this.add.sprite("ShellSpecs", "equippables");
                 newOb = new ShellSpecs(sprite);
                 break;
+            case 11:
+                sprite = this.add.sprite("PetFish", "equippables");
+                newOb = new PetFish(sprite);
+                break;
             //Make sure random never reaches the boss items, just for drop mechanics
             case 100:
                 sprite = this.add.sprite("Sharkfin", "equippables");
@@ -645,6 +650,9 @@ export default abstract class SMScene extends Scene {
             case "ShellSpecs":
                 sprite = this.add.sprite("ShellSpecs", "equippables");
                 return new ShellSpecs(sprite);
+            case "PetFish":
+                sprite = this.add.sprite("PetFish", "equippables");
+                return new PetFish(sprite);
             case "Sharkfin":
                 sprite = this.add.sprite("Sharkfin", "equippables");
                 sprite.rotation = Math.PI / 8;
@@ -669,6 +677,7 @@ export default abstract class SMScene extends Scene {
         if (item instanceof Coral) return "Coral";
         if (item instanceof SlimeStorage) return "SlimeStorage";
         if (item instanceof ShellSpecs) return "ShellSpecs";
+        if (item instanceof PetFish) return "PetFish";
         if (item instanceof Sharkfin) return "Sharkfin";
         if (item instanceof Kelpstache) return "Kelpstache";
         return null;
@@ -699,6 +708,9 @@ export default abstract class SMScene extends Scene {
             player.equip(item);
             if (item instanceof DaNeedle) {
                 this.needle = item;
+            }
+            for (let i = 1; i < entry.stack; i++) {
+                item.applyBuff(player);
             }
         }
     }
@@ -1131,7 +1143,7 @@ export default abstract class SMScene extends Scene {
         const def = this.getBoss();
         if (!def) return;
 
-        const boss = this.add.animatedSprite(NPCActor, def.spritesheetKey, "primary");
+        const boss = this.add.animatedSprite(NPCActor, def.spritesheetKey, "arrowLayer");
         boss.position.copy(def.spawnPosition);
         boss.addPhysics(def.hitbox, null, false);
         boss.scale.copy(def.scale);
@@ -1447,7 +1459,7 @@ export default abstract class SMScene extends Scene {
             position: new Vec2(115, 50),
             size: new Vec2(400, 60),
             iconSize: 25,
-            padding: 8,
+            padding: 6,
         });
 
         this.actionSlots = new ActionSlotsHUD(this, "hud", player.equippables, player.abilities, {
@@ -1469,6 +1481,8 @@ export default abstract class SMScene extends Scene {
 
         if (this.pendingSnapshot !== null) {
             this.applyPlayerSnapshot(player, this.pendingSnapshot);
+            console.log("speedBoost after snapshot:", player.speedBoost);
+console.log("equippables count:", [...player.equippables.items()].length);
             this.pendingSnapshot = null;
         }
 
@@ -1510,14 +1524,14 @@ export default abstract class SMScene extends Scene {
         const exitPos = this.getEndLevelLocation();
         const exitSpec = this.getEndLevelSprite();
         if (this.endLevelSprite) {
-            if (this.player.position.distanceTo(exitPos) < 30) {
+            if (this.player.position.distanceTo(exitPos) < 30 && this.bossDead) {
                 this.elZoneLabel.visible = true;
                 if (!this.endLevelSprite.animation.isPlaying(exitSpec.opening) &&
                     !this.endLevelSprite.animation.isPlaying(exitSpec.idleOpen)) {
                     this.endLevelSprite.animation.playIfNotAlready(exitSpec.opening, false);
                     this.endLevelSprite.animation.queue(exitSpec.idleOpen, true);
                 }
-                if (Input.isJustPressed(AAControls.INTERACT) && this.bossDead) {
+                if (Input.isJustPressed(AAControls.INTERACT)) {
                     const next = this.getNextLevel();
                     if (next) {
                         const snapshot = this.buildPlayerSnapshot();
@@ -1709,6 +1723,7 @@ export default abstract class SMScene extends Scene {
         this.load.image("Kelpstache", "game_assets/sprites/kelpstache.png");
         this.load.image("SlimeStorage", "game_assets/sprites/slime-storage.png");
         this.load.image("ShellSpecs", "game_assets/sprites/shell-specs.png");
+        this.load.image("PetFish", "game_assets/sprites/pet-fish.png");
 
         this.load.image("Crystal", "game_assets/sprites/crystal.png");
 
@@ -1761,6 +1776,7 @@ export default abstract class SMScene extends Scene {
         this.load.audio("BUBBLES", "game_assets/sounds/bubbles.wav");
         this.load.audio("CHARGING", "game_assets/sounds/charging.wav");
         this.load.audio("DIVING", "game_assets/sounds/diving.wav");
+        this.load.audio("TOADBITE", "game_assets/sounds/toadbite.wav");
     }
 
     /**
@@ -1776,7 +1792,7 @@ export default abstract class SMScene extends Scene {
     protected initLevelEnd(): void {
         const spec = this.getEndLevelSprite();
         if (!spec.spritesheetKey) return;
-        const sprite = this.add.animatedSprite(AnimatedSprite, spec.spritesheetKey, "primary");
+        const sprite = this.add.animatedSprite(AnimatedSprite, spec.spritesheetKey, "shadow");
         sprite.position.copy(this.getEndLevelLocation());
         this.endLevelSprite = sprite;
         sprite.animation.play(spec.idleClosed, true);
@@ -1883,6 +1899,7 @@ export default abstract class SMScene extends Scene {
             position: new Vec2(256, 275),
             text: this.getEndLevelLabel(),
         });
+
         this.elZoneLabel.textColor = Color.WHITE;
         this.elZoneLabel.fontSize = 24;
         this.elZoneLabel.visible = false;
@@ -2115,7 +2132,7 @@ export default abstract class SMScene extends Scene {
                     this.dropOrChooseItem(deathSpot, 999, null);
                 }
                 else if (this.curBossDrop() == 100) {
-                    this.dropOrChooseItem(deathSpot, 999, Math.floor(Math.random() * 11));
+                    this.dropOrChooseItem(deathSpot, 999, Math.floor(Math.random() * 12));
                 }
                 console.log("Item dropped!");
             }
@@ -2196,75 +2213,97 @@ export default abstract class SMScene extends Scene {
 
     public cheatGiveItems(): void {
         const playerAt = this.player.position;
+        const moveIncr = Math.PI / 7;
+        let angle = 0;
+        const radius = 70
 
         const shieldSprite = this.add.sprite("Shield", "equippables");
         const shield = new Shield(shieldSprite);
-        shield.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 100));
+        shield.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(shield);
 
         const redHatSprite = this.add.sprite("RedHat", "equippables");
         const redHat = new RedHat(redHatSprite);
-        redHat.position.copy(new Vec2(playerAt.x - 100, playerAt.y + 100));
+        redHat.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(redHat);
 
         const raccoonTailSprite = this.add.sprite("RaccoonTail", "equippables");
         const raccoonTail = new RaccoonTail(raccoonTailSprite);
-        raccoonTail.position.copy(new Vec2(playerAt.x + 100, playerAt.y - 100));
+        raccoonTail.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(raccoonTail);
 
         const jetPackSprite = this.add.sprite("JetPack", "equippables");
         const jetPack = new JetPack(jetPackSprite);
-        jetPack.position.copy(new Vec2(playerAt.x, playerAt.y + 100));
+        jetPack.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(jetPack);
 
         const healthPackSprite = this.add.sprite("healthpack", "equippables");
         const healthPack = new Healthpack(healthPackSprite);
-        healthPack.position.copy(new Vec2(playerAt.x + 100, playerAt.y));
+        healthPack.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(healthPack);
 
         const gumSprite = this.add.sprite("Gum", "equippables");
         const gum = new Gum(gumSprite);
-        gum.position.copy(new Vec2(playerAt.x + 100, playerAt.y + 200));
+        gum.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(gum);
 
         const daNeedleSprite = this.add.sprite("DaNeedle", "equippables");
         const daNeedle = new DaNeedle(daNeedleSprite);
-        daNeedle.position.copy(new Vec2(playerAt.x + 200, playerAt.y + 100));
+        daNeedle.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(daNeedle);
 
         const antennaSprite = this.add.sprite("Antennas", "equippables");
         const antennas = new Antennas(antennaSprite);
-        antennas.position.copy(new Vec2(playerAt.x - 100, playerAt.y - 100));
+        antennas.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(antennas);
 
         let coralSprite = this.add.sprite("Coral", "equippables");
         coralSprite.scale.set(0.75, 0.75);
         let coral = new Coral(coralSprite);
-        coral.position.copy(new Vec2(playerAt.x + 200, playerAt.y - 100));
+        coral.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(coral);
 
         let sharkfinSprite = this.add.sprite("Sharkfin", "equippables");
         sharkfinSprite.rotation = Math.PI / 8;
         sharkfinSprite.scale.set(0.5, 0.5);
         let sharkfin = new Sharkfin(sharkfinSprite);
-        sharkfin.position.copy(new Vec2(playerAt.x - 200, playerAt.y + 100));
+        sharkfin.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(sharkfin);
 
         let kelpstacheSprite = this.add.sprite("Kelpstache", "equippables");
         let kelpstache = new Kelpstache(kelpstacheSprite);
-        kelpstache.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 100));
+        kelpstache.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(kelpstache);
 
         let slimeStorageSprite = this.add.sprite("SlimeStorage", "equippables");
         let slimeStorage = new SlimeStorage(slimeStorageSprite);
         slimeStorageSprite.scale.set(0.75, 0.75);
-        slimeStorage.position.copy(new Vec2(playerAt.x, playerAt.y - 100));
+        slimeStorage.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(slimeStorage);
 
         let shellSpecsSprite = this.add.sprite("ShellSpecs", "equippables");
         let shellSpecs = new ShellSpecs(shellSpecsSprite);
-        shellSpecs.position.copy(new Vec2(playerAt.x - 200, playerAt.y - 200));
+        shellSpecs.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
         this.sceneEquippables.push(shellSpecs);
+
+        let petFishSprite = this.add.sprite("PetFish", "equippables");
+        let petFish = new PetFish(petFishSprite);
+        petFish.position.copy(new Vec2(playerAt.x + radius * Math.cos(angle), playerAt.y + radius * Math.sin(angle)));
+        angle += moveIncr;
+        this.sceneEquippables.push(petFish);
     }
 
     /**

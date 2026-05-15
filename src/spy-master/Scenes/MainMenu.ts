@@ -27,6 +27,7 @@ import { EaseFunctionType } from "../../Wolfie2D/Utils/EaseFunctions";
 import EndArrow from "../GameSystems/HUD/NextLevelArrow";
 import SMScene from "./SMScene";
 import { ItemKey } from "./LevelTypes";
+import DaNeedle from "../GameSystems/ItemSystem/Items/DaNeedle";
 
 interface ItemVisual {
     asset: string;
@@ -44,14 +45,15 @@ const ITEM_VISUALS: Partial<Record<ItemKey, ItemVisual>> = {
     RedHat:       { asset: "RedHat",       path: "game_assets/sprites/red-hat.png",            offset: new Vec2(6, 0) },
     JetPack:      { asset: "JetPack",      path: "game_assets/sprites/cokepack.png",           offset: new Vec2(-12, 6) },
     Gum:          { asset: "Gum",          path: "game_assets/sprites/used-gum.png",           offset: new Vec2(3, 4) },
-    DaNeedle:     { asset: "DaNeedle",     path: "game_assets/sprites/da-needle.png",          offset: new Vec2(20, 10) },
+    DaNeedle:     { asset: "DaNeedle",     path: "game_assets/sprites/da-needle.png",          offset: new Vec2(20, 10), scale: new Vec2(2, 2), rotation: -1 * Math.PI / 1.8},
     Antennas:     { asset: "Antennas",     path: "game_assets/sprites/cockroach-antennas.png", offset: new Vec2(5, -6) },
     RaccoonTail:  { asset: "RaccoonTail",  path: "game_assets/sprites/raccoon-tail.png",       offset: new Vec2(-28, 5) },
     Coral:        { asset: "Coral",        path: "game_assets/sprites/horn-coral.png",         offset: new Vec2(-15, 4), scale: new Vec2(0.75, 0.75) },
     SlimeStorage: { asset: "SlimeStorage", path: "game_assets/sprites/slime-storage.png",      offset: new Vec2(-7, 7),  scale: new Vec2(0.75, 0.75) },
-    ShellSpecs:   { asset: "ShellSpecs",   path: "game_assets/sprites/shell-specs.png",        offset: new Vec2(11, 5) },
+    ShellSpecs:   { asset: "ShellSpecs",   path: "game_assets/sprites/shell-specs.png",        offset: new Vec2(8, 2) },
     Sharkfin:     { asset: "Sharkfin",     path: "game_assets/sprites/shark-fin.png",          offset: new Vec2(-10, -4), scale: new Vec2(0.5, 0.5), rotation: Math.PI / 8 },
     Kelpstache:   { asset: "Kelpstache",   path: "game_assets/sprites/kelpstache.png",         offset: new Vec2(12, 7) },
+    PetFish:   { asset: "PetFish",   path: "game_assets/sprites/pet-fish.png",        offset: new Vec2(18, -8) },
 };
 
 const Zones = {
@@ -561,6 +563,7 @@ export default class MainMenu extends Scene {
     }
 
     private spawnCarriedItems(): void {
+        //this._needle.rotation = -1 * Math.PI / 1.8;
         const snapshot = SMScene.savedSnapshot;
         if (!snapshot) return;
         const seen = new Set<ItemKey>();

@@ -118,6 +118,7 @@ export default class OceanLevel extends SMScene {
 
         let toadfish = this.load.getObject("toadfish");
 
+
         for (let i = 0; i < toadfish.toadfishes.length; i++) {
             let fish = this.add.animatedSprite(AnimatedSprite, "ToadfishSprite", "shadow");
             fish.alpha = 0.35;
@@ -133,7 +134,7 @@ export default class OceanLevel extends SMScene {
     public override getMerchantPosition(): Vec2 { return this.MERCHANT_LOCATION; }
 
     protected override setBuyItems(): void {
-        const oceanItemChoices = [7, 8, 9, 10];
+        const oceanItemChoices = [7, 8, 9, 10, 11];
         for (let i = 0; i < 3; i++) {
             const choice = oceanItemChoices[Math.floor(Math.random() * oceanItemChoices.length)];
             this.dropOrChooseItem(new Vec2(0, 0), i, choice);
@@ -225,7 +226,7 @@ export default class OceanLevel extends SMScene {
             crestKey: "WAVE_4",
             startSfx: "BOSS_SPAWNED",
         }
-    ]; }
+    ];}
 
     public getShopInventory(): Item[] { return []; }
     public getDropItemPool(): ItemKey[] { return []; }
@@ -284,7 +285,8 @@ export default class OceanLevel extends SMScene {
     protected handleToadFish(): void {
         this.toadfish.forEach((toadfish) => {
             let curDist = this.player.position.distanceTo(toadfish.sprite.position);
-            if (!toadfish.provoked && curDist < 50) {
+            if (!toadfish.provoked && curDist < 40) {
+                this.emitter.fireEvent(GameEventType.PLAY_SFX, {key: "TOADBITE", loop: false, holdReference: false});
                 toadfish.provoked = true;
                 toadfish.goingToHide = false;
                 toadfish.sprite.alpha = 1;
@@ -308,17 +310,16 @@ export default class OceanLevel extends SMScene {
                     this.player.animation.play("DAMAGE", false);
                     this.player.startIFrames();
                 }
-        }
-        else if (toadfish.provoked && !toadfish.goingToHide && curDist >= 50) {
-            toadfish.goingToHide = true;
-            toadfish.sprite.animation.play("BACK", false);
-            toadfish.sprite.animation.queue("IDLE", true); 
-            toadfish.provoked = false;
-            toadfish.goingToHide = false;
-            toadfish.sprite.alpha = 0.35;
-        }        
-    });
-        
+            }
+            else if (toadfish.provoked && !toadfish.goingToHide && curDist >= 50) {
+                toadfish.goingToHide = true;
+                toadfish.sprite.animation.play("BACK", false);
+                toadfish.sprite.animation.queue("IDLE", true); 
+                toadfish.provoked = false;
+                toadfish.goingToHide = false;
+                toadfish.sprite.alpha = 0.35;
+            }        
+        });
     }
 }
 
