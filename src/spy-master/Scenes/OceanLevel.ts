@@ -10,6 +10,7 @@ import { CheatEvent } from "../Events";
 import { GameEventType } from "../../Wolfie2D/Events/GameEventType";
 import GameEvent from "../../Wolfie2D/Events/GameEvent";
 import CityLevel from "./CityLevel";
+import MainMenu from "./MainMenu";
 
 import {
     BossDef,
@@ -29,6 +30,7 @@ import CrabBehavior from "../AI/NPC/NPCBehavior/CrabBehavior";
 export default class OceanLevel extends SMScene {
 
     private readonly MERCHANT_LOCATION = new Vec2(50, 500);
+    private readonly END_LEVEL_LOCATION = new Vec2(900, 1400);
 
     public constructor(viewport: Viewport, sceneManager: SceneManager, renderingManager: RenderingManager, options: Record<string, any>) {
         super(viewport, sceneManager, renderingManager, options);
@@ -45,6 +47,9 @@ export default class OceanLevel extends SMScene {
 
         this.load.image("ChestSprite", "game_assets/sprites/chest.png");
         this.load.object("chest", "game_assets/data/enemies/chest.json");
+
+        // Ocean end-level sprite (coral pipe -> main menu)
+        this.load.spritesheet("coral-pipe", "game_assets/spritesheets/coral-pipe.json");
     }
 
     
@@ -204,13 +209,19 @@ export default class OceanLevel extends SMScene {
     public getShopInventory(): Item[] { return []; }
     public getDropItemPool(): ItemKey[] { return []; }
 
-    public getEndLevelLocation(): Vec2 { return Vec2.ZERO; }
-    public getEndLevelLabel(): string { return ""; }
+    public getEndLevelLocation(): Vec2 { return this.END_LEVEL_LOCATION; }
+    public getEndLevelLabel(): string { return "[E] Return to Main Menu"; }
     public getEndLevelSprite(): EndLevelSpriteDef {
-        return { spritesheetKey: "", idleClosed: "", opening: "", idleOpen: "", closing: "" };
+        return {
+            spritesheetKey: "coral-pipe",
+            idleClosed: "IDLE_CLOSE",
+            opening: "OPEN",
+            idleOpen: "IDLE_OPEN",
+            closing: "CLOSE",
+        };
     }
 
-    public getNextLevel(): SceneCtor | null { return null; }
+    public getNextLevel(): SceneCtor | null { return MainMenu; }
 
     protected override handleLevelEvent(event: GameEvent): boolean {
         switch(event.type) {
